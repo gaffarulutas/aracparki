@@ -3,13 +3,15 @@
 
   const {
     escapeHtml,
-    formatPrice,
+    escapeAttr,
     formatHours,
     formatTons,
     formatHp,
     badgeLabel,
     getListing,
     buildListUrl,
+    showToast,
+    priceHtml,
     STORAGE_RECENT,
     loadJson,
     saveJson,
@@ -21,17 +23,6 @@
   const root = document.getElementById("detail-root");
 
   let recent = loadJson(STORAGE_RECENT, []);
-
-  const showToast = (msg) => {
-    const toast = document.getElementById("toast");
-    if (!toast) return;
-    toast.hidden = false;
-    toast.textContent = msg;
-    clearTimeout(showToast._t);
-    showToast._t = setTimeout(() => {
-      toast.hidden = true;
-    }, 2200);
-  };
 
   const trackRecent = (listingId) => {
     const num = Number(listingId);
@@ -55,24 +46,31 @@
 
   const descMeta = document.querySelector('meta[name="description"]');
   if (descMeta) {
-    descMeta.setAttribute(
-      "content",
-      `${listing.title} — ${listing.year}, ${listing.hours} saat, ${listing.city}. ${listing.priceUnit ? "Kiralık" : "Satılık"} iş makinesi ilanı.`
-    );
+    const desc = `${listing.title} — ${listing.year}, ${listing.hours} saat, ${listing.city}. ${listing.priceUnit ? "Kiralık" : "Satılık"} iş makinesi ilanı.`;
+    descMeta.setAttribute("content", desc.replace(/[^\S\n]+/g, " ").trim().slice(0, 300));
   }
 
+  const ogTitle = document.querySelector('meta[property="og:title"]');
+  if (ogTitle) ogTitle.setAttribute("content", `${listing.title} | Araç Parkı`);
+
   const badge = badgeLabel(listing);
-  const price = listing.priceUnit
-    ? `${formatPrice(listing.price)} <small>/ ${escapeHtml(listing.priceUnit)}</small>`
-    : formatPrice(listing.price);
-  const images = [listing.image];
-  const listBack = buildListUrl({
-    filter: listing.intent === "kiralik" ? "kiralik" : listing.intent === "ikinci-el" ? "ikinci-el" : "satilik",
-    category: listing.category,
-    city: "",
-    query: "",
-    sort: "yeni",
-  });
+  const price = priceHtml(listing);
+  const images = listing.images?.length ? listing.images : [listing.image];
+  const listBack = escapeAttr(
+    buildListUrl({
+      filter:
+        listing.intent === "kiralik"
+          ? "kiralik"
+          : listing.intent === "ikinci-el"
+            ? "ikinci-el"
+            : "satilik",
+      category: listing.category,
+      city: "",
+      query: "",
+      sort: "yeni",
+    })
+  );
+  const phoneHref = escapeAttr(listing.phone.replace(/\s/g, ""));
 
   root.innerHTML = `
     <nav class="breadcrumb" aria-label="Sayfa yolu">
@@ -85,43 +83,44 @@
 
     <div class="detail-layout">
       <div class="detail-left">
+        <h1 class="detail-title">${escapeHtml(listing.title)}</h1>
+
         <div class="detail-gallery">
-          <img id="gallery-main" class="gallery-main" src="${escapeHtml(images[0])}" alt="${escapeHtml(listing.title)}" width="900" height="600" />
+          <img id="gallery-main" class="gallery-main" src="${escapeAttr(images[0])}" alt="${escapeAttr(listing.title)}" width="900" height="600" />
         </div>
 
-        <section class="detail-card">
-          <h2 class="detail-section-title">İlan Bilgileri</h2>
+        <section class="detail-card" aria-labelledby="spec-title">
+          <h2 class="detail-section-title" id="spec-title">İlan Bilgileri</h2>
           <table class="spec-table">
             <tbody>
-              <tr><th>İlan No</th><td>${escapeHtml(listing.adNo)}</td></tr>
-              <tr><th>İlan Tarihi</th><td>${escapeHtml(listing.listedAt)}</td></tr>
-              <tr><th>Kategori</th><td>${escapeHtml(listing.category)}</td></tr>
-              <tr><th>Tip</th><td><span class="${escapeHtml(badge.className)}">${escapeHtml(badge.text)}</span></td></tr>
-              <tr><th>Model Yılı</th><td>${listing.year}</td></tr>
-              <tr><th>Çalışma Saati</th><td>${formatHours(listing.hours)}</td></tr>
-              <tr><th>Operasyon Ağırlığı</th><td>${formatTons(listing.tons)}</td></tr>
-              <tr><th>Motor Gücü</th><td>${formatHp(listing.hp)}</td></tr>
-              <tr><th>Konum</th><td>${escapeHtml(listing.city)} / ${escapeHtml(listing.district)}</td></tr>
+              <tr><th scope="row">İlan No</th><td>${escapeHtml(listing.adNo)}</td></tr>
+              <tr><th scope="row">İlan Tarihi</th><td>${escapeHtml(listing.listedAt)}</td></tr>
+              <tr><th scope="row">Kategori</th><td>${escapeHtml(listing.category)}</td></tr>
+              <tr><th scope="row">Tip</th><td><span class="${escapeAttr(badge.className)}">${escapeHtml(badge.text)}</span></td></tr>
+              <tr><th scope="row">Model Yılı</th><td>${escapeHtml(listing.year)}</td></tr>
+              <tr><th scope="row">Çalışma Saati</th><td>${escapeHtml(formatHours(listing.hours))}</td></tr>
+              <tr><th scope="row">Operasyon Ağırlığı</th><td>${escapeHtml(formatTons(listing.tons))}</td></tr>
+              <tr><th scope="row">Motor Gücü</th><td>${escapeHtml(formatHp(listing.hp))}</td></tr>
+              <tr><th scope="row">Konum</th><td>${escapeHtml(listing.city)} / ${escapeHtml(listing.district)}</td></tr>
             </tbody>
           </table>
         </section>
 
-        <section class="detail-card">
-          <h2 class="detail-section-title">Açıklama</h2>
+        <section class="detail-card" aria-labelledby="desc-title">
+          <h2 class="detail-section-title" id="desc-title">Açıklama</h2>
           <p class="detail-desc">${escapeHtml(listing.description)}</p>
         </section>
       </div>
 
-      <aside class="detail-right">
+      <aside class="detail-right" aria-label="Fiyat ve iletişim">
         <div class="detail-card detail-buybox sticky-box" id="buybox">
-          <h1 class="detail-title">${escapeHtml(listing.title)}</h1>
           <div class="detail-price">${price}</div>
           <div class="detail-loc">${escapeHtml(listing.city)} / ${escapeHtml(listing.district)}</div>
 
           <div class="detail-actions">
             <button type="button" class="btn btn-machine btn-block" id="btn-offer">Teklif Al</button>
             <button type="button" class="btn btn-dark btn-block" id="btn-phone">Telefonu Göster</button>
-            <a class="btn btn-ghost btn-block" id="btn-call" href="tel:${escapeHtml(listing.phone.replace(/\s/g, ""))}" hidden>Ara: ${escapeHtml(listing.phone)}</a>
+            <a class="btn btn-ghost btn-block" id="btn-call" href="tel:${phoneHref}" hidden>Ara: ${escapeHtml(listing.phone)}</a>
           </div>
 
           <div class="seller-box">

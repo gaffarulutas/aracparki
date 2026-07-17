@@ -1,0 +1,41 @@
+/* Araç Parkı — design tokens */
+:root {
+  --ink: #0c0c0c;
+  --ink-soft: #1c1c1c;
+  --muted: #5a5a5a;
+  --muted-2: #7a7a7a;
+  --line: #e6e6e6;
+  --line-strong: #d0d0d0;
+  --surface: #f4f4f2;
+  --surface-2: #ebebe8;
+  --raised: #ffffff;
+  --machine: #ffe600;
+  --machine-hot: #fff24d;
+  --machine-deep: #e6cf00;
+  --machine-ink: #0c0c0c;
+  --link: #0a4dcf;
+  --link-hover: #083aa0;
+  --signal: #c62828;
+  --ok: #1b7a3d;
+  --tint: #fffce6;
+  --radius: 4px;
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+  --font: "Manrope", "Segoe UI", sans-serif;
+  --font-display: "Archivo", "Manrope", sans-serif;
+  --max: 1240px;
+  --header-h: 64px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --focus: 2px solid var(--link);
+  /* Breakpoint documentation (media queries use px literals) */
+  --bp-sm: 720px;
+  --bp-md: 720px;
+  --bp-lg: 980px;
+  --bp-xl: 1100px;
+}

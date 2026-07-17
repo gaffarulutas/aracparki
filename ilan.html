@@ -4,55 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content="İlan detayı — Araç Parkı" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="tr_TR" />
+    <meta property="og:site_name" content="Araç Parkı" />
+    <meta property="og:title" content="İlan Detayı | Araç Parkı" />
+    <meta property="og:description" content="İş makinesi ilan detayı — Araç Parkı." />
+    <meta property="og:image" content="assets/hero/banner-1200.jpg" />
     <title>İlan Detayı | Araç Parkı</title>
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href="https://aracparki.com/ilan.html" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Manrope:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body data-page="detail">
     <a class="skip-link" href="#main">İçeriğe geç</a>
 
-    <header class="site-header">
-      <div class="header-top">
-        <div class="container header-top-inner">
-          <a class="logo" href="index.html" aria-label="Araç Parkı ana sayfa">
-            <span class="logo-arac">Araç</span><span class="logo-parki">Parkı</span>
-          </a>
-          <form class="header-search" id="search-form" action="ilanlar.html" method="get" role="search">
-            <label class="sr-only" for="search-query">Kelime ara</label>
-            <input
-              id="search-query"
-              name="q"
-              type="search"
-              placeholder="Marka, model veya ilan no"
-              autocomplete="off"
-              enterkeyhint="search"
-            />
-            <button class="btn btn-machine" type="submit">Ara</button>
-          </form>
-          <div class="header-actions">
-            <a class="link-quiet" href="index.html#giris">Giriş Yap</a>
-            <button
-              class="search-toggle"
-              type="button"
-              aria-expanded="false"
-              aria-controls="search-form"
-              aria-label="Aramayı aç"
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-                <circle cx="11" cy="11" r="6.5" />
-                <path d="M16.2 16.2L21 21" />
-              </svg>
-            </button>
-            <a class="btn btn-machine header-cta" href="index.html#ilan-ver">Ücretsiz İlan Ver</a>
-          </div>
-        </div>
-      </div>
-    </header>
+    <div id="site-header"></div>
 
     <main class="container page-detail" id="main">
       <div id="detail-root" aria-busy="true">
@@ -70,17 +42,12 @@
 
     <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
 
-    <footer class="site-footer">
-      <div class="container">
-        <div class="footer-bottom">
-          <span>© 2026 Araç Parkı · aracparki.com</span>
-          <a href="ilanlar.html">Tüm ilanlar</a>
-        </div>
-      </div>
-    </footer>
+    <div id="site-footer"></div>
 
-    <script src="data.js"></script>
-    <script src="ui.js"></script>
-    <script src="detay.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/chrome.js"></script>
+    <script src="js/listings.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/detay.js"></script>
   </body>
 </html>

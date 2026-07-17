@@ -414,6 +414,52 @@
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#39;");
 
+  /** Attribute-safe escape (also encodes backticks for template safety). */
+  const escapeAttr = (value) =>
+    escapeHtml(value).replaceAll("`", "&#96;");
+
+  const showToast = (message) => {
+    const toast = document.getElementById("toast");
+    if (!toast) return;
+    toast.hidden = false;
+    toast.textContent = message;
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => {
+      toast.hidden = true;
+    }, 2200);
+  };
+
+  const syncSelectFilled = (el) => {
+    if (!el) return;
+    el.classList.toggle("is-filled", Boolean(el.value));
+  };
+
+  const fillCategorySelect = (select, { includeEmpty = true } = {}) => {
+    if (!select) return;
+    if (includeEmpty && !select.querySelector('option[value=""]')) {
+      const empty = document.createElement("option");
+      empty.value = "";
+      empty.textContent = "Tüm kategoriler";
+      select.appendChild(empty);
+    }
+    CATEGORIES.forEach((c) => {
+      const opt = document.createElement("option");
+      opt.value = c.name;
+      opt.textContent = c.name;
+      select.appendChild(opt);
+    });
+  };
+
+  const fillCitySelect = (select) => {
+    if (!select) return;
+    ILLER.forEach((city) => {
+      const opt = document.createElement("option");
+      opt.value = city;
+      opt.textContent = city;
+      select.appendChild(opt);
+    });
+  };
+
   const formatPrice = (n) =>
     new Intl.NumberFormat("tr-TR", {
       style: "currency",
@@ -630,6 +676,11 @@
     CATEGORIES,
     LISTINGS,
     escapeHtml,
+    escapeAttr,
+    showToast,
+    syncSelectFilled,
+    fillCategorySelect,
+    fillCitySelect,
     formatPrice,
     formatHours,
     formatTons,

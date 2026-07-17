@@ -7,112 +7,62 @@
       name="description"
       content="Araç Parkı — Türkiye genelinde satılık, kiralık ve ikinci el iş makineleri. Ekskavatör, loader, beko, vinç ve daha fazlası."
     />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="tr_TR" />
+    <meta property="og:site_name" content="Araç Parkı" />
+    <meta property="og:title" content="Araç Parkı | Türkiye İş Makinesi Satılık · Kiralık · İkinci El" />
+    <meta
+      property="og:description"
+      content="Satılık, kiralık ve ikinci el iş makineleri — tonaj, güç ve çalışma saatiyle karşılaştır."
+    />
+    <meta property="og:image" content="assets/hero/banner-1200.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
     <title>Araç Parkı | Türkiye İş Makinesi Satılık · Kiralık · İkinci El</title>
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href="https://aracparki.com/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Manrope:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body data-page="home">
     <a class="skip-link" href="#main">İçeriğe geç</a>
 
-    <header class="site-header" id="top">
-      <div class="header-top">
-        <div class="container header-top-inner">
-          <button
-            class="nav-toggle"
-            type="button"
-            aria-expanded="false"
-            aria-controls="nav-mobile"
-            aria-label="Menüyü aç"
-          >
-            <span aria-hidden="true"></span>
-          </button>
-
-          <a class="logo" href="index.html" aria-label="Araç Parkı ana sayfa">
-            <span class="logo-arac">Araç</span><span class="logo-parki">Parkı</span>
-          </a>
-
-          <form class="header-search" id="search-form" role="search">
-            <label class="sr-only" for="search-query">Kelime ara</label>
-            <input
-              id="search-query"
-              name="q"
-              type="search"
-              placeholder="Marka, model veya ilan no"
-              autocomplete="off"
-              enterkeyhint="search"
-            />
-            <button class="btn btn-machine" type="submit">Ara</button>
-          </form>
-
-          <div class="header-actions">
-            <a class="link-quiet" href="#giris">Giriş Yap</a>
-            <button
-              class="search-toggle"
-              type="button"
-              aria-expanded="false"
-              aria-controls="search-form"
-              aria-label="Aramayı aç"
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-                <circle cx="11" cy="11" r="6.5" />
-                <path d="M16.2 16.2L21 21" />
-              </svg>
-            </button>
-            <a class="btn btn-machine header-cta" href="#ilan-ver">Ücretsiz İlan Ver</a>
-          </div>
-        </div>
-      </div>
-
-      <nav class="cat-bar" aria-label="Hızlı kategoriler">
-        <div class="container cat-bar-row">
-          <a class="logo cat-bar-brand" href="index.html" aria-label="Araç Parkı ana sayfa" tabindex="-1">
-            <span class="logo-arac">Araç</span><span class="logo-parki">Parkı</span>
-          </a>
-          <div class="cat-bar-clip">
-            <div class="cat-bar-inner">
-              <a href="ilanlar.html?kategori=Paletli%20Ekskavat%C3%B6r">Ekskavatör</a>
-              <a href="ilanlar.html?kategori=Beko%20Loder">Beko Loder</a>
-              <a href="ilanlar.html?kategori=Lastikli%20Y%C3%BCkleyici">Loader</a>
-              <a href="ilanlar.html?kategori=Forklift">Forklift</a>
-              <a href="ilanlar.html?kategori=Vin%C3%A7">Vinç</a>
-              <a href="ilanlar.html?tip=kiralik">Kiralık</a>
-              <a href="ilanlar.html?tip=satilik">Satılık</a>
-              <a href="ilanlar.html">Tüm İlanlar</a>
-            </div>
-          </div>
-          <div class="cat-bar-actions">
-            <a class="link-quiet" href="#giris">Giriş Yap</a>
-            <a class="btn btn-machine header-cta" href="#ilan-ver">Ücretsiz İlan Ver</a>
-          </div>
-        </div>
-      </nav>
-
-      <div class="nav-mobile" id="nav-mobile" hidden>
-        <a href="ilanlar.html?tip=satilik">Satılık</a>
-        <a href="ilanlar.html?tip=kiralik">Kiralık</a>
-        <a href="ilanlar.html?tip=ikinci-el">İkinci El</a>
-        <a href="#kategoriler">Kategoriler</a>
-        <a href="#sehirler">Şehirler</a>
-        <a href="#ilan-ver">Ücretsiz İlan Ver</a>
-      </div>
-    </header>
+    <div id="site-header"></div>
 
     <main id="main">
       <section class="hero" aria-labelledby="hero-title">
         <div class="hero-media" aria-hidden="true">
-          <img
-            src="assets/hero-banner.jpg"
-            alt=""
-            width="2841"
-            height="1080"
-            fetchpriority="high"
-            decoding="async"
-          />
+          <picture>
+            <source
+              type="image/webp"
+              srcset="
+                assets/hero/banner-800.webp 800w,
+                assets/hero/banner-1200.webp 1200w,
+                assets/hero/banner-1600.webp 1600w,
+                assets/hero/banner.webp 1920w
+              "
+              sizes="100vw"
+            />
+            <img
+              src="assets/hero/banner-1200.jpg"
+              srcset="
+                assets/hero/banner-800.jpg 800w,
+                assets/hero/banner-1200.jpg 1200w,
+                assets/hero/banner-1600.jpg 1600w,
+                assets/hero/banner.jpg 1920w
+              "
+              sizes="100vw"
+              alt=""
+              width="1920"
+              height="730"
+              fetchpriority="high"
+              decoding="async"
+            />
+          </picture>
         </div>
         <div class="hero-veil" aria-hidden="true"></div>
         <div class="container hero-inner">
@@ -146,18 +96,6 @@
               <label class="sr-only" for="filter-category">Kategori</label>
               <select id="filter-category" name="kategori" aria-label="Kategori seç">
                 <option value="">Tüm kategoriler</option>
-                <option value="Paletli Ekskavatör">Paletli Ekskavatör</option>
-                <option value="Beko Loder">Beko Loder</option>
-                <option value="Lastikli Yükleyici">Lastikli Yükleyici</option>
-                <option value="Forklift">Forklift</option>
-                <option value="Vinç">Vinç</option>
-                <option value="Dozer">Dozer</option>
-                <option value="Greyder">Greyder</option>
-                <option value="Silindir">Silindir</option>
-                <option value="Mini Ekskavatör">Mini Ekskavatör</option>
-                <option value="Telehandler">Telehandler</option>
-                <option value="Beton">Beton</option>
-                <option value="Kırıcı">Kırıcı</option>
               </select>
               <label class="sr-only" for="filter-city">İl</label>
               <select id="filter-city" name="il" aria-label="İl seç">
@@ -230,7 +168,7 @@
               <h2>Makineni hemen yayına al</h2>
               <p>Satılık veya kiralık — Türkiye’deki alıcılara ulaş.</p>
             </div>
-            <a class="btn btn-cta btn-lg" href="#ilan-ver">Ücretsiz İlan Ver</a>
+            <a class="btn btn-cta btn-lg" id="seller-cta-btn" href="#giris">Ücretsiz İlan Ver</a>
           </section>
         </div>
       </div>
@@ -238,51 +176,12 @@
 
     <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
 
-    <footer class="site-footer" id="giris">
-      <div class="container">
-        <div class="footer-grid">
-          <div class="footer-brand">
-            <a class="logo" href="#top" aria-label="Araç Parkı">
-              <span class="logo-arac">Araç</span><span class="logo-parki">Parkı</span>
-            </a>
-            <p>Türkiye genelinde satılık, kiralık ve ikinci el iş makineleri pazar yeri.</p>
-          </div>
-          <div class="footer-col">
-            <h3>Keşfet</h3>
-            <ul>
-              <li><a href="ilanlar.html?tip=satilik">Satılık</a></li>
-              <li><a href="ilanlar.html?tip=kiralik">Kiralık</a></li>
-              <li><a href="ilanlar.html?tip=ikinci-el">İkinci El</a></li>
-              <li><a href="ilanlar.html">Tüm ilanlar</a></li>
-            </ul>
-          </div>
-          <div class="footer-col">
-            <h3>Şehirler</h3>
-            <ul>
-              <li><a href="ilanlar.html?il=%C4%B0stanbul">İstanbul</a></li>
-              <li><a href="ilanlar.html?il=Ankara">Ankara</a></li>
-              <li><a href="ilanlar.html?il=%C4%B0zmir">İzmir</a></li>
-              <li><a href="#sehirler">Popüler iller</a></li>
-            </ul>
-          </div>
-          <div class="footer-col">
-            <h3>Kurumsal</h3>
-            <ul>
-              <li><a href="#guven">Güven</a></li>
-              <li><a href="#ilan-ver">İlan ver</a></li>
-              <li><a href="#giris">Giriş</a></li>
-            </ul>
-          </div>
-        </div>
-        <div class="footer-bottom">
-          <span>© 2026 Araç Parkı · aracparki.com</span>
-          <span>Satılık · Kiralık · İkinci El</span>
-        </div>
-      </div>
-    </footer>
+    <div id="site-footer"></div>
 
-    <script src="data.js"></script>
-    <script src="ui.js"></script>
-    <script src="home.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/chrome.js"></script>
+    <script src="js/listings.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/home.js"></script>
   </body>
 </html>
