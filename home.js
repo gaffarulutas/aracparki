@@ -56,30 +56,28 @@
       : formatPrice(listing.price);
     return `
       <article class="listing-card is-visible" data-id="${listing.id}">
-        <div class="listing-media">
-          <span class="${escapeHtml(badge.className)}">${escapeHtml(badge.text)}</span>
-          <a href="${href}"><img src="${escapeHtml(listing.image)}" alt="${title}" loading="lazy" width="900" height="620" /></a>
-        </div>
-        <div class="listing-body">
-          <h3><a href="${href}">${title}</a></h3>
-          <div class="listing-meta">
-            <span>${listing.year}</span>
-            <span>${escapeHtml(listing.city)} / ${escapeHtml(listing.district)}</span>
+        <a class="listing-card-link" href="${href}">
+          <div class="listing-media">
+            <span class="${escapeHtml(badge.className)}">${escapeHtml(badge.text)}</span>
+            <img src="${escapeHtml(listing.image)}" alt="" loading="lazy" width="900" height="620" />
           </div>
-          <div class="listing-specs">
-            <span>${formatHours(listing.hours)}</span>
-            <span>${formatTons(listing.tons)}</span>
-            <span>${formatHp(listing.hp)}</span>
+          <div class="listing-body">
+            <h3>${title}</h3>
+            <div class="listing-meta">
+              <span>${listing.year}</span>
+              <span>${escapeHtml(listing.city)} / ${escapeHtml(listing.district)}</span>
+            </div>
+            <div class="listing-specs">
+              <span>${formatHours(listing.hours)}</span>
+              <span>${formatTons(listing.tons)}</span>
+              <span>${formatHp(listing.hp)}</span>
+            </div>
+            <div class="listing-foot">
+              <div class="listing-price">${price}</div>
+              <span class="seller-tag${listing.verified ? " verified" : ""}">${listing.verified ? "Doğrulanmış · " : ""}${escapeHtml(listing.seller)}</span>
+            </div>
           </div>
-          <div class="listing-foot">
-            <div class="listing-price">${price}</div>
-            <span class="seller-tag${listing.verified ? " verified" : ""}">${listing.verified ? "Doğrulanmış · " : ""}${escapeHtml(listing.seller)}</span>
-          </div>
-          <div class="listing-cta">
-            <a class="btn btn-machine btn-sm" href="${href}">İncele</a>
-            <a class="btn btn-ghost btn-sm" href="tel:${escapeHtml(listing.phone.replace(/\s/g, ""))}">Telefon</a>
-          </div>
-        </div>
+        </a>
       </article>`;
   };
 
@@ -88,9 +86,14 @@
     const countEl = document.getElementById("result-count");
     if (!grid) return;
     const items = LISTINGS.filter((item) => matchesListing(item, state)).slice(0, 12);
+    grid.setAttribute("aria-busy", "false");
     if (countEl) countEl.textContent = `(${items.length})`;
     if (!items.length) {
-      grid.innerHTML = '<p class="listing-empty">Bu kriterlere uygun ilan yok. <a href="ilanlar.html">Tüm ilanlar</a></p>';
+      grid.innerHTML = `
+        <div class="empty-state">
+          <p>Bu kriterlere uygun ilan yok.</p>
+          <a class="btn btn-machine" href="ilanlar.html">Tüm ilanları gör</a>
+        </div>`;
       return;
     }
     grid.innerHTML = items.map((item) => cardHtml(item)).join("");
@@ -163,7 +166,7 @@
     if (city) city.value = state.city || "";
     syncSelectFilled(cat);
     syncSelectFilled(city);
-    document.querySelectorAll(".chip, .intent-tab").forEach((el) => {
+    document.querySelectorAll(".chip").forEach((el) => {
       el.setAttribute("aria-pressed", el.dataset.filter === state.filter ? "true" : "false");
     });
   };
@@ -196,7 +199,7 @@
   });
 
   document.body.addEventListener("click", (e) => {
-    const filterEl = e.target.closest(".chip[data-filter], .intent-tab[data-filter]");
+    const filterEl = e.target.closest(".chip[data-filter]");
     if (filterEl) {
       e.preventDefault();
       state.filter = filterEl.dataset.filter;
@@ -231,7 +234,10 @@
   const toggle = document.querySelector(".nav-toggle");
   const mobile = document.getElementById("nav-mobile");
   toggle?.addEventListener("click", () => {
-    const open = mobile.classList.toggle("is-open");
+    const open = mobile.hasAttribute("hidden") ? true : false;
+    if (open) mobile.removeAttribute("hidden");
+    else mobile.setAttribute("hidden", "");
+    mobile.classList.toggle("is-open", open);
     toggle.setAttribute("aria-expanded", open ? "true" : "false");
   });
 

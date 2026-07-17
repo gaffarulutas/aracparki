@@ -40,14 +40,17 @@
   };
 
   if (!listing) {
+    root.setAttribute("aria-busy", "false");
     root.innerHTML = `
-      <p class="listing-empty">İlan bulunamadı.
-        <a href="ilanlar.html">İlan listesine dön</a>
-      </p>`;
+      <div class="empty-state">
+        <p>İlan bulunamadı.</p>
+        <a class="btn btn-machine" href="ilanlar.html">İlan listesine dön</a>
+      </div>`;
     return;
   }
 
   trackRecent(listing.id);
+  root.setAttribute("aria-busy", "false");
   document.title = `${listing.title} | Araç Parkı`;
 
   const descMeta = document.querySelector('meta[name="description"]');

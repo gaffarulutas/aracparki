@@ -8,12 +8,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <a class="skip-link" href="#main">İçeriğe geç</a>
+
     <header class="site-header">
       <div class="header-top">
         <div class="container header-top-inner">
@@ -22,27 +24,46 @@
           </a>
           <form class="header-search" id="search-form" action="ilanlar.html" method="get" role="search">
             <label class="sr-only" for="search-query">Kelime ara</label>
-            <input id="search-query" name="q" type="search" placeholder="Marka, model veya ilan no ile ara" autocomplete="off" />
+            <input
+              id="search-query"
+              name="q"
+              type="search"
+              placeholder="Marka, model veya ilan no"
+              autocomplete="off"
+              enterkeyhint="search"
+            />
             <button class="btn btn-machine" type="submit">Ara</button>
           </form>
           <div class="header-actions">
             <a class="link-quiet" href="index.html#giris">Giriş Yap</a>
-            <a class="btn btn-cta" href="index.html#ilan-ver">Ücretsiz İlan Ver</a>
+            <a class="btn btn-machine" href="index.html#ilan-ver">Ücretsiz İlan Ver</a>
           </div>
         </div>
       </div>
     </header>
 
-    <main class="container page-detail" id="detail-root">
-      <p class="listing-empty">İlan yükleniyor…</p>
+    <main class="container page-detail" id="main">
+      <div id="detail-root" aria-busy="true">
+        <div class="detail-loading" aria-label="İlan yükleniyor">
+          <div class="skeleton-gallery" aria-hidden="true"></div>
+          <div class="skeleton-stack" aria-hidden="true">
+            <div class="skeleton-line w-60"></div>
+            <div class="skeleton-line w-40"></div>
+            <div class="skeleton-line w-80"></div>
+            <div class="skeleton-line"></div>
+          </div>
+        </div>
+      </div>
     </main>
 
     <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
 
     <footer class="site-footer">
-      <div class="container footer-bottom" style="border:0;padding-top:0">
-        <span>© 2026 Araç Parkı · aracparki.com</span>
-        <a href="ilanlar.html" style="color:#fff">Tüm ilanlar</a>
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Araç Parkı · aracparki.com</span>
+          <a href="ilanlar.html">Tüm ilanlar</a>
+        </div>
       </div>
     </footer>
 

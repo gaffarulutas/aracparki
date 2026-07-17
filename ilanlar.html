@@ -8,12 +8,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <a class="skip-link" href="#main">İçeriğe geç</a>
+
     <header class="site-header">
       <div class="header-top">
         <div class="container header-top-inner">
@@ -22,28 +24,37 @@
           </a>
           <form class="header-search" id="search-form" role="search">
             <label class="sr-only" for="search-query">Kelime ara</label>
-            <input id="search-query" name="q" type="search" placeholder="Marka, model veya ilan no ile ara" autocomplete="off" />
+            <input
+              id="search-query"
+              name="q"
+              type="search"
+              placeholder="Marka, model veya ilan no"
+              autocomplete="off"
+              enterkeyhint="search"
+            />
             <button class="btn btn-machine" type="submit">Ara</button>
           </form>
           <div class="header-actions">
             <a class="link-quiet" href="index.html#giris">Giriş Yap</a>
-            <a class="btn btn-cta" href="index.html#ilan-ver">Ücretsiz İlan Ver</a>
+            <a class="btn btn-machine" href="index.html#ilan-ver">Ücretsiz İlan Ver</a>
           </div>
         </div>
       </div>
-      <nav class="cat-bar" aria-label="Kategoriler">
-        <div class="container cat-bar-inner">
-          <a href="ilanlar.html?kategori=Paletli%20Ekskavat%C3%B6r">Ekskavatör</a>
-          <a href="ilanlar.html?kategori=Beko%20Loder">Beko Loder</a>
-          <a href="ilanlar.html?kategori=Lastikli%20Y%C3%BCkleyici">Loader</a>
-          <a href="ilanlar.html?tip=kiralik">Kiralık</a>
-          <a href="ilanlar.html?tip=satilik">Satılık</a>
-          <a href="index.html">Anasayfa</a>
+      <nav class="cat-bar" aria-label="Hızlı kategoriler">
+        <div class="cat-bar-clip">
+          <div class="container cat-bar-inner">
+            <a href="ilanlar.html?kategori=Paletli%20Ekskavat%C3%B6r">Ekskavatör</a>
+            <a href="ilanlar.html?kategori=Beko%20Loder">Beko Loder</a>
+            <a href="ilanlar.html?kategori=Lastikli%20Y%C3%BCkleyici">Loader</a>
+            <a href="ilanlar.html?tip=kiralik">Kiralık</a>
+            <a href="ilanlar.html?tip=satilik">Satılık</a>
+            <a href="index.html">Anasayfa</a>
+          </div>
         </div>
       </nav>
     </header>
 
-    <main class="container page-list">
+    <main class="container page-list" id="main">
       <nav class="breadcrumb" id="breadcrumb" aria-label="Sayfa yolu"></nav>
 
       <div class="list-layout">
@@ -71,17 +82,19 @@
                 <option value="">Türkiye geneli</option>
               </select>
             </div>
-            <button class="btn btn-machine btn-block" type="submit">İlanları Göster</button>
-            <button class="btn btn-ghost btn-block" type="button" id="clear-filters">Filtreleri Temizle</button>
+            <div class="filter-actions">
+              <button class="btn btn-machine btn-block" type="submit">Uygula</button>
+              <button class="btn btn-ghost btn-block" type="button" id="clear-filters">Temizle</button>
+            </div>
           </form>
         </aside>
 
-        <section class="list-main">
+        <section class="list-main" aria-labelledby="list-title">
           <div class="list-toolbar">
             <h1 id="list-title">İş Makinesi İlanları <span id="result-count"></span></h1>
             <label class="sort-field">
               <span>Sırala</span>
-              <select id="sort-select">
+              <select id="sort-select" aria-label="Sıralama">
                 <option value="yeni">En yeni</option>
                 <option value="fiyat-artan">Fiyat artan</option>
                 <option value="fiyat-azalan">Fiyat azalan</option>
@@ -89,19 +102,26 @@
               </select>
             </label>
           </div>
-          <div id="list-results" class="classified-list" aria-live="polite"></div>
+          <div id="list-results" class="classified-list" aria-live="polite" aria-busy="true">
+            <div class="skeleton-row" aria-hidden="true"></div>
+            <div class="skeleton-row" aria-hidden="true"></div>
+            <div class="skeleton-row" aria-hidden="true"></div>
+          </div>
         </section>
       </div>
     </main>
 
     <footer class="site-footer">
-      <div class="container footer-bottom" style="border:0;padding-top:0">
-        <span>© 2026 Araç Parkı · aracparki.com</span>
-        <a href="index.html" style="color:#fff">Anasayfa</a>
+      <div class="container">
+        <div class="footer-bottom">
+          <span>© 2026 Araç Parkı · aracparki.com</span>
+          <a href="index.html">Anasayfa</a>
+        </div>
       </div>
     </footer>
 
     <script src="data.js"></script>
+    <script src="ui.js"></script>
     <script src="liste.js"></script>
   </body>
 </html>

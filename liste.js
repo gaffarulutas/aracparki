@@ -85,6 +85,7 @@
     document.title = `${state.category || "İş Makinesi"} İlanları | Araç Parkı`;
 
     if (!items.length) {
+      root.setAttribute("aria-busy", "false");
       root.innerHTML = `
         <div class="listing-empty empty-state">
           <p>Bu kriterlere uygun ilan bulunamadı.</p>
@@ -97,6 +98,7 @@
       return;
     }
 
+    root.setAttribute("aria-busy", "false");
     root.innerHTML = items
       .map((listing) => {
         const badge = badgeLabel(listing);
@@ -124,7 +126,6 @@
           </div>
           <div class="classified-price-col">
             <div class="classified-price">${price}</div>
-            <a class="btn btn-machine btn-sm" href="${href}">İncele</a>
           </div>
         </article>`;
       })
