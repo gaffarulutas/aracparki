@@ -162,6 +162,7 @@ h3 {
 .btn:focus-visible,
 .chip:focus-visible,
 .nav-toggle:focus-visible,
+.search-toggle:focus-visible,
 .link-clear:focus-visible,
 .intent-tab:focus-visible {
   outline: var(--focus);
@@ -266,6 +267,7 @@ h3 {
   z-index: 50;
   background: var(--raised);
   border-bottom: 1px solid var(--line);
+  padding-top: env(safe-area-inset-top);
 }
 
 .header-top {
@@ -416,17 +418,21 @@ h3 {
   height: 40px;
   align-items: center;
   justify-content: center;
-  background: var(--raised);
-  border: 1px solid var(--line);
+  background: transparent;
+  border: 0;
   border-radius: var(--radius);
   cursor: pointer;
+  color: var(--ink);
+  padding: 0;
 }
 
-.nav-toggle:hover {
+.nav-toggle:hover,
+.search-toggle:hover {
   background: var(--surface);
 }
 
-.nav-toggle:active {
+.nav-toggle:active,
+.search-toggle:active {
   background: var(--surface-2);
 }
 
@@ -438,6 +444,25 @@ h3 {
   box-shadow:
     0 -5px 0 var(--ink),
     0 5px 0 var(--ink);
+}
+
+.search-toggle {
+  display: none;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--ink);
+  padding: 0;
+}
+
+.search-toggle[aria-expanded="true"] {
+  background: var(--tint);
+  color: var(--machine-ink);
 }
 
 .cat-bar {
@@ -512,30 +537,99 @@ h3 {
 
 @media (max-width: 719px) {
   .header-top-inner {
-    grid-template-columns: auto auto;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "logo actions";
+    gap: var(--space-1);
+  }
+
+  .header-top-inner:has(.nav-toggle) {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: "toggle logo actions";
+  }
+
+  .site-header.is-search-open .header-top-inner {
     grid-template-areas:
       "logo actions"
       "search search";
-    gap: var(--space-1);
+  }
+
+  .site-header.is-search-open .header-top-inner:has(.nav-toggle) {
+    grid-template-areas:
+      "toggle logo actions"
+      "search search search";
+  }
+
+  .nav-toggle {
+    grid-area: toggle;
   }
 
   .logo {
     grid-area: logo;
-  }
-
-  .header-search {
-    grid-area: search;
-    max-width: none;
+    justify-self: start;
   }
 
   .header-actions {
     grid-area: actions;
+    justify-self: end;
+    gap: 8px;
+  }
+
+  .search-toggle {
+    display: inline-flex;
+  }
+
+  .header-search {
+    display: none;
+    grid-area: search;
+    max-width: none;
+    width: 100%;
+  }
+
+  .site-header.is-search-open .header-search {
+    display: flex;
   }
 
   .header-actions .btn-machine {
     padding-inline: 10px;
-    font-size: 12px;
+    font-size: 11px;
     min-height: 36px;
+    white-space: nowrap;
+  }
+
+  .header-search input,
+  .promo-filters select,
+  .filter-field select,
+  .sort-field select {
+    font-size: 16px;
+  }
+
+  .hero-media img {
+    object-position: 62% 48%;
+  }
+
+  .hero-veil {
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.2) 0%,
+      rgba(0, 0, 0, 0.55) 100%
+    );
+  }
+
+  .classified-row {
+    grid-template-columns: 108px 1fr;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .cat-bar-inner {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  .cat-bar a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
 }
 
@@ -1747,6 +1841,10 @@ h3 {
     padding-block: var(--space-3) var(--space-6);
   }
 
+  .home-main {
+    order: 0;
+  }
+
   .listing-grid {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -1774,6 +1872,10 @@ h3 {
 }
 
 @media (max-width: 979px) {
+  .home-main {
+    order: -1;
+  }
+
   .page-detail {
     padding-bottom: 96px;
   }
@@ -1785,14 +1887,12 @@ h3 {
     bottom: 0;
     z-index: 60;
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     gap: var(--space-1);
     align-items: center;
     padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-    background: rgba(255, 255, 255, 0.97);
-    backdrop-filter: blur(10px);
+    background: var(--raised);
     border-top: 1px solid var(--line);
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.06);
   }
 
   .mobile-cta-price {
@@ -1800,12 +1900,19 @@ h3 {
     font-size: 16px;
     font-weight: 800;
     min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .mobile-cta-price small {
     font-size: 11px;
     font-weight: 600;
     color: var(--muted);
+  }
+
+  body:has(.mobile-cta) .toast {
+    bottom: calc(72px + env(safe-area-inset-bottom));
   }
 }
 

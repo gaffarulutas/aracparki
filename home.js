@@ -233,10 +233,18 @@
 
   const toggle = document.querySelector(".nav-toggle");
   const mobile = document.getElementById("nav-mobile");
+  const header = document.querySelector(".site-header");
+  const searchBtn = header?.querySelector(".search-toggle");
   toggle?.addEventListener("click", () => {
     const open = mobile.hasAttribute("hidden") ? true : false;
-    if (open) mobile.removeAttribute("hidden");
-    else mobile.setAttribute("hidden", "");
+    if (open) {
+      mobile.removeAttribute("hidden");
+      header?.classList.remove("is-search-open");
+      searchBtn?.setAttribute("aria-expanded", "false");
+      searchBtn?.setAttribute("aria-label", "Aramayı aç");
+    } else {
+      mobile.setAttribute("hidden", "");
+    }
     mobile.classList.toggle("is-open", open);
     toggle.setAttribute("aria-expanded", open ? "true" : "false");
   });

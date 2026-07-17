@@ -2,7 +2,7 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content="İş makinesi ilanları — Araç Parkı" />
     <title>İş Makinesi İlanları | Araç Parkı</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -36,7 +36,19 @@
           </form>
           <div class="header-actions">
             <a class="link-quiet" href="index.html#giris">Giriş Yap</a>
-            <a class="btn btn-machine" href="index.html#ilan-ver">Ücretsiz İlan Ver</a>
+            <button
+              class="search-toggle"
+              type="button"
+              aria-expanded="false"
+              aria-controls="search-form"
+              aria-label="Aramayı aç"
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                <circle cx="11" cy="11" r="6.5" />
+                <path d="M16.2 16.2L21 21" />
+              </svg>
+            </button>
+            <a class="btn btn-machine header-cta" href="index.html#ilan-ver">Ücretsiz İlan Ver</a>
           </div>
         </div>
       </div>

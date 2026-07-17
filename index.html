@@ -2,7 +2,7 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta
       name="description"
       content="Araç Parkı — Türkiye genelinde satılık, kiralık ve ikinci el iş makineleri. Ekskavatör, loader, beko, vinç ve daha fazlası."
@@ -22,6 +22,16 @@
     <header class="site-header" id="top">
       <div class="header-top">
         <div class="container header-top-inner">
+          <button
+            class="nav-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="nav-mobile"
+            aria-label="Menüyü aç"
+          >
+            <span aria-hidden="true"></span>
+          </button>
+
           <a class="logo" href="index.html" aria-label="Araç Parkı ana sayfa">
             <span class="logo-arac">Araç</span><span class="logo-parki">Parkı</span>
           </a>
@@ -41,16 +51,19 @@
 
           <div class="header-actions">
             <a class="link-quiet" href="#giris">Giriş Yap</a>
-            <a class="btn btn-machine" href="#ilan-ver">Ücretsiz İlan Ver</a>
             <button
-              class="nav-toggle"
+              class="search-toggle"
               type="button"
               aria-expanded="false"
-              aria-controls="nav-mobile"
-              aria-label="Menüyü aç"
+              aria-controls="search-form"
+              aria-label="Aramayı aç"
             >
-              <span aria-hidden="true"></span>
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                <circle cx="11" cy="11" r="6.5" />
+                <path d="M16.2 16.2L21 21" />
+              </svg>
             </button>
+            <a class="btn btn-machine header-cta" href="#ilan-ver">Ücretsiz İlan Ver</a>
           </div>
         </div>
       </div>
