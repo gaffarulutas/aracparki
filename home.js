@@ -18,7 +18,6 @@
     buildListUrl,
     detailUrl,
     iconSvg,
-    STORAGE_FAV,
     STORAGE_RECENT,
     loadJson,
     saveJson,
@@ -31,7 +30,6 @@
     state = { filter: "all", category: "", city: "", query: "", sort: "yeni" };
   }
 
-  let favorites = loadJson(STORAGE_FAV, []);
   let recent = loadJson(STORAGE_RECENT, []);
 
   const showToast = (message) => {
@@ -45,28 +43,6 @@
     }, 2200);
   };
 
-  const isFavorite = (id) => favorites.includes(Number(id));
-
-  const toggleFavorite = (id) => {
-    const num = Number(id);
-    if (favorites.includes(num)) {
-      favorites = favorites.filter((item) => item !== num);
-      showToast("Favorilerden çıkarıldı");
-    } else {
-      favorites = [num, ...favorites];
-      showToast("Favorilere eklendi");
-    }
-    saveJson(STORAGE_FAV, favorites);
-    updateFavCount();
-    renderFavorites();
-    renderListings();
-  };
-
-  const updateFavCount = () => {
-    const el = document.getElementById("fav-count");
-    if (el) el.textContent = `(${favorites.length})`;
-  };
-
   const goToList = () => {
     window.location.href = buildListUrl(state);
   };
@@ -78,12 +54,10 @@
     const price = listing.priceUnit
       ? `${formatPrice(listing.price)}<small>/ ${escapeHtml(listing.priceUnit)}</small>`
       : formatPrice(listing.price);
-    const favOn = isFavorite(listing.id);
     return `
       <article class="listing-card is-visible" data-id="${listing.id}">
         <div class="listing-media">
           <span class="${escapeHtml(badge.className)}">${escapeHtml(badge.text)}</span>
-          <button type="button" class="fav-btn${favOn ? " is-on" : ""}" data-fav="${listing.id}" aria-label="Favori" aria-pressed="${favOn}">♥</button>
           <a href="${href}"><img src="${escapeHtml(listing.image)}" alt="${title}" loading="lazy" width="900" height="620" /></a>
         </div>
         <div class="listing-body">
@@ -135,15 +109,6 @@
     grid.innerHTML = items.map((item) => cardHtml(item)).join("");
   };
 
-  const renderFavorites = () => {
-    const list = document.getElementById("fav-list");
-    if (!list) return;
-    const items = favorites.map(getListing).filter(Boolean);
-    list.innerHTML = items.length
-      ? items.map((item) => cardHtml(item)).join("")
-      : '<p class="listing-empty">Henüz favori ilan yok.</p>';
-  };
-
   const renderCategories = () => {
     const grid = document.getElementById("category-grid");
     if (!grid) return;
@@ -184,6 +149,11 @@
     });
   };
 
+  const syncSelectFilled = (el) => {
+    if (!el) return;
+    el.classList.toggle("is-filled", Boolean(el.value));
+  };
+
   const syncControls = () => {
     const q = document.getElementById("search-query");
     const cat = document.getElementById("filter-category");
@@ -191,6 +161,8 @@
     if (q) q.value = state.query || "";
     if (cat) cat.value = state.category || "";
     if (city) city.value = state.city || "";
+    syncSelectFilled(cat);
+    syncSelectFilled(city);
     document.querySelectorAll(".chip, .intent-tab").forEach((el) => {
       el.setAttribute("aria-pressed", el.dataset.filter === state.filter ? "true" : "false");
     });
@@ -200,9 +172,15 @@
   renderCategories();
   renderCities();
   syncControls();
-  updateFavCount();
   renderListings();
   renderRecent();
+
+  document.getElementById("filter-category")?.addEventListener("change", (e) => {
+    syncSelectFilled(e.currentTarget);
+  });
+  document.getElementById("filter-city")?.addEventListener("change", (e) => {
+    syncSelectFilled(e.currentTarget);
+  });
 
   document.getElementById("search-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -218,12 +196,6 @@
   });
 
   document.body.addEventListener("click", (e) => {
-    const favBtn = e.target.closest("[data-fav]");
-    if (favBtn) {
-      e.preventDefault();
-      toggleFavorite(favBtn.dataset.fav);
-      return;
-    }
     const filterEl = e.target.closest(".chip[data-filter], .intent-tab[data-filter]");
     if (filterEl) {
       e.preventDefault();
@@ -263,20 +235,6 @@
     toggle.setAttribute("aria-expanded", open ? "true" : "false");
   });
 
-  const favPanel = document.getElementById("fav-panel");
-  const favBtn = document.getElementById("fav-panel-btn");
-  document.getElementById("fav-panel-btn")?.addEventListener("click", () => {
-    const open = favPanel.hidden;
-    favPanel.hidden = !open;
-    favBtn.setAttribute("aria-expanded", open ? "true" : "false");
-    if (open) renderFavorites();
-  });
-  document.getElementById("fav-panel-close")?.addEventListener("click", () => {
-    favPanel.hidden = true;
-    favBtn.setAttribute("aria-expanded", "false");
-  });
-
-  // "Tümünü gör" helper if present
   const more = document.getElementById("see-all-listings");
   if (more) more.setAttribute("href", buildListUrl(state));
 })();

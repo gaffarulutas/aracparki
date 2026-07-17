@@ -21,6 +21,11 @@
 
   let state = readUrlState();
 
+  const syncSelectFilled = (el) => {
+    if (!el) return;
+    el.classList.toggle("is-filled", Boolean(el.value));
+  };
+
   const fillSelects = () => {
     const cat = document.getElementById("filter-category");
     const city = document.getElementById("filter-city");
@@ -41,11 +46,14 @@
       city.appendChild(opt);
     });
 
-    tip.value = state.filter;
+    tip.value = state.filter || "all";
     cat.value = state.category;
     city.value = state.city;
     sort.value = state.sort || "yeni";
     if (q) q.value = state.query;
+    [cat, city].forEach(syncSelectFilled);
+    // tip her zaman değerli (all dahil) — filled
+    tip?.classList.add("is-filled");
   };
 
   const writeUrl = () => {
@@ -133,6 +141,12 @@
   renderBreadcrumb();
   renderList();
 
+  ["filter-category", "filter-city"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("change", (e) => {
+      syncSelectFilled(e.currentTarget);
+    });
+  });
+
   document.getElementById("list-filter-form").addEventListener("submit", (e) => {
     e.preventDefault();
     state.filter = document.getElementById("filter-tip").value || "all";
@@ -148,6 +162,8 @@
     document.getElementById("filter-city").value = "";
     document.getElementById("search-query").value = "";
     document.getElementById("sort-select").value = "yeni";
+    syncSelectFilled(document.getElementById("filter-category"));
+    syncSelectFilled(document.getElementById("filter-city"));
     apply();
   });
 

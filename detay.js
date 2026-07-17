@@ -10,7 +10,6 @@
     badgeLabel,
     getListing,
     buildListUrl,
-    STORAGE_FAV,
     STORAGE_RECENT,
     loadJson,
     saveJson,
@@ -21,7 +20,6 @@
   const listing = getListing(id);
   const root = document.getElementById("detail-root");
 
-  let favorites = loadJson(STORAGE_FAV, []);
   let recent = loadJson(STORAGE_RECENT, []);
 
   const showToast = (msg) => {
@@ -64,7 +62,6 @@
   const price = listing.priceUnit
     ? `${formatPrice(listing.price)} <small>/ ${escapeHtml(listing.priceUnit)}</small>`
     : formatPrice(listing.price);
-  // Tek gerçek görsel; sahte thumb üretme (UX güveni)
   const images = [listing.image];
   const listBack = buildListUrl({
     filter: listing.intent === "kiralik" ? "kiralik" : listing.intent === "ikinci-el" ? "ikinci-el" : "satilik",
@@ -73,7 +70,6 @@
     query: "",
     sort: "yeni",
   });
-  const favOn = favorites.includes(listing.id);
 
   root.innerHTML = `
     <nav class="breadcrumb" aria-label="Sayfa yolu">
@@ -123,9 +119,6 @@
             <button type="button" class="btn btn-machine btn-block" id="btn-offer">Teklif Al</button>
             <button type="button" class="btn btn-dark btn-block" id="btn-phone">Telefonu Göster</button>
             <a class="btn btn-ghost btn-block" id="btn-call" href="tel:${escapeHtml(listing.phone.replace(/\s/g, ""))}" hidden>Ara: ${escapeHtml(listing.phone)}</a>
-            <button type="button" class="btn btn-ghost btn-block${favOn ? " is-fav" : ""}" id="btn-fav" aria-pressed="${favOn}">
-              ${favOn ? "Favorilerde" : "Favorilere Ekle"}
-            </button>
           </div>
 
           <div class="seller-box">
@@ -161,23 +154,4 @@
   });
   document.getElementById("btn-phone")?.addEventListener("click", revealPhone);
   document.getElementById("btn-phone-mobile")?.addEventListener("click", revealPhone);
-
-  document.getElementById("btn-fav")?.addEventListener("click", () => {
-    const num = listing.id;
-    const btn = document.getElementById("btn-fav");
-    if (favorites.includes(num)) {
-      favorites = favorites.filter((x) => x !== num);
-      btn.textContent = "Favorilere Ekle";
-      btn.classList.remove("is-fav");
-      btn.setAttribute("aria-pressed", "false");
-      showToast("Favorilerden çıkarıldı");
-    } else {
-      favorites = [num, ...favorites];
-      btn.textContent = "Favorilerde";
-      btn.classList.add("is-fav");
-      btn.setAttribute("aria-pressed", "true");
-      showToast("Favorilere eklendi");
-    }
-    saveJson(STORAGE_FAV, favorites);
-  });
 })();

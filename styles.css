@@ -195,12 +195,6 @@ h3 {
   font-size: 12px;
 }
 
-.fav-toggle {
-  display: inline-flex;
-  font-size: 12px;
-  padding-inline: 8px;
-}
-
 @media (max-width: 719px) {
   .header-top-inner {
     grid-template-columns: auto auto;
@@ -226,7 +220,7 @@ h3 {
     display: none;
   }
 
-  .header-actions .btn-machine {
+  .header-actions .btn-cta {
     display: none;
   }
 }
@@ -258,48 +252,6 @@ h3 {
   text-align: center;
 }
 
-.fav-btn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 2;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--line);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
-  color: #999;
-  cursor: pointer;
-  font-size: 15px;
-  line-height: 1;
-  transition:
-    color 0.12s var(--ease),
-    border-color 0.12s var(--ease),
-    background 0.12s var(--ease),
-    transform 0.12s var(--ease);
-}
-
-.fav-btn:hover {
-  color: #c62828;
-  border-color: #e0a0a0;
-  background: #fff;
-}
-
-.fav-btn:active {
-  transform: scale(0.94);
-}
-
-.fav-btn.is-on {
-  color: #c62828;
-  border-color: #f1b0b0;
-  background: #fff5f5;
-}
-
-.fav-btn.is-on:hover {
-  background: #ffe8e8;
-  border-color: #e08080;
-}
-
 .result-count {
   font-weight: 600;
   color: var(--steel);
@@ -324,24 +276,6 @@ h3 {
   margin-left: 6px;
 }
 
-.fav-panel {
-  background: #fff;
-  border-bottom: 1px solid var(--line);
-  box-shadow: var(--shadow-soft);
-}
-
-.fav-panel-inner {
-  padding-block: 12px;
-}
-
-.fav-panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.fav-list,
 .listing-grid-compact {
   display: grid;
   gap: 10px;
@@ -455,6 +389,25 @@ h3 {
   transform: translateY(1px);
 }
 
+/* Ücretsiz İlan Ver — logo ile aynı dil (siyah + sarı), sarı Ara butonundan ayrışır */
+.btn-cta {
+  background: var(--ink);
+  color: var(--machine);
+  border-color: #000;
+  font-weight: 700;
+}
+
+.btn-cta:hover {
+  background: #000;
+  color: var(--machine-hot);
+}
+
+.btn-cta:active {
+  background: #111;
+  color: var(--machine);
+  transform: translateY(1px);
+}
+
 .btn-dark {
   background: var(--ink);
   color: #fff;
@@ -472,7 +425,6 @@ h3 {
 .btn:focus-visible,
 .chip:focus-visible,
 .intent-tab:focus-visible,
-.fav-btn:focus-visible,
 .nav-toggle:focus-visible,
 .link-clear:focus-visible {
   outline: 2px solid var(--link);
@@ -724,23 +676,85 @@ h3 {
   gap: 8px;
 }
 
-.promo-filters select {
+/* Shared select control — custom chevron, contrast, filled vs empty */
+.promo-filters select,
+.filter-field select,
+.sort-field select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
   min-height: 40px;
-  padding: 0 10px;
-  border: 1px solid #ccc;
+  padding: 0 36px 0 12px;
+  border: 1px solid #bbb;
   border-radius: var(--radius);
-  background: #fff;
-  transition: border-color 0.12s var(--ease), box-shadow 0.12s var(--ease);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.2;
+  cursor: pointer;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+  transition:
+    border-color 0.12s var(--ease),
+    box-shadow 0.12s var(--ease),
+    color 0.12s var(--ease),
+    background-color 0.12s var(--ease);
 }
 
-.promo-filters select:hover {
-  border-color: #999;
+.filter-field select,
+.sort-field select {
+  min-height: 36px;
+  font-size: 13px;
+  padding-right: 32px;
+  background-position: right 10px center;
+  background-size: 11px;
 }
 
-.promo-filters select:focus {
+.promo-filters select:hover,
+.filter-field select:hover,
+.sort-field select:hover {
+  border-color: #888;
+}
+
+.promo-filters select:focus,
+.filter-field select:focus,
+.sort-field select:focus {
   outline: none;
   border-color: var(--machine-deep);
   box-shadow: 0 0 0 2px rgba(255, 239, 0, 0.45);
+}
+
+/* Boş / placeholder seçenek — daha soluk */
+.promo-filters select:has(> option[value=""]:checked),
+.filter-field select:has(> option[value=""]:checked) {
+  font-weight: 600;
+  color: var(--steel);
+}
+
+/* Gerçek değer seçili */
+.promo-filters select:has(> option:checked:not([value=""])),
+.filter-field select:has(> option:checked:not([value=""])),
+.sort-field select,
+.promo-filters select.is-filled,
+.filter-field select.is-filled {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.promo-filters select:disabled,
+.filter-field select:disabled,
+.sort-field select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f5f5f5;
+  color: var(--steel);
+}
+
+.promo-filters .btn {
+  min-height: 40px;
 }
 
 /* Vitrin */
@@ -1062,7 +1076,6 @@ h3 {
   }
 
   .listing-grid,
-  .fav-list,
   .listing-grid-compact {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1124,7 +1137,6 @@ h3 {
   .listing-card,
   .btn,
   .chip,
-  .fav-btn,
   .logo,
   .header-search input,
   .promo-filters select,
@@ -1187,27 +1199,6 @@ h3 {
   color: var(--steel);
 }
 
-.filter-field select {
-  min-height: 36px;
-  border: 1px solid #ccc;
-  border-radius: var(--radius);
-  padding: 0 8px;
-  background: #fff;
-  transition: border-color 0.12s var(--ease), box-shadow 0.12s var(--ease);
-}
-
-.filter-field select:hover,
-.sort-field select:hover {
-  border-color: #999;
-}
-
-.filter-field select:focus,
-.sort-field select:focus {
-  outline: none;
-  border-color: var(--machine-deep);
-  box-shadow: 0 0 0 2px rgba(255, 239, 0, 0.45);
-}
-
 .filter-box .btn {
   margin-inline: 12px;
   width: calc(100% - 24px);
@@ -1239,10 +1230,9 @@ h3 {
 }
 
 .sort-field select {
+  width: auto;
+  min-width: 160px;
   min-height: 34px;
-  border: 1px solid #ccc;
-  border-radius: var(--radius);
-  background: #fff;
 }
 
 .classified-list {
@@ -1489,11 +1479,6 @@ h3 {
 
 .detail-back:hover {
   text-decoration: underline;
-}
-
-.btn.is-fav {
-  border-color: #f1b0b0;
-  color: #c62828;
 }
 
 @media (min-width: 720px) {
