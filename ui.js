@@ -30,7 +30,7 @@
     });
   };
 
-  // Hide logo/search after 3% scroll on desktop+; keep full header on mobile.
+  // Scroll: collapse main header; show Logo | categories | Giriş + İlan Ver. Back to top: restore.
   const initCompactHeader = () => {
     const header = document.querySelector(".site-header");
     const headerTop = header?.querySelector(".header-top");
@@ -39,8 +39,8 @@
 
     const toggle = header.querySelector(".nav-toggle");
     const mobile = header.querySelector(".nav-mobile");
+    const brand = catBar.querySelector(".cat-bar-brand");
     const THRESHOLD = 0.03;
-    const desktopMq = window.matchMedia("(min-width: 720px)");
 
     let compact = false;
     let ticking = false;
@@ -50,22 +50,24 @@
       compact = next;
       header.classList.toggle("is-compact", compact);
       headerTop.toggleAttribute("inert", compact);
+      brand?.setAttribute("tabindex", compact ? "0" : "-1");
 
-      if (compact && mobile && !mobile.hasAttribute("hidden")) {
-        mobile.setAttribute("hidden", "");
-        mobile.classList.remove("is-open");
-        toggle?.setAttribute("aria-expanded", "false");
+      if (compact) {
+        header.classList.remove("is-search-open");
+        const searchBtn = header.querySelector(".search-toggle");
+        searchBtn?.setAttribute("aria-expanded", "false");
+        searchBtn?.setAttribute("aria-label", "Aramayı aç");
+
+        if (mobile && !mobile.hasAttribute("hidden")) {
+          mobile.setAttribute("hidden", "");
+          mobile.classList.remove("is-open");
+          toggle?.setAttribute("aria-expanded", "false");
+        }
       }
     };
 
     const update = () => {
       ticking = false;
-
-      if (!desktopMq.matches) {
-        setCompact(false);
-        return;
-      }
-
       const y = Math.max(0, window.scrollY);
       const max = document.documentElement.scrollHeight - window.innerHeight;
       const progress = max > 0 ? y / max : 0;
@@ -82,7 +84,6 @@
       { passive: true }
     );
 
-    desktopMq.addEventListener("change", update);
     update();
   };
 

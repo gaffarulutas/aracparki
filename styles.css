@@ -469,8 +469,24 @@ h3 {
   background: var(--raised);
 }
 
+.cat-bar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.cat-bar-brand,
+.cat-bar-actions {
+  display: none;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
 .cat-bar-clip {
-  min-height: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .cat-bar-inner {
@@ -487,7 +503,7 @@ h3 {
   display: none;
 }
 
-.cat-bar a {
+.cat-bar-inner > a {
   flex: 0 0 auto;
   padding: 8px 12px;
   font-family: var(--font-display);
@@ -498,13 +514,39 @@ h3 {
   transition: background 0.15s var(--ease), color 0.15s var(--ease);
 }
 
-.cat-bar a:hover {
+.cat-bar-inner > a:hover {
   color: var(--link);
   background: var(--surface);
 }
 
-.cat-bar a:active {
+.cat-bar-inner > a:active {
   background: var(--surface-2);
+}
+
+.site-header.is-compact .cat-bar-brand {
+  display: inline-flex;
+  font-size: 14px;
+}
+
+.site-header.is-compact .cat-bar-brand .logo-arac,
+.site-header.is-compact .cat-bar-brand .logo-parki {
+  padding: 7px 9px;
+}
+
+.site-header.is-compact .cat-bar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.site-header.is-compact .cat-bar-actions .link-quiet {
+  display: inline;
+  font-size: 12px;
+}
+
+.site-header.is-compact .cat-bar-actions .header-cta {
+  min-height: 32px;
+  padding-inline: 10px;
+  font-size: 11px;
 }
 
 .nav-mobile {
@@ -626,10 +668,15 @@ h3 {
     overscroll-behavior-x: contain;
   }
 
-  .cat-bar a {
+  .cat-bar-inner > a {
     min-height: 44px;
     display: inline-flex;
     align-items: center;
+  }
+
+  .site-header.is-compact .cat-bar-actions .header-cta {
+    font-size: 10px;
+    padding-inline: 8px;
   }
 }
 
