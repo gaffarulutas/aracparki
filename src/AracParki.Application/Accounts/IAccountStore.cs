@@ -15,6 +15,8 @@ public interface IAccountStore
         CancellationToken cancellationToken);
     Task UpdatePasswordHashAsync(long accountId, string passwordHash, CancellationToken cancellationToken);
 
+    Task UpdatePhoneAsync(long accountId, string phone, CancellationToken cancellationToken);
+
     /// <summary>Invalidates prior unused reset tokens, then inserts the new hash.</summary>
     Task SaveResetTokenAsync(long accountId, string tokenHash, DateTimeOffset expiresAt, CancellationToken cancellationToken);
 

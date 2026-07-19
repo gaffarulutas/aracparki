@@ -63,7 +63,7 @@
 
       <p class="auth-switch">
         Hesabın yok mu?
-        <a href="/kayit">Ücretsiz üye ol</a>
+        <a href="@(string.IsNullOrEmpty(Model.ReturnUrl) ? "/kayit" : $"/kayit?returnUrl={Uri.EscapeDataString(Model.ReturnUrl)}")">Ücretsiz üye ol</a>
       </p>
     </section>
 

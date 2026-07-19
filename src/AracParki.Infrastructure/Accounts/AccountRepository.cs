@@ -86,6 +86,20 @@ public sealed class AccountRepository(IDbConnectionFactory connectionFactory) : 
                 cancellationToken: cancellationToken));
     }
 
+    public async Task UpdatePhoneAsync(long accountId, string phone, CancellationToken cancellationToken)
+    {
+        await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                """
+                UPDATE accounts
+                SET phone = @Phone
+                WHERE id = @Id
+                """,
+                new { Id = accountId, Phone = phone },
+                cancellationToken: cancellationToken));
+    }
+
     public async Task SaveResetTokenAsync(
         long accountId,
         string tokenHash,

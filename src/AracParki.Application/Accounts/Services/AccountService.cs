@@ -103,6 +103,9 @@ public sealed class AccountService(
         return (true, null, account);
     }
 
+    public Task<AccountDto?> GetByIdAsync(long accountId, CancellationToken cancellationToken)
+        => store.FindByIdAsync(accountId, cancellationToken);
+
     /// <summary>Anti-enumeration: always succeeds from the caller's perspective.</summary>
     public async Task ResendEmailVerificationAsync(string email, CancellationToken cancellationToken)
     {
@@ -226,6 +229,28 @@ public sealed class AccountService(
         }
 
         return (true, null);
+    }
+
+    public async Task<(bool Ok, string? Error, AccountDto? Account)> UpdatePhoneAsync(
+        long accountId,
+        string phone,
+        CancellationToken cancellationToken)
+    {
+        var normalized = NormalizePhone(phone);
+        if (normalized is null || normalized.Length < 10)
+        {
+            return (false, "Geçerli bir telefon numarası gir.", null);
+        }
+
+        var account = await store.FindByIdAsync(accountId, cancellationToken);
+        if (account is null)
+        {
+            return (false, "Hesap bulunamadı.", null);
+        }
+
+        await store.UpdatePhoneAsync(accountId, normalized, cancellationToken);
+        var updated = await store.FindByIdAsync(accountId, cancellationToken);
+        return (true, null, updated);
     }
 
     public static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();

@@ -1,7 +1,7 @@
 @model string
 @{
     var page = Model ?? "home";
-    var showCat = page is not ("detail" or "auth");
+    var showCat = page is not ("detail" or "auth" or "wizard");
     var isAuth = User.Identity?.IsAuthenticated == true;
 }
 <header class="site-header" id="top">
@@ -62,7 +62,7 @@
           x-ref="searchToggle">
           <ap-icon name="search" size="18" />
         </button>
-        <a class="btn btn-machine header-cta" href="@(page == "home" ? "#ilan-ver" : "/#ilan-ver")">Ücretsiz İlan Ver</a>
+        <a class="btn btn-machine header-cta" href="/ilan-ver">Ücretsiz İlan Ver</a>
       </div>
     </div>
   </div>
@@ -98,7 +98,7 @@
           {
             <a class="link-quiet" href="/giris">Giriş Yap</a>
           }
-          <a class="btn btn-machine header-cta" href="@(page == "home" ? "#ilan-ver" : "/#ilan-ver")">Ücretsiz İlan Ver</a>
+          <a class="btn btn-machine header-cta" href="/ilan-ver">Ücretsiz İlan Ver</a>
         </div>
       </div>
     </nav>
@@ -121,6 +121,6 @@
     {
       <a href="/giris">Giriş Yap</a>
     }
-    <a href="@(page == "home" ? "#ilan-ver" : "/#ilan-ver")">Ücretsiz İlan Ver</a>
+    <a href="/ilan-ver">Ücretsiz İlan Ver</a>
   </div>
 </header>

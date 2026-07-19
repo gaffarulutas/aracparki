@@ -1,0 +1,438 @@
+@page "/ilan-ver"
+@model AracParki.Web.Pages.IlanVer.IndexModel
+@{
+    var draft = Model.Draft;
+    var step = Model.Step;
+    var initialModelsJson = System.Text.Json.JsonSerializer.Serialize(
+        Model.Models.Select(m => new { id = m.Id, name = m.Name }));
+    var initialDistrictsJson = System.Text.Json.JsonSerializer.Serialize(
+        Model.Districts.Select(d => new { id = d.Id, name = d.Name }));
+    var imageUrlsJson = System.Text.Json.JsonSerializer.Serialize(
+        draft.ImageUrls.Count > 0 ? draft.ImageUrls : new List<string> { "" });
+}
+<main id="main" class="wizard-page">
+  <div class="container wizard-shell">
+    <header class="wizard-header">
+      <p class="wizard-kicker">Ücretsiz ilan ver</p>
+      <h1 class="wizard-title">@Model.StepTitle</h1>
+      <ol class="wizard-steps" aria-label="İlan adımları">
+        @for (var i = 1; i <= 5; i++)
+        {
+          var label = i switch
+          {
+            1 => "Kategori",
+            2 => "Makine",
+            3 => "Satış",
+            4 => "Görseller",
+            _ => "Önizleme"
+          };
+          <li class="wizard-step @(i == step ? "is-current" : i < step ? "is-done" : null)">
+            <span class="wizard-step-num" aria-hidden="true">@i</span>
+            <span class="wizard-step-label">@label</span>
+          </li>
+        }
+      </ol>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(Model.FormError))
+    {
+      <div class="wizard-alert" role="alert">@Model.FormError</div>
+    }
+
+    <section class="wizard-card">
+      @if (step == 1)
+      {
+        <p class="wizard-lead">Makinenin kategorisini seç — ilan doğru alıcılara ulaşsın.</p>
+        @foreach (var group in Model.CategoryGroups)
+        {
+          <div class="wizard-group">
+            <h2 class="wizard-group-title">@group.Name</h2>
+            <div class="wizard-cat-grid">
+              @foreach (var cat in group.Categories)
+              {
+                <form method="post" asp-page-handler="Category" class="wizard-cat-form">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="categoryId" value="@cat.Id" />
+                  <button type="submit" class="wizard-cat-card @(draft.CategoryId == cat.Id ? "is-selected" : null)">
+                    <span class="wizard-cat-name">@cat.Name</span>
+                  </button>
+                </form>
+              }
+            </div>
+          </div>
+        }
+      }
+      else if (step == 2)
+      {
+        <p class="wizard-lead"><strong>@draft.CategoryName</strong> için makine detaylarını gir.</p>
+        <form method="post" asp-page-handler="Machine" class="wizard-form" id="wizard-form"
+              x-data="ilanVerMachine"
+              data-category-id="@draft.CategoryId"
+              data-brand-id="@draft.BrandId"
+              data-model-id="@(draft.ModelId ?? 0)"
+              data-model-name="@draft.ModelName"
+              data-models='@Html.Raw(initialModelsJson)'>
+          @Html.AntiForgeryToken()
+
+          <div class="form-row">
+            <label for="brandId">Marka</label>
+            <select id="brandId" name="brandId" required x-model.number="brandId" @@change="onBrandChange()">
+              <option value="">Seç</option>
+              @foreach (var b in Model.Brands)
+              {
+                if (draft.BrandId == b.Id)
+                {
+                  <option value="@b.Id" selected>@b.Name</option>
+                }
+                else
+                {
+                  <option value="@b.Id">@b.Name</option>
+                }
+              }
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="modelId">Model</label>
+            <select id="modelId" name="modelId" x-model.number="modelId" @@change="onModelChange()">
+              <option value="0">Model seç veya aşağıya yaz</option>
+              <template x-for="m in models" :key="m.id">
+                <option :value="m.id" x-text="m.name"></option>
+              </template>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="modelName">Model adı</label>
+            <input id="modelName" name="modelName" type="text" required maxlength="120"
+                   x-model="modelName" placeholder="Örn. 320D" />
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label for="condition">Durum</label>
+              <select id="condition" name="condition" required>
+                @if (draft.Condition == EquipmentCondition.Used)
+                {
+                  <option value="@EquipmentCondition.Used" selected>İkinci el</option>
+                  <option value="@EquipmentCondition.New">Sıfır</option>
+                }
+                else
+                {
+                  <option value="@EquipmentCondition.Used">İkinci el</option>
+                  <option value="@EquipmentCondition.New" selected>Sıfır</option>
+                }
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="modelYear">Model yılı</label>
+              <input id="modelYear" name="modelYear" type="number" required min="1950" max="2100" value="@draft.ModelYear" />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label for="hours">Çalışma saati</label>
+              <input id="hours" name="hours" type="number" required min="0" value="@draft.Hours" />
+            </div>
+            <div class="form-row">
+              <label for="horsepower">Beygir (HP)</label>
+              <input id="horsepower" name="horsepower" type="number" required min="0" value="@draft.Horsepower" />
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label for="tons">@(draft.CapacityMetric == "capacity_t" ? "Kapasite (ton)" : "Tonaj (t)")</label>
+              <input id="tons" name="tons" type="number" required min="0.01" step="0.01"
+                     value="@(draft.Tons > 0 ? draft.Tons.ToString(System.Globalization.CultureInfo.InvariantCulture) : null)" />
+            </div>
+            @if (draft.CapacityMetric == "capacity_kg")
+            {
+              <div class="form-row">
+                <label for="capacityKg">Kapasite (kg)</label>
+                <input id="capacityKg" name="capacityKg" type="number" required min="1"
+                       value="@(draft.CapacityKg is > 0 ? draft.CapacityKg.Value.ToString() : null)" />
+              </div>
+            }
+          </div>
+
+          @if (Model.Attributes.Count > 0)
+          {
+            <fieldset class="wizard-fieldset">
+              <legend>Ek özellikler</legend>
+              <div class="form-grid-2">
+                @foreach (var attr in Model.Attributes)
+                {
+                  var key = $"specs[{attr.Key}]";
+                  var val = draft.Specs.TryGetValue(attr.Key, out var s) ? s : "";
+                  var opts = Model.EnumOptions(attr);
+                  <div class="form-row">
+                    <label for="spec-@attr.Key">@attr.Label@(attr.Unit is not null ? $" ({attr.Unit})" : null)</label>
+                    @if (opts.Count > 0)
+                    {
+                      <select id="spec-@attr.Key" name="@key">
+                        <option value="">—</option>
+                        @foreach (var opt in opts)
+                        {
+                          if (val == opt)
+                          {
+                            <option value="@opt" selected>@opt</option>
+                          }
+                          else
+                          {
+                            <option value="@opt">@opt</option>
+                          }
+                        }
+                      </select>
+                    }
+                    else if (attr.DataType == "bool")
+                    {
+                      <select id="spec-@attr.Key" name="@key">
+                        <option value="">—</option>
+                        @if (val is "true" or "1")
+                        {
+                          <option value="true" selected>Evet</option>
+                          <option value="false">Hayır</option>
+                        }
+                        else if (val is "false" or "0")
+                        {
+                          <option value="true">Evet</option>
+                          <option value="false" selected>Hayır</option>
+                        }
+                        else
+                        {
+                          <option value="true">Evet</option>
+                          <option value="false">Hayır</option>
+                        }
+                      </select>
+                    }
+                    else
+                    {
+                      <input id="spec-@attr.Key" name="@key" type="text" value="@val" />
+                    }
+                  </div>
+                }
+              </div>
+            </fieldset>
+          }
+
+          <div class="form-row">
+            <label for="title">İlan başlığı</label>
+            <input id="title" name="title" type="text" required maxlength="200" value="@draft.Title"
+                   placeholder="@draft.SuggestedTitle()" />
+            <p class="field-hint">Öneri: @draft.SuggestedTitle()</p>
+          </div>
+
+          <div class="form-row">
+            <label for="description">Açıklama</label>
+            <textarea id="description" name="description" required rows="5" maxlength="8000"
+                      placeholder="Bakım geçmişi, ekipman, konum notları…">@draft.Description</textarea>
+          </div>
+
+          <div class="wizard-actions">
+            <a class="link-quiet" href="/ilan-ver?adim=1">← Geri</a>
+            <button class="btn btn-machine" type="submit">Devam</button>
+          </div>
+        </form>
+      }
+      else if (step == 3)
+      {
+        <p class="wizard-lead">Fiyat, konum ve iletişim bilgileri.</p>
+        <form method="post" asp-page-handler="Sale" class="wizard-form" id="wizard-form"
+              x-data="ilanVerSale"
+              data-city-id="@draft.CityId"
+              data-district-id="@draft.DistrictId"
+              data-primary-intent="@draft.PrimaryIntent"
+              data-rent="@(draft.Intents.Contains(ListingIntent.Kiralik) ? "1" : "0")"
+              data-districts='@Html.Raw(initialDistrictsJson)'>
+          @Html.AntiForgeryToken()
+
+          <fieldset class="wizard-fieldset">
+            <legend>İlan tipi</legend>
+            <div class="wizard-check-row">
+              <label class="wizard-check">
+                <input type="checkbox" name="intents" value="@ListingIntent.Satilik"
+                       @(draft.Intents.Contains(ListingIntent.Satilik) ? "checked" : null) />
+                Satılık
+              </label>
+              <label class="wizard-check">
+                <input type="checkbox" name="intents" value="@ListingIntent.Kiralik"
+                       @(draft.Intents.Contains(ListingIntent.Kiralik) ? "checked" : null)
+                       @@change="rent = $event.target.checked" />
+                Kiralık
+              </label>
+            </div>
+            <div class="form-row">
+              <label for="primaryIntent">Birincil tip</label>
+              <select id="primaryIntent" name="primaryIntent" required x-model="primaryIntent">
+                <option value="@ListingIntent.Satilik">Satılık</option>
+                <option value="@ListingIntent.Kiralik">Kiralık</option>
+              </select>
+            </div>
+          </fieldset>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label for="price">Fiyat (₺)</label>
+              <input id="price" name="price" type="number" required min="1" step="1"
+                     value="@(draft.Price > 0 ? draft.Price.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : null)" />
+            </div>
+            <div class="form-row" x-show="rent" x-cloak>
+              <label for="priceUnit">Kira birimi</label>
+              <select id="priceUnit" name="priceUnit">
+                <option value="">Seç</option>
+                @foreach (var unit in new[] { PriceUnit.Day, PriceUnit.Week, PriceUnit.Month, PriceUnit.Hour })
+                {
+                  if (draft.PriceUnit == unit)
+                  {
+                    <option value="@unit" selected>@PriceUnit.Label(unit)</option>
+                  }
+                  else
+                  {
+                    <option value="@unit">@PriceUnit.Label(unit)</option>
+                  }
+                }
+              </select>
+            </div>
+          </div>
+
+          <label class="wizard-check" x-show="rent" x-cloak>
+            <input type="checkbox" name="includesOperator" value="true"
+                   @(draft.IncludesOperator ? "checked" : null) />
+            Operatör dahil
+          </label>
+
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label for="cityId">İl</label>
+              <select id="cityId" name="cityId" required x-model.number="cityId" @@change="onCityChange()">
+                <option value="">Seç</option>
+                @foreach (var c in Model.Cities)
+                {
+                  if (draft.CityId == c.Id)
+                  {
+                    <option value="@c.Id" selected>@c.Name</option>
+                  }
+                  else
+                  {
+                    <option value="@c.Id">@c.Name</option>
+                  }
+                }
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="districtId">İlçe</label>
+              <select id="districtId" name="districtId" required x-model.number="districtId">
+                <option value="">Seç</option>
+                <template x-for="d in districts" :key="d.id">
+                  <option :value="d.id" x-text="d.name"></option>
+                </template>
+              </select>
+            </div>
+          </div>
+
+          @if (Model.RequirePhone)
+          {
+            <div class="form-row">
+              <label for="phone">Telefon</label>
+              <input id="phone" name="phone" type="tel" required inputmode="tel"
+                     autocomplete="tel" maxlength="20" value="@draft.Phone"
+                     placeholder="05xx xxx xx xx" />
+              <p class="field-hint">İlk ilanında telefon numaranı kaydediyoruz. SMS doğrulama yakında.</p>
+            </div>
+          }
+          else
+          {
+            <p class="wizard-muted">Kayıtlı telefon: <strong>@Model.AccountPhone</strong></p>
+          }
+
+          <div class="wizard-actions">
+            <a class="link-quiet" href="/ilan-ver?adim=2">← Geri</a>
+            <button class="btn btn-machine" type="submit">Devam</button>
+          </div>
+        </form>
+      }
+      else if (step == 4)
+      {
+        <p class="wizard-lead">Görsel URL’lerini ekle. İlk görsel kapak olur. (Dosya yükleme yakında.)</p>
+        <form method="post" asp-page-handler="Images" class="wizard-form" id="wizard-form"
+              x-data="ilanVerImages" data-urls='@Html.Raw(imageUrlsJson)'>
+          @Html.AntiForgeryToken()
+          <div class="wizard-image-list">
+            <template x-for="(url, index) in urls" :key="index">
+              <div class="form-row wizard-image-row">
+                <label :for="'img-' + index">
+                  <span x-text="index === 0 ? 'Kapak görseli (URL)' : ('Görsel ' + (index + 1))"></span>
+                </label>
+                <div class="wizard-image-input">
+                  <input type="url" name="imageUrls" :id="'img-' + index" x-model="urls[index]"
+                         placeholder="https://…" required />
+                  <button type="button" class="link-quiet" x-show="urls.length > 1" @@click="removeAt(index)">Kaldır</button>
+                </div>
+                <div class="wizard-image-preview" x-show="!!urls[index]">
+                  <img :src="urls[index]" alt="" loading="lazy" />
+                </div>
+              </div>
+            </template>
+          </div>
+          <button type="button" class="btn btn-ghost" x-show="urls.length &lt; 8" @@click="add()">+ Görsel ekle</button>
+
+          <div class="wizard-actions">
+            <a class="link-quiet" href="/ilan-ver?adim=3">← Geri</a>
+            <button class="btn btn-machine" type="submit">Önizlemeye geç</button>
+          </div>
+        </form>
+      }
+      else
+      {
+        <p class="wizard-lead">Yayınlamadan önce özet. Düzenlemek için geri dön.</p>
+        <article class="wizard-preview">
+          @if (draft.ImageUrls.Count > 0)
+          {
+            <img class="wizard-preview-cover" src="@draft.ImageUrls[0]" alt="" />
+          }
+          <div class="wizard-preview-body">
+            <p class="wizard-preview-meta">
+              @ListingIntent.Label(draft.PrimaryIntent)
+              · @draft.CategoryName
+              · @draft.CityName / @draft.DistrictName
+            </p>
+            <h2 class="wizard-preview-title">@draft.Title</h2>
+            <p class="wizard-preview-price">
+              @draft.Price.ToString("N0", new System.Globalization.CultureInfo("tr-TR")) ₺
+              @if (!string.IsNullOrWhiteSpace(draft.PriceUnit))
+              {
+                <span>/ @PriceUnit.Label(draft.PriceUnit)</span>
+              }
+            </p>
+            <p class="wizard-preview-specs">
+              @draft.BrandName @draft.ModelName · @draft.ModelYear · @draft.Tons.ToString("0.##")t
+              · @draft.Hours.ToString("N0") saat · @draft.Horsepower HP
+              · @EquipmentCondition.Label(draft.Condition)
+            </p>
+            <p class="wizard-preview-desc">@draft.Description</p>
+            <p class="wizard-muted">Görsel: @draft.ImageUrls.Count · Telefon: @(Model.RequirePhone ? draft.Phone : Model.AccountPhone)</p>
+          </div>
+        </article>
+
+        <form method="post" asp-page-handler="Publish" class="wizard-actions wizard-actions-end">
+          @Html.AntiForgeryToken()
+          <a class="link-quiet" href="/ilan-ver?adim=4">← Düzenle</a>
+          <button class="btn btn-cta btn-lg" type="submit">Yayınla</button>
+        </form>
+        <p class="wizard-warn">Sayfadan çıkarsan taslak kaydedilmez (oturum süresi dolunca silinir).</p>
+      }
+    </section>
+  </div>
+
+  @if (step is >= 2 and <= 4)
+  {
+    <div class="wizard-sticky">
+      <div class="container wizard-sticky-inner">
+        <span>Adım @step / 5 · @Model.StepTitle</span>
+        <button class="btn btn-machine" type="submit" form="wizard-form">Devam</button>
+      </div>
+    </div>
+  }
+</main>

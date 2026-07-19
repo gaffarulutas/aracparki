@@ -36,10 +36,6 @@
       toast(toastBtn.getAttribute("data-toast"));
     }
 
-    const sellerBtn = e.target.closest("[data-seller-cta]");
-    if (sellerBtn) {
-      toast("İlan verme yakında açılacak");
-    }
   });
 
   document.addEventListener("click", async (e) => {
@@ -248,6 +244,99 @@
       },
       togglePassword() {
         this.showPassword = !this.showPassword;
+      },
+    }));
+
+    const parseJsonAttr = (el, name, fallback) => {
+      try {
+        const raw = el.getAttribute(name);
+        if (!raw) return fallback;
+        return JSON.parse(raw);
+      } catch {
+        return fallback;
+      }
+    };
+
+    Alpine.data("ilanVerMachine", () => ({
+      categoryId: 0,
+      brandId: 0,
+      modelId: 0,
+      modelName: "",
+      models: [],
+      init() {
+        this.categoryId = Number(this.$el.dataset.categoryId || 0);
+        this.brandId = Number(this.$el.dataset.brandId || 0);
+        this.modelId = Number(this.$el.dataset.modelId || 0);
+        this.modelName = this.$el.dataset.modelName || "";
+        this.models = parseJsonAttr(this.$el, "data-models", []);
+      },
+      async onBrandChange() {
+        this.modelId = 0;
+        this.models = [];
+        if (!this.categoryId || !this.brandId) return;
+        try {
+          const res = await fetch(
+            `/api/catalog/categories/${this.categoryId}/brands/${this.brandId}/models`
+          );
+          if (!res.ok) return;
+          const data = await res.json();
+          this.models = (data || []).map((m) => ({
+            id: m.id ?? m.Id,
+            name: m.name ?? m.Name,
+          }));
+        } catch {
+          this.models = [];
+        }
+      },
+      onModelChange() {
+        const found = this.models.find((m) => Number(m.id) === Number(this.modelId));
+        if (found) this.modelName = found.name;
+      },
+    }));
+
+    Alpine.data("ilanVerSale", () => ({
+      cityId: 0,
+      districtId: 0,
+      primaryIntent: "satilik",
+      rent: false,
+      districts: [],
+      init() {
+        this.cityId = Number(this.$el.dataset.cityId || 0);
+        this.districtId = Number(this.$el.dataset.districtId || 0);
+        this.primaryIntent = this.$el.dataset.primaryIntent || "satilik";
+        this.rent = this.$el.dataset.rent === "1";
+        this.districts = parseJsonAttr(this.$el, "data-districts", []);
+      },
+      async onCityChange() {
+        this.districtId = 0;
+        this.districts = [];
+        if (!this.cityId) return;
+        try {
+          const res = await fetch(`/api/locations/cities/${this.cityId}/districts`);
+          if (!res.ok) return;
+          const data = await res.json();
+          this.districts = (data || []).map((d) => ({
+            id: d.id ?? d.Id,
+            name: d.name ?? d.Name,
+          }));
+        } catch {
+          this.districts = [];
+        }
+      },
+    }));
+
+    Alpine.data("ilanVerImages", () => ({
+      urls: [""],
+      init() {
+        const parsed = parseJsonAttr(this.$el, "data-urls", [""]);
+        this.urls = Array.isArray(parsed) && parsed.length ? parsed : [""];
+      },
+      add() {
+        if (this.urls.length < 8) this.urls.push("");
+      },
+      removeAt(index) {
+        if (this.urls.length <= 1) return;
+        this.urls.splice(index, 1);
       },
     }));
   });

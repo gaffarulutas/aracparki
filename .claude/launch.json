@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "aracparki-web",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/AracParki.Web", "--launch-profile", "http"],
+      "port": 5245
+    }
+  ]
+}

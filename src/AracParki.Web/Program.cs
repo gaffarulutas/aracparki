@@ -25,6 +25,15 @@ try
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddRazorPages();
     builder.Services.AddAntiforgery();
+    builder.Services.AddDistributedMemoryCache();
+    builder.Services.AddSession(options =>
+    {
+        options.Cookie.Name = "aracparki.session";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.IsEssential = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.IdleTimeout = TimeSpan.FromHours(4);
+    });
 
     builder.Services
         .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -90,6 +99,7 @@ try
     app.UseRateLimiter();
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UseSession();
     app.UseAntiforgery();
 
     app.MapHealthChecks("/health");

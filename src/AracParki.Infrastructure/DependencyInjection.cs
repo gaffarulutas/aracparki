@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddSingleton<ISqlQueryLoader, SqlQueryLoader>();
         services.AddSingleton<IDbConnectionFactory, NpgsqlConnectionFactory>();
         services.AddScoped<IListingQuery, ListingRepository>();
+        services.AddScoped<IListingStore, ListingWriteRepository>();
         services.AddScoped<ICatalogQuery, CatalogRepository>();
         services.AddScoped<IAccountStore, AccountRepository>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
