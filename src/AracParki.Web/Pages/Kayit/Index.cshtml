@@ -13,53 +13,36 @@
     @if (Model.Submitted)
     {
       <section class="auth-card auth-card--status" aria-labelledby="auth-title">
-        <div class="auth-status-mark" aria-hidden="true">
-          <ap-icon name="mail" size="28" />
-        </div>
-
         <h1 class="auth-title" id="auth-title">E-postanı kontrol et</h1>
+
         @if (!Model.VerificationEmailSent)
         {
           <div class="auth-alert" role="alert">
-            Hesabın oluştu ancak doğrulama e-postası şu an gönderilemedi.
-            Aşağıdan hemen yeni bağlantı iste.
+            Hesabın oluştu; doğrulama maili şu an gönderilemedi.
           </div>
+          <p class="auth-email-chip">@Model.Input.Email</p>
+          <a class="btn btn-machine btn-block auth-submit"
+             href="/eposta-dogrula?email=@Uri.EscapeDataString(Model.Input.Email)">
+            Tekrar gönder
+          </a>
         }
         else
         {
           <p class="auth-lead auth-lead--center">
-            Hesabın hazır. Onay bağlantısını şu adrese gönderdik:
+            <strong>@Model.Input.Email</strong> adresine onay bağlantısı gönderdik.
+          </p>
+          <p class="auth-hint auth-hint--center">
+            Spam klasörünü de kontrol et. Bağlantı 48 saat geçerli.
+          </p>
+          <p class="auth-switch">
+            Mail gelmedi mi?
+            <a href="/eposta-dogrula?email=@Uri.EscapeDataString(Model.Input.Email)">Tekrar gönder</a>
           </p>
         }
-        <p class="auth-email-chip">
-          <ap-icon name="mail" size="16" />
-          <span>@Model.Input.Email</span>
+
+        <p class="auth-switch">
+          <a href="/giris">Girişe dön</a>
         </p>
-
-        <ol class="auth-checklist">
-          <li>
-            <span class="auth-checklist-num" aria-hidden="true">1</span>
-            <span>Gelen kutunu ve spam klasörünü kontrol et</span>
-          </li>
-          <li>
-            <span class="auth-checklist-num" aria-hidden="true">2</span>
-            <span>Maildeki “Hesabımı onayla” bağlantısına tıkla</span>
-          </li>
-          <li>
-            <span class="auth-checklist-num" aria-hidden="true">3</span>
-            <span>Onaydan sonra giriş yapıp ilan verebilirsin</span>
-          </li>
-        </ol>
-
-        <div class="auth-actions">
-          <a class="btn btn-machine btn-block auth-submit"
-             href="/eposta-dogrula?email=@Uri.EscapeDataString(Model.Input.Email)">
-            Mail gelmedi — tekrar gönder
-          </a>
-          <a class="btn btn-ghost btn-block" href="/giris">Girişe git</a>
-        </div>
-
-        <p class="auth-trust">Spam klasörünü de kontrol et · Bağlantı 48 saat geçerli</p>
       </section>
     }
     else
