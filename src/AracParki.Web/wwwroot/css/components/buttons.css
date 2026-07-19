@@ -1,0 +1,125 @@
+/* —— Buttons —— */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: 40px;
+  padding: 0 var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s var(--ease),
+    border-color 0.15s var(--ease),
+    color 0.15s var(--ease),
+    transform 0.1s var(--ease),
+    opacity 0.15s var(--ease);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none;
+}
+
+.btn:focus-visible,
+.chip:focus-visible,
+.nav-toggle:focus-visible,
+.search-toggle:focus-visible,
+.link-clear:focus-visible {
+  outline: var(--focus);
+  outline-offset: 2px;
+}
+
+.btn-machine {
+  background: var(--machine);
+  color: var(--machine-ink);
+  border-color: var(--machine-deep);
+}
+
+.btn-machine:hover {
+  background: var(--machine-hot);
+}
+
+.btn-machine:active {
+  background: var(--machine-deep);
+}
+
+.btn-cta {
+  background: var(--ink);
+  color: var(--machine);
+  border-color: #000;
+}
+
+.btn-cta:hover {
+  background: #000;
+  color: var(--machine-hot);
+}
+
+.btn-cta:active {
+  background: #111;
+  color: var(--machine);
+}
+
+.btn-dark {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
+.btn-dark:hover {
+  background: var(--ink-soft);
+}
+
+.btn-dark:active {
+  background: #000;
+}
+
+.btn-ghost {
+  background: var(--raised);
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+.btn-ghost:hover {
+  border-color: var(--ink);
+  background: var(--surface);
+}
+
+.btn-ghost:active {
+  background: var(--surface-2);
+}
+
+
+.btn-sm {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.btn-lg {
+  min-height: 48px;
+  padding: 0 var(--space-3);
+  font-size: 14px;
+}
+
+.btn-block {
+  width: 100%;
+  text-align: center;
+}

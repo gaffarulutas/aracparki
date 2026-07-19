@@ -1,0 +1,222 @@
+using System.Data;
+using AracParki.Application.Abstractions;
+using AracParki.Application.Listings;
+using AracParki.Application.Listings.Dtos;
+using AracParki.Application.Listings.Queries;
+using AracParki.Domain.Listings;
+using Dapper;
+
+namespace AracParki.Infrastructure.Listings;
+
+public sealed class ListingRepository(IDbConnectionFactory connectionFactory, ISqlQueryLoader sql)
+    : IListingQuery
+{
+    public async Task<ListingSearchResult> SearchAsync(ListingSearchQuery query, CancellationToken cancellationToken)
+    {
+        var parameters = BuildFilter(query);
+        var useKeyset = query.Sort == ListingSort.Newest
+            && query.CursorListedAt is not null
+            && query.CursorId is not null;
+
+        parameters.Add("Take", query.PageSize);
+        parameters.Add("Skip", useKeyset ? 0 : (query.Page - 1) * query.PageSize);
+        parameters.Add("CursorListedAt", query.CursorListedAt, DbType.DateTimeOffset);
+        parameters.Add("CursorId", query.CursorId, DbType.Int64);
+
+        var sqlPath = ResolveSearchSql(query.Sort);
+
+        await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+
+        var items = (await connection.QueryAsync<ListingCardDto>(
+            new CommandDefinition(sql.Get(sqlPath), parameters, cancellationToken: cancellationToken))).AsList();
+
+        var total = await connection.ExecuteScalarAsync<int>(
+            new CommandDefinition(sql.Get("Listings/CountSearch.sql"), parameters, cancellationToken: cancellationToken));
+
+        var last = items.Count > 0 ? items[^1] : null;
+
+        return new ListingSearchResult
+        {
+            Items = items,
+            TotalCount = total,
+            Page = query.Page,
+            PageSize = query.PageSize,
+            HasMore = query.Page * query.PageSize < total,
+            NextCursorListedAt = last?.ListedAt,
+            NextCursorId = last?.Id
+        };
+    }
+
+    public async Task<IReadOnlyList<ListingCardDto>> GetFeaturedAsync(
+        ListingSearchQuery query,
+        int take,
+        CancellationToken cancellationToken)
+    {
+        var parameters = BuildFilter(query);
+        parameters.Add("Take", take);
+
+        await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        var items = await connection.QueryAsync<ListingCardDto>(
+            new CommandDefinition(sql.Get("Listings/Featured.sql"), parameters, cancellationToken: cancellationToken));
+        return items.AsList();
+    }
+
+    public async Task<ListingDetailDto?> GetByAdNoAsync(string adNo, CancellationToken cancellationToken)
+    {
+        await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+
+        var row = await connection.QuerySingleOrDefaultAsync<ListingDetailRow>(
+            new CommandDefinition(
+                sql.Get("Listings/GetByAdNo.sql"),
+                new { AdNo = adNo },
+                cancellationToken: cancellationToken));
+
+        if (row is null)
+        {
+            return null;
+        }
+
+        var images = (await connection.QueryAsync<string>(
+            new CommandDefinition(
+                sql.Get("Listings/GetImages.sql"),
+                new { ListingId = row.Id },
+                cancellationToken: cancellationToken))).AsList();
+
+        if (images.Count == 0)
+        {
+            images.Add(row.CoverImageUrl);
+        }
+
+        var attachments = (await connection.QueryAsync<AttachmentItemDto>(
+            new CommandDefinition(
+                sql.Get("Listings/GetAttachments.sql"),
+                new { ListingId = row.Id },
+                cancellationToken: cancellationToken))).AsList();
+
+        return new ListingDetailDto
+        {
+            Id = row.Id,
+            AdNo = row.AdNo,
+            Title = row.Title,
+            Description = row.Description,
+            Category = row.Category,
+            CategorySlug = row.CategorySlug,
+            CapacityMetric = row.CapacityMetric,
+            Brand = row.Brand,
+            ModelName = row.ModelName,
+            SerialNo = row.SerialNo,
+            PrimaryIntent = row.PrimaryIntent,
+            Intents = row.Intents,
+            Condition = row.Condition,
+            ModelYear = row.ModelYear,
+            Hours = row.Hours,
+            Tons = row.Tons,
+            CapacityKg = row.CapacityKg,
+            Horsepower = row.Horsepower,
+            City = row.City,
+            District = row.District,
+            Price = row.Price,
+            PriceUnit = row.PriceUnit,
+            IncludesOperator = row.IncludesOperator,
+            SpecsJson = row.SpecsJson,
+            CoverImageUrl = row.CoverImageUrl,
+            ImageUrls = images,
+            Attachments = attachments,
+            SellerName = row.SellerName,
+            SellerType = row.SellerType,
+            IsVerified = row.IsVerified,
+            ListedAt = row.ListedAt
+        };
+    }
+
+    public async Task<string?> GetPhoneByAdNoAsync(string adNo, CancellationToken cancellationToken)
+    {
+        await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        return await connection.ExecuteScalarAsync<string?>(
+            new CommandDefinition(
+                sql.Get("Listings/GetPhone.sql"),
+                new { AdNo = adNo },
+                cancellationToken: cancellationToken));
+    }
+
+    private static string ResolveSearchSql(string sort) => sort switch
+    {
+        ListingSort.PriceAsc => "Listings/SearchPriceAsc.sql",
+        ListingSort.PriceDesc => "Listings/SearchPriceDesc.sql",
+        ListingSort.HoursAsc => "Listings/SearchHoursAsc.sql",
+        _ => "Listings/SearchNewest.sql"
+    };
+
+    private static DynamicParameters BuildFilter(ListingSearchQuery query)
+    {
+        var parameters = new DynamicParameters();
+        parameters.Add("Intent", query.Intent, DbType.String);
+        parameters.Add("CategoryId", query.CategoryId, DbType.Int32);
+        parameters.Add("Category", query.Category, DbType.String);
+        parameters.Add("BrandId", query.BrandId, DbType.Int32);
+        parameters.Add("ModelId", query.ModelId, DbType.Int32);
+        parameters.Add("CityId", query.CityId, DbType.Int32);
+        parameters.Add("City", query.City, DbType.String);
+        parameters.Add("DistrictId", query.DistrictId, DbType.Int32);
+        parameters.Add("Condition", query.Condition, DbType.String);
+        parameters.Add("SellerType", query.SellerType, DbType.String);
+        parameters.Add("YearMin", query.YearMin, DbType.Int32);
+        parameters.Add("YearMax", query.YearMax, DbType.Int32);
+        parameters.Add("HoursMin", query.HoursMin, DbType.Int32);
+        parameters.Add("HoursMax", query.HoursMax, DbType.Int32);
+        parameters.Add("WeightMin", query.WeightMin, DbType.Decimal);
+        parameters.Add("WeightMax", query.WeightMax, DbType.Decimal);
+        parameters.Add("PriceMin", query.PriceMin, DbType.Decimal);
+        parameters.Add("PriceMax", query.PriceMax, DbType.Decimal);
+        parameters.Add("HorsepowerMin", query.HorsepowerMin, DbType.Int32);
+        parameters.Add("HorsepowerMax", query.HorsepowerMax, DbType.Int32);
+        parameters.Add("CapacityKgMin", query.CapacityKgMin, DbType.Int32);
+        parameters.Add("CapacityKgMax", query.CapacityKgMax, DbType.Int32);
+        parameters.Add("IncludesOperator", query.IncludesOperator, DbType.Boolean);
+        parameters.Add("PriceUnit", query.PriceUnit, DbType.String);
+        parameters.Add("VerifiedOnly", query.VerifiedOnly, DbType.Boolean);
+        var attachmentIds = query.AttachmentIds.Count == 0
+            ? Array.Empty<int>()
+            : query.AttachmentIds.ToArray();
+        parameters.Add("HasAttachments", attachmentIds.Length > 0, DbType.Boolean);
+        // Always send int[] so Npgsql can type the parameter (null arrays → 42P08).
+        parameters.Add("AttachmentIds", attachmentIds);
+        parameters.Add("SpecsFilterJson", query.SpecsFilterJson, DbType.String);
+        parameters.Add("SpecMinJson", query.SpecMinJson, DbType.String);
+        parameters.Add("Query", query.Query, DbType.String);
+        return parameters;
+    }
+
+    private sealed class ListingDetailRow
+    {
+        public long Id { get; init; }
+        public required string AdNo { get; init; }
+        public required string Title { get; init; }
+        public required string Description { get; init; }
+        public required string Category { get; init; }
+        public required string CategorySlug { get; init; }
+        public required string CapacityMetric { get; init; }
+        public required string Brand { get; init; }
+        public required string ModelName { get; init; }
+        public string? SerialNo { get; init; }
+        public required string PrimaryIntent { get; init; }
+        public required string[] Intents { get; init; }
+        public required string Condition { get; init; }
+        public int ModelYear { get; init; }
+        public int Hours { get; init; }
+        public decimal Tons { get; init; }
+        public int? CapacityKg { get; init; }
+        public int Horsepower { get; init; }
+        public required string City { get; init; }
+        public required string District { get; init; }
+        public decimal Price { get; init; }
+        public string? PriceUnit { get; init; }
+        public bool IncludesOperator { get; init; }
+        public required string SpecsJson { get; init; }
+        public required string CoverImageUrl { get; init; }
+        public required string SellerName { get; init; }
+        public required string SellerType { get; init; }
+        public bool IsVerified { get; init; }
+        public DateTimeOffset ListedAt { get; init; }
+    }
+}

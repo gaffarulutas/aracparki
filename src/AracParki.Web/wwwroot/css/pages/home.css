@@ -1,0 +1,114 @@
+/* —— Home —— */
+/* —— Home —— */
+.home {
+  display: grid;
+  gap: var(--space-2);
+  padding-block: var(--space-3) var(--space-5);
+}
+
+.home-aside {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+}
+
+.aside-card {
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.aside-title {
+  margin: 0;
+  padding: 12px var(--space-2);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.aside-list,
+.aside-cities {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.aside-list a,
+.aside-cities a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 10px var(--space-2);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.12s var(--ease), color 0.12s var(--ease);
+}
+
+.aside-list a:hover,
+.aside-cities a:hover {
+  background: var(--tint);
+  color: var(--link-hover);
+}
+
+.aside-list a:active,
+.aside-cities a:active {
+  background: #fff6b8;
+}
+
+.aside-list .count,
+.aside-cities .count {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.aside-list .cat-ico {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.aside-list a:hover .cat-ico {
+  color: var(--link);
+}
+
+.home-main {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.promo-strip {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  border-top: 3px solid var(--machine);
+}
+
+.promo-title {
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
+.promo-lead {
+  margin: 0;
+  color: var(--muted);
+  max-width: 48ch;
+  font-size: 14px;
+}
+
+.promo-filters {
+  display: grid;
+  gap: 10px;
+  align-items: stretch;
+}

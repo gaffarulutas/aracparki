@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="AracParki.Application/AracParki.Application.csproj" />
+  <Project Path="AracParki.Domain/AracParki.Domain.csproj" />
+  <Project Path="AracParki.Infrastructure/AracParki.Infrastructure.csproj" />
+  <Project Path="AracParki.IntegrationTests/AracParki.IntegrationTests.csproj" />
+  <Project Path="AracParki.UnitTests/AracParki.UnitTests.csproj" />
+  <Project Path="AracParki.Web/AracParki.Web.csproj" />
+</Solution>

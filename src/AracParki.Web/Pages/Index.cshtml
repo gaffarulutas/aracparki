@@ -1,0 +1,193 @@
+@page
+@using AracParki.Application.Listings.Queries
+@model IndexModel
+@{
+    var seeAll = ListingRoutes.ListUrl(Model.Filter);
+}
+
+<main id="main">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-media" aria-hidden="true">
+      <picture>
+        <source
+          type="image/webp"
+          srcset="/assets/hero/banner-800.webp 800w,
+                  /assets/hero/banner-1200.webp 1200w,
+                  /assets/hero/banner-1600.webp 1600w,
+                  /assets/hero/banner.webp 1920w"
+          sizes="100vw" />
+        <img
+          src="/assets/hero/banner-1200.jpg"
+          srcset="/assets/hero/banner-800.jpg 800w,
+                  /assets/hero/banner-1200.jpg 1200w,
+                  /assets/hero/banner-1600.jpg 1600w,
+                  /assets/hero/banner.jpg 1920w"
+          sizes="100vw"
+          alt=""
+          width="1920"
+          height="730"
+          fetchpriority="high"
+          decoding="async" />
+      </picture>
+    </div>
+    <div class="hero-veil" aria-hidden="true"></div>
+    <div class="container hero-inner">
+      <h1 class="hero-title" id="hero-title">Makineyi işe göre seç</h1>
+      <p class="hero-lead">
+        Satılık, kiralık veya ikinci el — tonaj, güç ve çalışma saatiyle Türkiye genelinde karşılaştır.
+      </p>
+    </div>
+  </section>
+
+  <div class="home container">
+    <aside class="home-aside" id="kategoriler" aria-label="Kategori menüsü">
+      <div class="aside-card">
+        <h2 class="aside-title">İş Makineleri</h2>
+        <ul class="aside-list" id="category-grid">
+          @foreach (var cat in Model.Categories)
+          {
+            var href = ListingRoutes.ListUrl(new ListingSearchQuery { Category = cat.Name });
+            <li>
+              <a href="@href">
+                @Html.Raw(CategoryIcons.Svg(cat.IconKey))
+                <span>@cat.Name</span>
+                <span class="count">@Formatters.Count(cat.ListingCount)</span>
+              </a>
+            </li>
+          }
+        </ul>
+      </div>
+
+      <div class="aside-card" id="sehirler">
+        <h2 class="aside-title">Popüler İller</h2>
+        <ul class="aside-cities" id="city-grid">
+          @foreach (var city in Model.PopularCities)
+          {
+            var href = ListingRoutes.ListUrl(new ListingSearchQuery { City = city.Name });
+            <li>
+              <a href="@href">
+                <span>@city.Name</span>
+                <span class="count">@Formatters.Count(city.ListingCount)</span>
+              </a>
+            </li>
+          }
+        </ul>
+      </div>
+    </aside>
+
+    <div class="home-main">
+      <section class="promo-strip" aria-labelledby="promo-title">
+        <div class="promo-copy">
+          <h2 class="promo-title" id="promo-title">İlanları daralt</h2>
+          <p class="promo-lead">Kategori ve il seçerek doğru makineye hızlıca ulaş.</p>
+        </div>
+        <form class="promo-filters" method="get" action="/ilanlar">
+          <label class="sr-only" for="filter-category">Kategori</label>
+          <select id="filter-category" name="kategori" aria-label="Kategori seç">
+            <option value="">Tüm kategoriler</option>
+            @foreach (var cat in Model.CategoryOptions)
+            {
+              if (Model.Filter.Category == cat.Name)
+              {
+                <option value="@cat.Name" selected>@cat.Name</option>
+              }
+              else
+              {
+                <option value="@cat.Name">@cat.Name</option>
+              }
+            }
+          </select>
+          <label class="sr-only" for="filter-city">İl</label>
+          <select id="filter-city" name="il" aria-label="İl seç">
+            <option value="">Türkiye geneli</option>
+            @foreach (var city in Model.CityOptions)
+            {
+              if (Model.Filter.City == city.Name)
+              {
+                <option value="@city.Name" selected>@city.Name</option>
+              }
+              else
+              {
+                <option value="@city.Name">@city.Name</option>
+              }
+            }
+          </select>
+          <button class="btn btn-machine" type="submit">İlanları Göster</button>
+        </form>
+      </section>
+
+      <section class="partner-banner" aria-labelledby="partner-title">
+        <div class="partner-banner-copy">
+          <p class="partner-banner-eyebrow">Kurumsal</p>
+          <h2 class="partner-banner-title" id="partner-title">Bayi ve çözüm ortaklığı</h2>
+          <p class="partner-banner-lead">
+            Yetkili bayi, finansman ve servis ağını Araç Parkı ile büyütün.
+          </p>
+        </div>
+        <a class="btn btn-ghost partner-banner-cta" href="/giris">Başvuru yap</a>
+      </section>
+
+      <section class="vitrin-block" id="vitrin" aria-labelledby="vitrin-title">
+        <div class="vitrin-head">
+          <h2 id="vitrin-title">
+            Öne çıkan ilanlar
+            <span class="result-count" aria-live="polite">(@Model.Featured.Count)</span>
+          </h2>
+          <div class="vitrin-head-actions">
+            <div class="filter-chips" role="group" aria-label="İlan tipi">
+              <a class="chip" href="/?tip=@ListingIntent.All" aria-current="@(Model.Filter.Intent == ListingIntent.All ? "page" : null)">Tümü</a>
+              <a class="chip" href="/?tip=@ListingIntent.Satilik" aria-current="@(Model.Filter.Intent == ListingIntent.Satilik ? "page" : null)">Satılık</a>
+              <a class="chip" href="/?tip=@ListingIntent.Kiralik" aria-current="@(Model.Filter.Intent == ListingIntent.Kiralik ? "page" : null)">Kiralık</a>
+              <a class="chip" href="/ilanlar?durum=@EquipmentCondition.Used">İkinci El</a>
+            </div>
+            <a class="text-link" href="@seeAll">Tümünü gör</a>
+          </div>
+        </div>
+        <div class="listing-grid" id="listing-grid" aria-live="polite">
+          @if (Model.Featured.Count == 0)
+          {
+            <div class="empty-state">
+              <p>Bu kriterlere uygun ilan yok.</p>
+              <a class="btn btn-machine" href="/ilanlar">Tüm ilanları gör</a>
+            </div>
+          }
+          else
+          {
+            foreach (var item in Model.Featured)
+            {
+              <partial name="Shared/Partials/_ListingCard" model="item" />
+            }
+          }
+        </div>
+      </section>
+
+      <section class="proof-strip" id="guven" aria-label="Neden Araç Parkı">
+        <div class="proof-item">
+          <ap-icon name="badge-check" size="22" />
+          <strong>Doğrulanmış satıcı</strong>
+          <span>Bayi ve sahibi rozetleri</span>
+        </div>
+        <div class="proof-item">
+          <ap-icon name="banknote" size="22" />
+          <strong>Net fiyat</strong>
+          <span>Satılık ve günlük kiralık</span>
+        </div>
+        <div class="proof-item">
+          <ap-icon name="map-pin" size="22" />
+          <strong>81 il</strong>
+          <span>Türkiye geneli ilan ağı</span>
+        </div>
+      </section>
+
+      <section class="seller-cta" id="ilan-ver">
+        <div class="seller-cta-copy">
+          <h2>Makineni hemen yayına al</h2>
+          <p>Satılık veya kiralık — Türkiye’deki alıcılara ulaş.</p>
+        </div>
+        <button class="btn btn-cta btn-lg" type="button" data-seller-cta>
+          Ücretsiz İlan Ver
+        </button>
+      </section>
+    </div>
+  </div>
+</main>

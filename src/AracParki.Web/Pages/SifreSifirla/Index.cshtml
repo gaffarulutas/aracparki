@@ -1,0 +1,75 @@
+@page "/sifre-sifirla"
+@model AracParki.Web.Pages.SifreSifirla.IndexModel
+
+<main class="auth-page" id="main">
+  <div class="auth-shell">
+    <header class="auth-brand">
+      <a class="logo" href="/" aria-label="Araç Parkı ana sayfa">
+        <span class="logo-arac">Araç</span><span class="logo-parki">Parkı</span>
+      </a>
+    </header>
+
+    <section class="auth-card" aria-labelledby="auth-title" x-data="authForm">
+      @if (Model.Done)
+      {
+        <div class="auth-success-icon" aria-hidden="true">
+          <ap-icon name="circle-check" size="22" />
+        </div>
+        <h1 class="auth-title" id="auth-title">Şifre güncellendi</h1>
+        <p class="auth-lead">Yeni şifrenle giriş yapabilirsin.</p>
+        <a class="btn btn-machine btn-block auth-submit" href="/giris">Giriş yap</a>
+      }
+      else
+      {
+        <h1 class="auth-title" id="auth-title">Yeni şifre belirle</h1>
+        <p class="auth-lead">En az 8 karakter, bir harf ve bir rakam kullan.</p>
+
+        @if (!string.IsNullOrEmpty(Model.FormError))
+        {
+          <div class="auth-alert" role="alert">@Model.FormError</div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.Token))
+        {
+          <form method="post" class="auth-form" novalidate>
+            <input type="hidden" asp-for="Token" />
+            <div class="auth-field">
+              <label asp-for="Input.Password"></label>
+              <div class="auth-password">
+                <input asp-for="Input.Password" autocomplete="new-password" autofocus
+                       x-model="password"
+                       :type="passwordType" />
+                <button class="auth-password-toggle" type="button"
+                        @@click="togglePassword"
+                        :aria-label="passwordToggleLabel">
+                  <span x-show="showEye"><ap-icon name="eye" size="18" /></span>
+                  <span x-show="showEyeOff" x-cloak><ap-icon name="eye-off" size="18" /></span>
+                </button>
+              </div>
+              <ul class="auth-rules" aria-label="Şifre kuralları">
+                <li :class="ruleClass('len')">En az 8 karakter</li>
+                <li :class="ruleClass('letter')">En az bir harf</li>
+                <li :class="ruleClass('digit')">En az bir rakam</li>
+                <li :class="ruleClass('noTriple')">Üç aynı karakter yan yana yok</li>
+              </ul>
+              <span asp-validation-for="Input.Password" class="auth-error"></span>
+            </div>
+            <div class="auth-field">
+              <label asp-for="Input.ConfirmPassword"></label>
+              <div class="auth-password">
+                <input asp-for="Input.ConfirmPassword" autocomplete="new-password"
+                       :type="passwordType" />
+              </div>
+              <span asp-validation-for="Input.ConfirmPassword" class="auth-error"></span>
+            </div>
+            <button class="btn btn-machine btn-block auth-submit" type="submit">Şifreyi kaydet</button>
+          </form>
+        }
+
+        <p class="auth-switch">
+          <a href="/sifremi-unuttum">Yeni bağlantı iste</a>
+        </p>
+      }
+    </section>
+  </div>
+</main>

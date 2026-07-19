@@ -1,0 +1,53 @@
+@using AracParki.Application.Listings.Dtos
+@model ListingCardDto
+@{
+    var badgeClass = ListingIntent.BadgeClass(Model.PrimaryIntent);
+    var badgeText = ListingIntent.Label(Model.PrimaryIntent);
+    var sellerLabel = SellerType.Label(Model.SellerType);
+    var href = ListingRoutes.Detail(Model.AdNo);
+}
+<article class="listing-card" data-id="@Model.Id">
+  <a class="listing-card-link" href="@href">
+    <div class="listing-media">
+      <span class="@badgeClass">@badgeText</span>
+      <img src="@Model.CoverImageUrl" alt="@Model.Title" loading="lazy" width="900" height="620" />
+    </div>
+    <div class="listing-body">
+      <h3>@Model.Title</h3>
+      <div class="listing-meta">
+        <span>@Model.Brand @Model.ModelName</span>
+        <span>@Model.ModelYear</span>
+        <span>@Model.City / @Model.District</span>
+      </div>
+      <div class="listing-specs">
+        <span>@Formatters.Hours(Model.Hours)</span>
+        @if (Model.CapacityKg is > 0)
+        {
+          <span>@Model.CapacityKg.Value.ToString("N0") kg</span>
+        }
+        else
+        {
+          <span>@Formatters.Tons(Model.Tons)</span>
+        }
+        @if (Model.Horsepower > 0)
+        {
+          <span>@Formatters.Horsepower(Model.Horsepower)</span>
+        }
+        <span class="@EquipmentCondition.BadgeClass(Model.Condition)">@EquipmentCondition.Label(Model.Condition)</span>
+      </div>
+      <div class="listing-foot">
+        <div class="listing-price">
+          @if (string.IsNullOrEmpty(Model.PriceUnit))
+          {
+            @Formatters.Price(Model.Price, null)
+          }
+          else
+          {
+            @Formatters.Price(Model.Price, null)<small>/ @Model.PriceUnit</small>
+          }
+        </div>
+        <span class="seller-tag@(Model.IsVerified ? " verified" : "")">@(Model.IsVerified ? "Doğrulanmış · " : "")@sellerLabel</span>
+      </div>
+    </div>
+  </a>
+</article>

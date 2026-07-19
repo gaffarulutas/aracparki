@@ -1,0 +1,88 @@
+/* —— Footer —— */
+.site-footer {
+  background: var(--ink-soft);
+  color: rgba(255, 255, 255, 0.72);
+  padding: var(--space-5) 0 var(--space-3);
+  margin-top: var(--space-2);
+  border-top: 3px solid var(--machine);
+}
+
+.footer-grid {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.footer-brand p {
+  margin: 12px 0 0;
+  max-width: 34ch;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.footer-col h3 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--machine);
+  margin-bottom: 12px;
+}
+
+.footer-col ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.footer-col a {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+}
+
+.footer-col a:hover {
+  color: #fff;
+}
+
+.footer-disclaimer {
+  margin: 0 0 var(--space-2);
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.45);
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+.footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.footer-bottom a {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+}
+
+.footer-bottom nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.footer-bottom a:hover {
+  color: var(--machine);
+}

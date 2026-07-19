@@ -1,0 +1,56 @@
+﻿@{
+    var pageKey = ViewData["PageKey"] as string ?? "home";
+    var isAuth = pageKey == "auth";
+    var title = ViewData["Title"] as string ?? "Araç Parkı";
+    var description = ViewData["Description"] as string
+        ?? "Araç Parkı — Türkiye genelinde satılık, kiralık ve ikinci el iş makineleri.";
+    var ogTitle = ViewData["OgTitle"] as string ?? title;
+    var ogImage = $"{Context.Request.Scheme}://{Context.Request.Host}{Url.Content("~/assets/hero/banner-1200.jpg")}";
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="@description" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="tr_TR" />
+    <meta property="og:site_name" content="Araç Parkı" />
+    <meta property="og:title" content="@ogTitle" />
+    <meta property="og:description" content="@description" />
+    <meta property="og:image" content="@ogImage" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>@title</title>
+    <link rel="icon" href="~/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/styles.css" asp-append-version="true" />
+</head>
+<body data-page="@pageKey" x-data="siteChrome">
+    <a class="skip-link" href="#main">İçeriğe geç</a>
+
+    @if (!isAuth)
+    {
+        <partial name="Shared/_Header" model="pageKey" />
+    }
+
+    @RenderBody()
+
+    <div class="toast" id="toast" hidden role="status" aria-live="polite"
+         @if (TempData["AuthNotice"] is string notice)
+         {
+           <text>data-boot-toast="@notice"</text>
+         }></div>
+
+    @if (!isAuth)
+    {
+        <partial name="Shared/_Footer" model="pageKey" />
+    }
+
+    <script src="~/lib/htmx/htmx.min.js" asp-append-version="true" defer></script>
+    <script src="~/js/site.js" asp-append-version="true" defer></script>
+    <script src="~/lib/alpine/alpine.min.js" asp-append-version="true" defer></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

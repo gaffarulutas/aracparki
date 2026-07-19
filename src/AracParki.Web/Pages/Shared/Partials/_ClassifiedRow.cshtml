@@ -1,0 +1,46 @@
+@using AracParki.Application.Listings.Dtos
+@model ListingCardDto
+@{
+    var badgeClass = ListingIntent.BadgeClass(Model.PrimaryIntent);
+    var badgeText = ListingIntent.Label(Model.PrimaryIntent);
+    var sellerLabel = SellerType.Label(Model.SellerType);
+    var href = ListingRoutes.Detail(Model.AdNo);
+}
+<article class="classified-row">
+  <a class="classified-row-link" href="@href">
+    <span class="classified-thumb">
+      <img src="@Model.CoverImageUrl" alt="@Model.Title" loading="lazy" width="220" height="165" sizes="(max-width:720px) 40vw, 180px" />
+    </span>
+    <span class="classified-body">
+      <span class="classified-title">@Model.Title</span>
+      <span class="classified-meta">
+        <span class="@badgeClass">@badgeText</span>
+        <span>@Model.Brand @Model.ModelName</span>
+        <span>@Model.ModelYear</span>
+        <span>@Formatters.Hours(Model.Hours)</span>
+        @if (Model.CapacityKg is > 0)
+        {
+          <span>@Model.CapacityKg.Value.ToString("N0") kg</span>
+        }
+        else
+        {
+          <span>@Formatters.Tons(Model.Tons)</span>
+        }
+      </span>
+      <span class="classified-loc">@Model.City / @Model.District</span>
+      <span class="classified-sub">@sellerLabel@(Model.IsVerified ? " · Doğrulanmış" : "") · No: @Model.AdNo</span>
+    </span>
+    <span class="classified-price-col">
+      <span class="classified-price">
+        @if (string.IsNullOrEmpty(Model.PriceUnit))
+        {
+          @Formatters.Price(Model.Price, null)
+        }
+        else
+        {
+          @Formatters.Price(Model.Price, null)<small>/ @Model.PriceUnit</small>
+        }
+      </span>
+    </span>
+  </a>
+</article>

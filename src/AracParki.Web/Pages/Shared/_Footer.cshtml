@@ -1,0 +1,57 @@
+@model string
+@{
+    var page = Model ?? "home";
+}
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="logo" href="/" aria-label="Araç Parkı">
+          <span class="logo-arac">Araç</span><span class="logo-parki">Parkı</span>
+        </a>
+        <p>Türkiye genelinde satılık, kiralık ve ikinci el iş makineleri pazar yeri.</p>
+      </div>
+      <div class="footer-col">
+        <h3>Keşfet</h3>
+        <ul>
+          <li><a href="/ilanlar?tip=satilik">Satılık</a></li>
+          <li><a href="/ilanlar?tip=kiralik">Kiralık</a></li>
+          <li><a href="/ilanlar?durum=used">İkinci El</a></li>
+          <li><a href="/ilanlar">Tüm ilanlar</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3>Kurumsal</h3>
+        <ul>
+          <li><a href="@(page == "home" ? "#guven" : "/#guven")">Güven</a></li>
+          <li><a href="@(page == "home" ? "#ilan-ver" : "/#ilan-ver")">İlan ver</a></li>
+          <li><a href="@(page == "home" ? "#sehirler" : "/#sehirler")">Popüler iller</a></li>
+          <li><a href="/ilanlar">Tüm kategoriler</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h3>Gizlilik ve kullanım</h3>
+        <ul>
+          <li><a href="/kullanim-kosullari">Kullanım koşulları</a></li>
+          <li><a href="/gizlilik">Gizlilik bildirimi</a></li>
+          <li><a href="/kvkk">KVKK aydınlatma</a></li>
+          <li><a href="/guvenli-alisveris">Güvenli alışveriş</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="footer-disclaimer">
+      aracparki.com’da yer alan ilanların içeriğinden ilan sahipleri sorumludur.
+      Platform, kullanıcıların oluşturduğu içeriklerin doğruluğunu garanti etmez.
+    </p>
+
+    <div class="footer-bottom">
+      <span>© 2026 Araç Parkı · aracparki.com</span>
+      <nav aria-label="Yasal kısayollar">
+        <a href="/kullanim-kosullari">Koşullar</a>
+        <a href="/gizlilik">Gizlilik</a>
+        <a href="/kvkk">KVKK</a>
+      </nav>
+    </div>
+  </div>
+</footer>

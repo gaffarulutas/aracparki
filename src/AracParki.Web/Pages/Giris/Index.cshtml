@@ -1,0 +1,79 @@
+@page "/giris"
+@model AracParki.Web.Pages.Giris.IndexModel
+
+<main class="auth-page" id="main">
+  <div class="auth-shell">
+    <header class="auth-brand">
+      <a class="logo" href="/" aria-label="Araç Parkı ana sayfa">
+        <span class="logo-arac">Araç</span><span class="logo-parki">Parkı</span>
+      </a>
+      <p class="auth-kicker">İş makinesi pazarın</p>
+    </header>
+
+    <section class="auth-card" aria-labelledby="auth-title" x-data="authForm">
+      <h1 class="auth-title" id="auth-title">Giriş yap</h1>
+      <p class="auth-lead">İlanlarını yönet, kayıtlı aramalarını aç.</p>
+
+      @if (!string.IsNullOrEmpty(Model.FormError))
+      {
+        <div class="auth-alert" role="alert">
+          @Model.FormError
+          @if (Model.NeedsEmailConfirm)
+          {
+            <span class="auth-alert-actions">
+              <a href="/eposta-dogrula">Doğrulama maili gönder</a>
+              @if (!string.IsNullOrEmpty(Model.DevVerifyUrl))
+              {
+                <text> · </text>
+                <a href="@Model.DevVerifyUrl">Geliştirme: doğrula</a>
+              }
+            </span>
+          }
+        </div>
+      }
+
+      <form method="post" class="auth-form" novalidate>
+        <div class="auth-field">
+          <label asp-for="Input.Email"></label>
+          <input asp-for="Input.Email" type="email" autocomplete="username" inputmode="email" autofocus />
+          <span asp-validation-for="Input.Email" class="auth-error"></span>
+        </div>
+
+        <div class="auth-field">
+          <div class="auth-label-row">
+            <label asp-for="Input.Password"></label>
+            <a class="auth-inline-link" href="/sifremi-unuttum">Şifremi unuttum</a>
+          </div>
+          <div class="auth-password">
+            <input asp-for="Input.Password" autocomplete="current-password"
+                   :type="passwordType" />
+            <button class="auth-password-toggle" type="button"
+                    @@click="togglePassword"
+                    :aria-label="passwordToggleLabel">
+              <span x-show="showEye"><ap-icon name="eye" size="18" /></span>
+              <span x-show="showEyeOff" x-cloak><ap-icon name="eye-off" size="18" /></span>
+            </button>
+          </div>
+          <span asp-validation-for="Input.Password" class="auth-error"></span>
+        </div>
+
+        <label class="auth-check">
+          <input asp-for="Input.RememberMe" />
+          <span>Beni hatırla</span>
+        </label>
+
+        <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+        <button class="btn btn-machine btn-block auth-submit" type="submit">Giriş yap</button>
+      </form>
+
+      <p class="auth-switch">
+        Hesabın yok mu?
+        <a href="/kayit">Ücretsiz üye ol</a>
+      </p>
+    </section>
+
+    <p class="auth-footnote">
+      <a href="/ilanlar">← İlanlara dön</a>
+    </p>
+  </div>
+</main>

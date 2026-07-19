@@ -1,0 +1,17 @@
+@model AracParki.Web.Pages.Ilanlar.IndexModel
+
+@if (Model.Result.Items.Count == 0)
+{
+  <div class="listing-empty empty-state">
+    <p>Bu kriterlere uygun ilan bulunamadı.</p>
+    <a class="btn btn-machine" href="/ilanlar">Filtreleri temizle</a>
+    <a class="btn btn-ghost" href="/">Anasayfaya dön</a>
+  </div>
+}
+else
+{
+  foreach (var item in Model.Result.Items)
+  {
+    <partial name="Shared/Partials/_ClassifiedRow" model="item" />
+  }
+}

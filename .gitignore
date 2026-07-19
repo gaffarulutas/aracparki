@@ -3,3 +3,11 @@ test-results/
 playwright-report/
 .DS_Store
 *.log
+bin/
+obj/
+.vs/
+*.user
+*.swp
+src/**/bin/
+src/**/obj/
+/tmp/

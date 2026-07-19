@@ -1,0 +1,109 @@
+using System.Text.Json;
+using AracParki.Application.Catalog.Dtos;
+using AracParki.Application.Catalog.Services;
+using AracParki.Application.Listings.Dtos;
+using AracParki.Application.Listings.Queries;
+using AracParki.Application.Listings.Services;
+using AracParki.Web.Infrastructure;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+
+namespace AracParki.Web.Pages.Ilanlar;
+
+public sealed class IndexModel : PageModel
+{
+    private readonly ListingService _listingService;
+    private readonly CatalogService _catalogService;
+
+    public IndexModel(ListingService listingService, CatalogService catalogService)
+    {
+        _listingService = listingService;
+        _catalogService = catalogService;
+    }
+
+    public ListingSearchQuery Filter { get; private set; } = new();
+    public ListingSearchResult Result { get; private set; } = new()
+    {
+        Items = [],
+        TotalCount = 0,
+        Page = 1,
+        PageSize = 24,
+        HasMore = false
+    };
+    public IReadOnlyList<CategoryOptionDto> Categories { get; private set; } = [];
+    public IReadOnlyList<BrandOptionDto> Brands { get; private set; } = [];
+    public IReadOnlyList<EquipmentModelOptionDto> Models { get; private set; } = [];
+    public IReadOnlyList<CityOptionDto> Cities { get; private set; } = [];
+    public IReadOnlyList<DistrictOptionDto> Districts { get; private set; } = [];
+    public IReadOnlyList<CategoryAttributeDto> FilterableAttributes { get; private set; } = [];
+    public IReadOnlyList<AttachmentOptionDto> Attachments { get; private set; } = [];
+    public bool ShowCapacityKg { get; private set; }
+    public bool ShowRentUnit { get; private set; }
+
+    public async Task OnGetAsync(CancellationToken cancellationToken)
+    {
+        Filter = ListingRoutes.FromRequest(Request.Query);
+        Categories = await _catalogService.GetAllCategoriesAsync(cancellationToken);
+        Cities = await _catalogService.GetAllCitiesAsync(cancellationToken);
+        Attachments = await _catalogService.GetAttachmentsAsync(cancellationToken);
+        Brands = Filter.CategoryId is > 0
+            ? await _catalogService.GetBrandsByCategoryAsync(Filter.CategoryId.Value, cancellationToken)
+            : await _catalogService.GetAllBrandsAsync(cancellationToken);
+
+        if (Filter.CategoryId is > 0 && Filter.BrandId is > 0)
+        {
+            Models = await _catalogService.GetModelsByBrandCategoryAsync(
+                Filter.BrandId.Value, Filter.CategoryId.Value, cancellationToken);
+        }
+
+        if (Filter.CityId is > 0)
+        {
+            Districts = await _catalogService.GetDistrictsByCityAsync(Filter.CityId.Value, cancellationToken);
+        }
+
+        if (Filter.CategoryId is > 0)
+        {
+            var attrs = await _catalogService.GetCategoryAttributesAsync(Filter.CategoryId.Value, cancellationToken);
+            FilterableAttributes = attrs.Where(a => a.IsFilterable).ToArray();
+            var category = Categories.FirstOrDefault(c => c.Id == Filter.CategoryId);
+            ShowCapacityKg = category?.CapacityMetric is "capacity_kg";
+        }
+
+        ShowRentUnit = Filter.Intent == Domain.Listings.ListingIntent.Kiralik;
+
+        Result = await _listingService.SearchAsync(Filter, cancellationToken);
+
+        var categoryName = Categories.FirstOrDefault(c => c.Id == Filter.CategoryId)?.Name ?? Filter.Category;
+        var heading = string.IsNullOrWhiteSpace(categoryName)
+            ? "İş Makinesi İlanları"
+            : $"{categoryName} İlanları";
+
+        ViewData["PageKey"] = "list";
+        ViewData["Title"] = $"{categoryName ?? "İş Makinesi"} İlanları | Araç Parkı";
+        ViewData["Description"] = "İş makinesi ilanları — satılık ve kiralık. Araç Parkı.";
+        ViewData["SearchQuery"] = Filter.Query;
+        ViewData["ListHeading"] = heading;
+    }
+
+    public string SpecValue(string key)
+        => Filter.SpecValues.TryGetValue(key, out var value) ? value : string.Empty;
+
+    public bool HasAttachment(int id)
+        => Filter.AttachmentIds.Contains(id);
+
+    public IReadOnlyList<string> EnumOptions(CategoryAttributeDto attr)
+    {
+        if (string.IsNullOrWhiteSpace(attr.EnumOptionsJson))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<string[]>(attr.EnumOptionsJson) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+}

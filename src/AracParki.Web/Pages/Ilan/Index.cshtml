@@ -1,0 +1,129 @@
+@page "/ilan/{adNo}"
+@model AracParki.Web.Pages.Ilan.IndexModel
+@{
+    var listing = Model.Listing!;
+    var badgeClass = ListingIntent.BadgeClass(listing.PrimaryIntent);
+    var badgeText = ListingIntent.Label(listing.PrimaryIntent);
+    var back = Model.BackToListUrl();
+    var sellerLabel = SellerType.Label(listing.SellerType);
+}
+
+<main class="container page-detail" id="main" data-recent-id="@listing.Id">
+  <nav class="breadcrumb" aria-label="Sayfa yolu">
+    <a href="/">Anasayfa</a>
+    <span class="bc-sep">/</span>
+    <a href="@back">@listing.Category</a>
+    <span class="bc-sep">/</span>
+    <span>@listing.Title</span>
+  </nav>
+
+  <div class="detail-layout">
+    <div class="detail-left">
+      <h1 class="detail-title">@listing.Title</h1>
+
+      <div class="detail-gallery">
+        <img class="gallery-main" src="@listing.ImageUrls[0]" alt="@listing.Title" width="900" height="600" loading="eager" />
+      </div>
+
+      <section class="detail-card" aria-labelledby="spec-title">
+        <h2 class="detail-section-title" id="spec-title">İlan Bilgileri</h2>
+        <table class="spec-table">
+          <tbody>
+            <tr><th scope="row">İlan No</th><td>@listing.AdNo</td></tr>
+            <tr><th scope="row">İlan Tarihi</th><td>@Formatters.ListedAt(listing.ListedAt)</td></tr>
+            <tr><th scope="row">Kategori</th><td>@listing.Category</td></tr>
+            <tr><th scope="row">Marka</th><td>@listing.Brand</td></tr>
+            <tr><th scope="row">Model</th><td>@listing.ModelName</td></tr>
+            @if (!string.IsNullOrWhiteSpace(listing.SerialNo))
+            {
+              <tr><th scope="row">Seri No</th><td>@listing.SerialNo</td></tr>
+            }
+            <tr><th scope="row">Tip</th><td><span class="@badgeClass">@badgeText</span></td></tr>
+            <tr><th scope="row">Durum</th><td><span class="@EquipmentCondition.BadgeClass(listing.Condition)">@EquipmentCondition.Label(listing.Condition)</span></td></tr>
+            <tr><th scope="row">Model Yılı</th><td>@listing.ModelYear</td></tr>
+            <tr><th scope="row">Çalışma Saati</th><td>@Formatters.Hours(listing.Hours)</td></tr>
+            @if (listing.CapacityMetric == "capacity_kg" && listing.CapacityKg is not null)
+            {
+              <tr><th scope="row">Kaldırma Kapasitesi</th><td>@listing.CapacityKg.Value.ToString("N0") kg</td></tr>
+            }
+            else if (listing.CapacityMetric == "capacity_t")
+            {
+              <tr><th scope="row">Kapasite</th><td>@Formatters.Tons(listing.Tons)</td></tr>
+            }
+            else
+            {
+              <tr><th scope="row">Operasyon Ağırlığı</th><td>@Formatters.Tons(listing.Tons)</td></tr>
+            }
+            @if (listing.Horsepower > 0)
+            {
+              <tr><th scope="row">Motor Gücü</th><td>@Formatters.Horsepower(listing.Horsepower)</td></tr>
+            }
+            @if (listing.IncludesOperator)
+            {
+              <tr><th scope="row">Operatör</th><td>Dahil</td></tr>
+            }
+            <tr><th scope="row">Konum</th><td>@listing.City / @listing.District</td></tr>
+            @if (listing.Attachments.Count > 0)
+            {
+              <tr><th scope="row">Ekipmanlar</th><td>@string.Join(", ", listing.Attachments.Select(a => a.Name))</td></tr>
+            }
+          </tbody>
+        </table>
+      </section>
+
+      <section class="detail-card" aria-labelledby="desc-title">
+        <h2 class="detail-section-title" id="desc-title">Açıklama</h2>
+        <p class="detail-desc">@listing.Description</p>
+      </section>
+    </div>
+
+    <aside class="detail-right" aria-label="Fiyat ve iletişim">
+      <div class="detail-card detail-buybox sticky-box" id="buybox">
+        <div class="detail-price">
+          @if (string.IsNullOrEmpty(listing.PriceUnit))
+          {
+            @Formatters.Price(listing.Price, null)
+          }
+          else
+          {
+            @Formatters.Price(listing.Price, null)<small>/ @listing.PriceUnit</small>
+          }
+        </div>
+        <div class="detail-loc">@listing.City / @listing.District</div>
+
+        <div class="detail-actions">
+          <button type="button" class="btn btn-machine btn-block"
+                  data-toast="Teklif talebi alındı">
+            Teklif Al
+          </button>
+          <button type="button" class="btn btn-dark btn-block"
+                  data-reveal-phone="@listing.AdNo">
+            Telefonu Göster
+          </button>
+          <span data-phone-slot hidden>
+            <a class="btn btn-ghost btn-block" data-phone-link href="#">Ara</a>
+          </span>
+        </div>
+
+        <div class="seller-box">
+          <strong>@listing.SellerName</strong>
+          <span>@sellerLabel@(listing.IsVerified ? " · Doğrulanmış" : "")</span>
+        </div>
+
+        <a class="detail-back" href="@back">← Benzer ilanlara dön</a>
+      </div>
+    </aside>
+  </div>
+
+  <div class="mobile-cta" id="mobile-cta" aria-label="Hızlı işlemler">
+    <div class="mobile-cta-price">
+      @Formatters.Price(listing.Price, listing.PriceUnit)
+    </div>
+    <button type="button" class="btn btn-dark btn-sm" data-reveal-phone="@listing.AdNo">
+      Telefon
+    </button>
+    <button type="button" class="btn btn-machine btn-sm" data-toast="Teklif talebi alındı">
+      Teklif Al
+    </button>
+  </div>
+</main>

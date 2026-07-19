@@ -1,0 +1,126 @@
+@model string
+@{
+    var page = Model ?? "home";
+    var showCat = page is not ("detail" or "auth");
+    var isAuth = User.Identity?.IsAuthenticated == true;
+}
+<header class="site-header" id="top">
+  <div class="header-top">
+    <div class="container header-top-inner">
+      <button
+        class="nav-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="nav-mobile"
+        aria-label="Menüyü aç"
+        @@click="toggleNav"
+        x-ref="navToggle">
+        <span class="nav-toggle-icon" aria-hidden="true">
+          <ap-icon name="menu" size="22" class="ap-icon nav-ico-open" />
+          <ap-icon name="x" size="22" class="ap-icon nav-ico-close" />
+        </span>
+      </button>
+
+      <a class="logo" href="/" aria-label="Araç Parkı ana sayfa">
+        <span class="logo-arac">Araç</span><span class="logo-parki">Parkı</span>
+      </a>
+
+      <form class="header-search" id="search-form" role="search" method="get" action="/ilanlar">
+        <label class="sr-only" for="search-query">Kelime ara</label>
+        <input
+          id="search-query"
+          name="q"
+          type="search"
+          placeholder="Marka, model, seri no veya ilan no"
+          autocomplete="off"
+          enterkeyhint="search"
+          minlength="2"
+          value="@(ViewData["SearchQuery"] as string)" />
+        <button class="btn btn-machine" type="submit">Ara</button>
+      </form>
+
+      <div class="header-actions">
+        @if (isAuth)
+        {
+          <span class="link-quiet header-user" title="@User.Identity!.Name">@User.Identity!.Name</span>
+          <form method="post" action="/cikis" class="header-logout">
+            @Html.AntiForgeryToken()
+            <button class="link-quiet" type="submit">Çıkış</button>
+          </form>
+        }
+        else
+        {
+          <a class="link-quiet" href="/giris">Giriş Yap</a>
+        }
+        <button
+          class="search-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="search-form"
+          aria-label="Aramayı aç"
+          @@click="toggleSearch"
+          x-ref="searchToggle">
+          <ap-icon name="search" size="18" />
+        </button>
+        <a class="btn btn-machine header-cta" href="@(page == "home" ? "#ilan-ver" : "/#ilan-ver")">Ücretsiz İlan Ver</a>
+      </div>
+    </div>
+  </div>
+
+  @if (showCat)
+  {
+    <nav class="cat-bar" aria-label="Hızlı kategoriler">
+      <div class="container cat-bar-row">
+        <a class="logo cat-bar-brand" href="/" aria-label="Araç Parkı ana sayfa">
+          <span class="logo-arac">Araç</span><span class="logo-parki">Parkı</span>
+        </a>
+        <div class="cat-bar-clip">
+          <div class="cat-bar-inner">
+            <a href="/ilanlar?kategori=Paletli%20Ekskavat%C3%B6r">Ekskavatör</a>
+            <a href="/ilanlar?kategori=Beko%20Loder">Beko Loder</a>
+            <a href="/ilanlar?kategori=Lastikli%20Y%C3%BCkleyici">Loader</a>
+            <a href="/ilanlar?kategori=Forklift">Forklift</a>
+            <a href="/ilanlar?kategori=Vin%C3%A7">Vinç</a>
+            <a href="/ilanlar?tip=kiralik">Kiralık</a>
+            <a href="/ilanlar?tip=satilik">Satılık</a>
+            <a href="/ilanlar">Tüm İlanlar</a>
+          </div>
+        </div>
+        <div class="cat-bar-actions">
+          @if (isAuth)
+          {
+            <form method="post" action="/cikis" class="header-logout">
+              @Html.AntiForgeryToken()
+              <button class="link-quiet" type="submit">Çıkış</button>
+            </form>
+          }
+          else
+          {
+            <a class="link-quiet" href="/giris">Giriş Yap</a>
+          }
+          <a class="btn btn-machine header-cta" href="@(page == "home" ? "#ilan-ver" : "/#ilan-ver")">Ücretsiz İlan Ver</a>
+        </div>
+      </div>
+    </nav>
+  }
+
+  <div class="nav-mobile" id="nav-mobile" x-show="navOpen" x-cloak @@click.outside="closeNav">
+    <a href="/ilanlar?tip=satilik">Satılık</a>
+    <a href="/ilanlar?tip=kiralik">Kiralık</a>
+    <a href="/ilanlar?durum=used">İkinci El</a>
+    <a href="@(page == "home" ? "#kategoriler" : "/#kategoriler")">Kategoriler</a>
+    <a href="@(page == "home" ? "#sehirler" : "/#sehirler")">Şehirler</a>
+    @if (isAuth)
+    {
+      <form method="post" action="/cikis">
+        @Html.AntiForgeryToken()
+        <button type="submit">Çıkış</button>
+      </form>
+    }
+    else
+    {
+      <a href="/giris">Giriş Yap</a>
+    }
+    <a href="@(page == "home" ? "#ilan-ver" : "/#ilan-ver")">Ücretsiz İlan Ver</a>
+  </div>
+</header>

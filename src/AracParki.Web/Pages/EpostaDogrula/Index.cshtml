@@ -1,0 +1,66 @@
+@page "/eposta-dogrula"
+@model AracParki.Web.Pages.EpostaDogrula.IndexModel
+
+<main class="auth-page" id="main">
+  <div class="auth-shell">
+    <header class="auth-brand">
+      <a class="logo" href="/" aria-label="Araç Parkı ana sayfa">
+        <span class="logo-arac">Araç</span><span class="logo-parki">Parkı</span>
+      </a>
+    </header>
+
+    <section class="auth-card" aria-labelledby="auth-title">
+      @if (Model.Confirmed)
+      {
+        <div class="auth-success-icon" aria-hidden="true">
+          <ap-icon name="circle-check" size="22" />
+        </div>
+        <h1 class="auth-title" id="auth-title">Hesabın onaylandı</h1>
+        <p class="auth-lead">E-posta adresin doğrulandı. Artık ilan verebilir, favori ekleyebilirsin.</p>
+        <a class="btn btn-machine btn-block auth-submit" href="/">Anasayfaya git</a>
+        <p class="auth-switch"><a href="/ilanlar">İlanlara göz at</a></p>
+      }
+      else if (Model.ResendSubmitted)
+      {
+        <h1 class="auth-title" id="auth-title">E-postanı kontrol et</h1>
+        <p class="auth-lead">
+          Bu adresle onaylanmamış bir hesap varsa yeni doğrulama bağlantısı gönderdik.
+        </p>
+        @if (!string.IsNullOrEmpty(Model.DevVerifyUrl))
+        {
+          <div class="auth-alert auth-alert-ok" role="status">
+            Geliştirme: <a href="@Model.DevVerifyUrl">şimdi doğrula</a>
+          </div>
+        }
+        <a class="btn btn-machine btn-block auth-submit" href="/giris">Girişe dön</a>
+      }
+      else if (!string.IsNullOrEmpty(Model.Token) && !string.IsNullOrEmpty(Model.FormError))
+      {
+        <h1 class="auth-title" id="auth-title">Bağlantı geçersiz</h1>
+        <p class="auth-lead">@Model.FormError Yeni bir doğrulama maili isteyebilirsin.</p>
+        <form method="post" class="auth-form" novalidate>
+          <div class="auth-field">
+            <label asp-for="Input.Email"></label>
+            <input asp-for="Input.Email" type="email" autocomplete="email" inputmode="email" autofocus />
+            <span asp-validation-for="Input.Email" class="auth-error"></span>
+          </div>
+          <button class="btn btn-machine btn-block auth-submit" type="submit">Yeni bağlantı gönder</button>
+        </form>
+      }
+      else
+      {
+        <h1 class="auth-title" id="auth-title">E-posta doğrulama</h1>
+        <p class="auth-lead">Onay maili gelmediyse e-posta adresini yaz — yeni bağlantı gönderelim.</p>
+        <form method="post" class="auth-form" novalidate>
+          <div class="auth-field">
+            <label asp-for="Input.Email"></label>
+            <input asp-for="Input.Email" type="email" autocomplete="email" inputmode="email" autofocus />
+            <span asp-validation-for="Input.Email" class="auth-error"></span>
+          </div>
+          <button class="btn btn-machine btn-block auth-submit" type="submit">Doğrulama gönder</button>
+        </form>
+        <p class="auth-switch"><a href="/giris">Girişe dön</a></p>
+      }
+    </section>
+  </div>
+</main>

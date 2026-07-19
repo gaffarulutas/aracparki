@@ -1,0 +1,314 @@
+@page "/ilanlar"
+@using AracParki.Domain.Equipment
+@model AracParki.Web.Pages.Ilanlar.IndexModel
+
+<main class="container page-list" id="main">
+  <nav class="breadcrumb" aria-label="Sayfa yolu">
+    <a href="/">Anasayfa</a>
+    <span class="bc-sep">/</span>
+    <a href="/ilanlar">İş Makineleri</a>
+    @if (Model.Filter.CategoryId is > 0)
+    {
+      var cat = Model.Categories.FirstOrDefault(c => c.Id == Model.Filter.CategoryId);
+      if (cat is not null)
+      {
+        <span class="bc-sep">/</span>
+        <span>@cat.Name</span>
+      }
+    }
+    else if (Model.Filter.Intent != ListingIntent.All)
+    {
+      <span class="bc-sep">/</span>
+      <span>@ListingIntent.Label(Model.Filter.Intent)</span>
+    }
+  </nav>
+
+  <div class="list-layout" id="list-shell">
+    <aside class="list-aside" aria-label="Filtreler">
+      <form class="aside-card filter-box"
+            id="list-filter-form"
+            method="get"
+            action="/ilanlar"
+            hx-get="/ilanlar"
+            hx-select="#list-shell"
+            hx-target="#list-shell"
+            hx-swap="outerHTML"
+            hx-push-url="true"
+            hx-include="#sort-select">
+        <h2 class="aside-title">Filtrele</h2>
+
+        <div class="filter-field">
+          <label for="filter-tip">İlan tipi</label>
+          <select id="filter-tip" name="tip"
+                  hx-get="/ilanlar" hx-select="#list-shell" hx-target="#list-shell" hx-swap="outerHTML" hx-push-url="true" hx-include="#list-filter-form,#sort-select">
+            <option value="all" selected="@(Model.Filter.Intent == ListingIntent.All)">Tümü</option>
+            <option value="@ListingIntent.Satilik" selected="@(Model.Filter.Intent == ListingIntent.Satilik)">Satılık</option>
+            <option value="@ListingIntent.Kiralik" selected="@(Model.Filter.Intent == ListingIntent.Kiralik)">Kiralık</option>
+          </select>
+        </div>
+
+        <div class="filter-field">
+          <label for="filter-condition">Durum</label>
+          <select id="filter-condition" name="durum">
+            <option value="">Tümü</option>
+            <option value="@EquipmentCondition.Used" selected="@(Model.Filter.Condition == EquipmentCondition.Used)">İkinci el</option>
+            <option value="@EquipmentCondition.New" selected="@(Model.Filter.Condition == EquipmentCondition.New)">Sıfır</option>
+          </select>
+        </div>
+
+        <div class="filter-field">
+          <label for="filter-category">Kategori</label>
+          <select id="filter-category" name="kategoriId"
+                  hx-get="/ilanlar" hx-select="#list-shell" hx-target="#list-shell" hx-swap="outerHTML" hx-push-url="true" hx-include="#list-filter-form,#sort-select">
+            <option value="">Tüm kategoriler</option>
+            @foreach (var cat in Model.Categories)
+            {
+              <option value="@cat.Id" selected="@(Model.Filter.CategoryId == cat.Id)">@cat.Name</option>
+            }
+          </select>
+        </div>
+
+        <div class="filter-field">
+          <label for="filter-brand">Marka</label>
+          <select id="filter-brand" name="markaId"
+                  hx-get="/ilanlar" hx-select="#list-shell" hx-target="#list-shell" hx-swap="outerHTML" hx-push-url="true" hx-include="#list-filter-form,#sort-select">
+            <option value="">Tüm markalar</option>
+            @foreach (var brand in Model.Brands)
+            {
+              <option value="@brand.Id" selected="@(Model.Filter.BrandId == brand.Id)">@brand.Name</option>
+            }
+          </select>
+        </div>
+
+        @if (Model.Models.Count > 0)
+        {
+          <div class="filter-field">
+            <label for="filter-model">Model</label>
+            <select id="filter-model" name="modelId">
+              <option value="">Tüm modeller</option>
+              @foreach (var m in Model.Models)
+              {
+                <option value="@m.Id" selected="@(Model.Filter.ModelId == m.Id)">@m.Name</option>
+              }
+            </select>
+          </div>
+        }
+
+        @if (!Model.ShowCapacityKg)
+        {
+          <div class="filter-field">
+            <label for="filter-weight">Tonaj sınıfı</label>
+            <select id="filter-weight" name="tonMin" onchange="var o=this.options[this.selectedIndex]; document.getElementById('ton-max').value=o.dataset.max||'';">
+              <option value="">Tümü</option>
+              @foreach (var band in WeightClass.Presets)
+              {
+                var selected = Model.Filter.WeightMin == band.Min && Model.Filter.WeightMax == band.Max;
+                <option value="@(band.Min?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")"
+                        data-max="@(band.Max?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")"
+                        selected="@(selected)">@band.Label</option>
+              }
+            </select>
+            <input type="hidden" id="ton-max" name="tonMax" value="@(Model.Filter.WeightMax?.ToString(System.Globalization.CultureInfo.InvariantCulture))" />
+          </div>
+        }
+        else
+        {
+          <div class="filter-field filter-range">
+            <label>Kapasite (kg)</label>
+            <div class="range-row">
+              <input type="number" name="kgMin" placeholder="Min" min="0" value="@Model.Filter.CapacityKgMin" />
+              <input type="number" name="kgMax" placeholder="Max" min="0" value="@Model.Filter.CapacityKgMax" />
+            </div>
+          </div>
+        }
+
+        <div class="filter-field filter-range">
+          <label>Model yılı</label>
+          <div class="range-row">
+            <input type="number" name="yilMin" placeholder="Min" min="1970" max="2100" value="@Model.Filter.YearMin" />
+            <input type="number" name="yilMax" placeholder="Max" min="1970" max="2100" value="@Model.Filter.YearMax" />
+          </div>
+        </div>
+
+        <div class="filter-field filter-range">
+          <label>Çalışma saati</label>
+          <div class="range-row">
+            <input type="number" name="saatMin" placeholder="Min" min="0" value="@Model.Filter.HoursMin" />
+            <input type="number" name="saatMax" placeholder="Max" min="0" value="@Model.Filter.HoursMax" />
+          </div>
+        </div>
+
+        <div class="filter-field filter-range">
+          <label>Motor gücü (HP)</label>
+          <div class="range-row">
+            <input type="number" name="hpMin" placeholder="Min" min="0" value="@Model.Filter.HorsepowerMin" />
+            <input type="number" name="hpMax" placeholder="Max" min="0" value="@Model.Filter.HorsepowerMax" />
+          </div>
+        </div>
+
+        <div class="filter-field filter-range">
+          <label>Fiyat (TL)</label>
+          <div class="range-row">
+            <input type="number" name="fiyatMin" placeholder="Min" min="0" value="@Model.Filter.PriceMin" />
+            <input type="number" name="fiyatMax" placeholder="Max" min="0" value="@Model.Filter.PriceMax" />
+          </div>
+        </div>
+
+        @if (Model.ShowRentUnit)
+        {
+          <div class="filter-field">
+            <label for="filter-price-unit">Kira birimi</label>
+            <select id="filter-price-unit" name="birim">
+              <option value="">Tümü</option>
+              <option value="@PriceUnit.Hour" selected="@(Model.Filter.PriceUnit == PriceUnit.Hour)">@PriceUnit.Label(PriceUnit.Hour)</option>
+              <option value="@PriceUnit.Day" selected="@(Model.Filter.PriceUnit == PriceUnit.Day)">@PriceUnit.Label(PriceUnit.Day)</option>
+              <option value="@PriceUnit.Week" selected="@(Model.Filter.PriceUnit == PriceUnit.Week)">@PriceUnit.Label(PriceUnit.Week)</option>
+              <option value="@PriceUnit.Month" selected="@(Model.Filter.PriceUnit == PriceUnit.Month)">@PriceUnit.Label(PriceUnit.Month)</option>
+            </select>
+          </div>
+
+          <div class="filter-field">
+            <label class="filter-check">
+              <input type="checkbox" name="operator" value="1" @(Model.Filter.IncludesOperator == true ? "checked" : null) />
+              Operatör dahil
+            </label>
+          </div>
+        }
+
+        @foreach (var attr in Model.FilterableAttributes)
+        {
+          var fieldId = $"filter-oz-{attr.Key}";
+          var fieldName = $"oz_{attr.Key}";
+          var current = Model.SpecValue(attr.Key);
+          if (attr.DataType == "bool")
+          {
+            <div class="filter-field">
+              <label class="filter-check">
+                <input type="checkbox" name="@fieldName" value="true" @(current == "true" ? "checked" : null) />
+                @attr.Label
+              </label>
+            </div>
+          }
+          else if (attr.DataType == "enum")
+          {
+            <div class="filter-field">
+              <label for="@fieldId">@attr.Label</label>
+              <select id="@fieldId" name="@fieldName">
+                <option value="">Tümü</option>
+                @foreach (var opt in Model.EnumOptions(attr))
+                {
+                  <option value="@opt" selected="@(current == opt)">@ListingRoutes.SpecOptionLabel(opt)</option>
+                }
+              </select>
+            </div>
+          }
+          else if (attr.DataType == "number")
+          {
+            <div class="filter-field">
+              <label for="@fieldId">@attr.Label@(string.IsNullOrWhiteSpace(attr.Unit) ? "" : $" ({attr.Unit})") — min</label>
+              <input id="@fieldId" type="number" name="@fieldName" min="0" step="any" value="@current" placeholder="Min" />
+            </div>
+          }
+        }
+
+        @if (Model.Attachments.Count > 0)
+        {
+          <div class="filter-field">
+            <span class="filter-group-label">Ekipman</span>
+            <div class="filter-check-list">
+              @foreach (var att in Model.Attachments)
+              {
+                <label class="filter-check">
+                  <input type="checkbox" name="ekipman" value="@att.Id" @(Model.HasAttachment(att.Id) ? "checked" : null) />
+                  @att.Name
+                </label>
+              }
+            </div>
+          </div>
+        }
+
+        <div class="filter-field">
+          <label for="filter-city">İl</label>
+          <select id="filter-city" name="ilId"
+                  hx-get="/ilanlar" hx-select="#list-shell" hx-target="#list-shell" hx-swap="outerHTML" hx-push-url="true" hx-include="#list-filter-form,#sort-select">
+            <option value="">Türkiye geneli</option>
+            @foreach (var city in Model.Cities)
+            {
+              <option value="@city.Id" selected="@(Model.Filter.CityId == city.Id)">@city.Name</option>
+            }
+          </select>
+        </div>
+
+        @if (Model.Districts.Count > 0)
+        {
+          <div class="filter-field">
+            <label for="filter-district">İlçe</label>
+            <select id="filter-district" name="ilceId">
+              <option value="">Tüm ilçeler</option>
+              @foreach (var d in Model.Districts)
+              {
+                <option value="@d.Id" selected="@(Model.Filter.DistrictId == d.Id)">@d.Name</option>
+              }
+            </select>
+          </div>
+        }
+
+        <div class="filter-field">
+          <label for="filter-seller">Satıcı</label>
+          <select id="filter-seller" name="satici">
+            <option value="">Tümü</option>
+            <option value="@SellerType.Dealer" selected="@(Model.Filter.SellerType == SellerType.Dealer)">Bayi</option>
+            <option value="@SellerType.Owner" selected="@(Model.Filter.SellerType == SellerType.Owner)">Sahibinden</option>
+          </select>
+        </div>
+
+        <div class="filter-field">
+          <label class="filter-check">
+            <input type="checkbox" name="dogrulanmis" value="1" @(Model.Filter.VerifiedOnly ? "checked" : null) />
+            Sadece doğrulanmış satıcı
+          </label>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Filter.Query))
+        {
+          <input type="hidden" name="q" value="@Model.Filter.Query" />
+        }
+
+        <div class="filter-actions">
+          <button class="btn btn-machine btn-block" type="submit">Uygula</button>
+          <a class="btn btn-ghost btn-block" href="/ilanlar">Temizle</a>
+        </div>
+      </form>
+    </aside>
+
+    <section class="list-main" id="list-panel" aria-labelledby="list-title">
+      <div class="list-toolbar">
+        <h1 id="list-title">
+          @(ViewData["ListHeading"])
+          <span id="result-count">(@Model.Result.TotalCount.ToString("N0") ilan)</span>
+        </h1>
+        <label class="sort-field">
+          <span>Sırala</span>
+          <select id="sort-select"
+                  name="sort"
+                  form="list-filter-form"
+                  aria-label="Sıralama"
+                  hx-get="/ilanlar"
+                  hx-select="#list-shell"
+                  hx-target="#list-shell"
+                  hx-swap="outerHTML"
+                  hx-push-url="true"
+                  hx-include="#list-filter-form">
+            <option value="@ListingSort.Newest" selected="@(Model.Filter.Sort == ListingSort.Newest)">En yeni</option>
+            <option value="@ListingSort.PriceAsc" selected="@(Model.Filter.Sort == ListingSort.PriceAsc)">Fiyat artan</option>
+            <option value="@ListingSort.PriceDesc" selected="@(Model.Filter.Sort == ListingSort.PriceDesc)">Fiyat azalan</option>
+            <option value="@ListingSort.HoursAsc" selected="@(Model.Filter.Sort == ListingSort.HoursAsc)">Saat artan</option>
+          </select>
+        </label>
+      </div>
+      <div id="list-results" class="classified-list" aria-live="polite">
+        <partial name="Shared/Partials/_ListingResults" model="Model" />
+      </div>
+    </section>
+  </div>
+</main>

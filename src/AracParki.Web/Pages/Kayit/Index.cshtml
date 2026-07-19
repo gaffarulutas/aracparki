@@ -1,0 +1,127 @@
+@page "/kayit"
+@model AracParki.Web.Pages.Kayit.IndexModel
+
+<main class="auth-page" id="main">
+  <div class="auth-shell">
+    <header class="auth-brand">
+      <a class="logo" href="/" aria-label="Araç Parkı ana sayfa">
+        <span class="logo-arac">Araç</span><span class="logo-parki">Parkı</span>
+      </a>
+      <p class="auth-kicker">Sat · kirala · bul</p>
+    </header>
+
+    <section class="auth-card" aria-labelledby="auth-title" x-data="authForm">
+      @if (Model.Submitted)
+      {
+        <div class="auth-success-icon" aria-hidden="true">
+          <ap-icon name="circle-check" size="22" />
+        </div>
+        <h1 class="auth-title" id="auth-title">E-postanı kontrol et</h1>
+        <p class="auth-lead">
+          Hesabını oluşturduk. <strong>@Model.Input.Email</strong> adresine gönderdiğimiz
+          “Hesabımı onayla” bağlantısına tıklayarak üyeliğini tamamla.
+        </p>
+        @if (!string.IsNullOrEmpty(Model.DevVerifyUrl))
+        {
+          <div class="auth-alert auth-alert-ok" role="status">
+            Geliştirme: <a href="@Model.DevVerifyUrl">e-postayı şimdi doğrula</a>
+          </div>
+        }
+        <ul class="auth-steps">
+          <li>Gelen kutunu ve spam klasörünü kontrol et</li>
+          <li>Bağlantı 48 saat geçerli</li>
+          <li>Onaydan sonra giriş yapıp ilan verebilirsin</li>
+        </ul>
+        <a class="btn btn-machine btn-block auth-submit" href="/giris">Girişe git</a>
+        <p class="auth-switch">
+          Mail gelmedi mi?
+          <a href="/eposta-dogrula">Tekrar gönder</a>
+        </p>
+      }
+      else
+      {
+        <h1 class="auth-title" id="auth-title">Hesap oluştur</h1>
+        <p class="auth-lead">Adın, soyadın, e-postan ve şifren yeterli. Telefonu ilk ilanda doğrularsın.</p>
+
+        @if (!string.IsNullOrEmpty(Model.FormError))
+        {
+          <div class="auth-alert" role="alert">@Model.FormError</div>
+        }
+
+        <form method="post" class="auth-form" novalidate>
+          <div class="auth-name-row">
+            <div class="auth-field">
+              <label asp-for="Input.FirstName"></label>
+              <input asp-for="Input.FirstName" autocomplete="given-name" autofocus />
+              <span asp-validation-for="Input.FirstName" class="auth-error"></span>
+            </div>
+            <div class="auth-field">
+              <label asp-for="Input.LastName"></label>
+              <input asp-for="Input.LastName" autocomplete="family-name" />
+              <span asp-validation-for="Input.LastName" class="auth-error"></span>
+            </div>
+          </div>
+
+          <div class="auth-field">
+            <label asp-for="Input.Email"></label>
+            <input asp-for="Input.Email" type="email" autocomplete="email" inputmode="email" />
+            <span asp-validation-for="Input.Email" class="auth-error"></span>
+          </div>
+
+          <div class="auth-field">
+            <label asp-for="Input.Password"></label>
+            <div class="auth-password">
+              <input asp-for="Input.Password" autocomplete="new-password"
+                     x-model="password"
+                     :type="passwordType" />
+              <button class="auth-password-toggle" type="button"
+                      @@click="togglePassword"
+                      :aria-label="passwordToggleLabel">
+                <span x-show="showEye"><ap-icon name="eye" size="18" /></span>
+                <span x-show="showEyeOff" x-cloak><ap-icon name="eye-off" size="18" /></span>
+              </button>
+            </div>
+            <ul class="auth-rules" aria-label="Şifre kuralları">
+              <li :class="ruleClass('len')">En az 8 karakter</li>
+              <li :class="ruleClass('letter')">En az bir harf</li>
+              <li :class="ruleClass('digit')">En az bir rakam</li>
+              <li :class="ruleClass('noTriple')">Üç aynı karakter yan yana yok</li>
+            </ul>
+            <span asp-validation-for="Input.Password" class="auth-error"></span>
+          </div>
+
+          <div class="auth-field">
+            <label asp-for="Input.ConfirmPassword"></label>
+            <div class="auth-password">
+              <input asp-for="Input.ConfirmPassword" autocomplete="new-password"
+                     :type="passwordType" />
+            </div>
+            <span asp-validation-for="Input.ConfirmPassword" class="auth-error"></span>
+          </div>
+
+          <label class="auth-check">
+            <input asp-for="Input.AcceptTerms" />
+            <span>
+              <a href="/kullanim-kosullari" target="_blank" rel="noopener">Kullanım koşulları</a> ve
+              <a href="/gizlilik" target="_blank" rel="noopener">gizlilik bildirimi</a>ni kabul ediyorum.
+            </span>
+          </label>
+          <span asp-validation-for="Input.AcceptTerms" class="auth-error"></span>
+
+          <button class="btn btn-machine btn-block auth-submit" type="submit">Hesabı oluştur</button>
+        </form>
+
+        <p class="auth-trust">Ücretsiz üyelik · Telefon ilk ilanda · En az 8 karakter, 1 harf + 1 rakam</p>
+
+        <p class="auth-switch">
+          Zaten üye misin?
+          <a href="/giris">Giriş yap</a>
+        </p>
+      }
+    </section>
+
+    <p class="auth-footnote">
+      <a href="/">← Anasayfa</a>
+    </p>
+  </div>
+</main>

@@ -1,0 +1,48 @@
+@page "/sifremi-unuttum"
+@model AracParki.Web.Pages.SifremiUnuttum.IndexModel
+
+<main class="auth-page" id="main">
+  <div class="auth-shell">
+    <header class="auth-brand">
+      <a class="logo" href="/" aria-label="Araç Parkı ana sayfa">
+        <span class="logo-arac">Araç</span><span class="logo-parki">Parkı</span>
+      </a>
+    </header>
+
+    <section class="auth-card" aria-labelledby="auth-title">
+      @if (Model.Submitted)
+      {
+        <h1 class="auth-title" id="auth-title">E-postanı kontrol et</h1>
+        <p class="auth-lead">
+          Bu adresle bir hesap varsa, şifre sıfırlama bağlantısını gönderdik.
+          Birkaç dakika içinde gelmezse spam klasörüne bak.
+        </p>
+        @if (!string.IsNullOrEmpty(Model.DevResetUrl))
+        {
+          <div class="auth-alert auth-alert-ok" role="status">
+            Geliştirme: <a href="@Model.DevResetUrl">şifreyi şimdi sıfırla</a>
+          </div>
+        }
+        <a class="btn btn-machine btn-block auth-submit" href="/giris">Girişe dön</a>
+      }
+      else
+      {
+        <h1 class="auth-title" id="auth-title">Şifremi unuttum</h1>
+        <p class="auth-lead">E-posta adresini yaz — sıfırlama bağlantısı göndereceğiz.</p>
+
+        <form method="post" class="auth-form" novalidate>
+          <div class="auth-field">
+            <label asp-for="Input.Email"></label>
+            <input asp-for="Input.Email" type="email" autocomplete="email" inputmode="email" autofocus />
+            <span asp-validation-for="Input.Email" class="auth-error"></span>
+          </div>
+          <button class="btn btn-machine btn-block auth-submit" type="submit">Bağlantı gönder</button>
+        </form>
+
+        <p class="auth-switch">
+          <a href="/giris">Girişe dön</a>
+        </p>
+      }
+    </section>
+  </div>
+</main>
