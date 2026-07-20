@@ -1,0 +1,10 @@
+@page "/ayarlar"
+@model AracParki.Web.Pages.Ayarlar.IndexModel
+@{
+    Layout = "Shared/_AccountLayout";
+}
+<header class="page-account-head">
+  <h1>Ayarlar</h1>
+  <p class="page-account-lead">Şifre, bildirim ve hesap tercihleri</p>
+</header>
+<partial name="Shared/Partials/_AccountComingSoon" model="@($"Hesap ayarları yakında eklenecek. Şimdilik şifre yenilemek için çıkış yapıp Şifremi unuttum akışını kullanabilirsin.")" />

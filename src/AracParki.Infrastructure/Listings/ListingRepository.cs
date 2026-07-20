@@ -61,6 +61,20 @@ public sealed class ListingRepository(IDbConnectionFactory connectionFactory, IS
         return items.AsList();
     }
 
+    public async Task<IReadOnlyList<ListingCardDto>> GetByAccountIdAsync(
+        long accountId,
+        int take,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        var items = await connection.QueryAsync<ListingCardDto>(
+            new CommandDefinition(
+                sql.Get("Listings/GetByAccountId.sql"),
+                new { AccountId = accountId, Take = take },
+                cancellationToken: cancellationToken));
+        return items.AsList();
+    }
+
     public async Task<ListingDetailDto?> GetByAdNoAsync(string adNo, CancellationToken cancellationToken)
     {
         await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);

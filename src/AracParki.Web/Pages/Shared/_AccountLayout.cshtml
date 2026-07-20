@@ -1,0 +1,13 @@
+@{
+    Layout = "_Layout";
+}
+<main class="container page-account" id="main">
+  <div class="account-layout">
+    <aside class="account-aside" aria-label="Hesap menüsü">
+      <partial name="Shared/Partials/_AccountNav" />
+    </aside>
+    <div class="account-main">
+      @RenderBody()
+    </div>
+  </div>
+</main>

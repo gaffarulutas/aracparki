@@ -1,0 +1,10 @@
+@page "/mesajlarim"
+@model AracParki.Web.Pages.Mesajlarim.IndexModel
+@{
+    Layout = "Shared/_AccountLayout";
+}
+<header class="page-account-head">
+  <h1>Mesajlarım</h1>
+  <p class="page-account-lead">İlan sahipleri ve alıcılarla yazışmaların</p>
+</header>
+<partial name="Shared/Partials/_AccountComingSoon" model="@($"Site içi mesajlaşma yakında açılacak. Şimdilik ilan detayındaki telefon ile iletişime geçebilirsin.")" />

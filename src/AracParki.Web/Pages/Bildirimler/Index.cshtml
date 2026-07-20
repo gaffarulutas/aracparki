@@ -1,0 +1,10 @@
+@page "/bildirimler"
+@model AracParki.Web.Pages.Bildirimler.IndexModel
+@{
+    Layout = "Shared/_AccountLayout";
+}
+<header class="page-account-head">
+  <h1>Bildirimler</h1>
+  <p class="page-account-lead">İlan ve hesap bildirimlerin</p>
+</header>
+<partial name="Shared/Partials/_AccountComingSoon" model="@($"Bildirim merkezi yakında açılacak. İlan durumu ve önemli hesap uyarılarını burada göreceksin.")" />

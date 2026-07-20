@@ -1,7 +1,7 @@
 @model string
 @{
     var page = Model ?? "home";
-    var showCat = page is not ("detail" or "auth" or "wizard");
+    var showCat = page is not ("detail" or "auth" or "wizard" or "account");
     var isAuth = User.Identity?.IsAuthenticated == true;
 }
 <header class="site-header" id="top">
@@ -42,11 +42,7 @@
       <div class="header-actions">
         @if (isAuth)
         {
-          <span class="link-quiet header-user" title="@User.Identity!.Name">@User.Identity!.Name</span>
-          <form method="post" action="/cikis" class="header-logout">
-            @Html.AntiForgeryToken()
-            <button class="link-quiet" type="submit">Çıkış</button>
-          </form>
+          <partial name="Shared/Partials/_AccountMenu" />
         }
         else
         {
@@ -89,10 +85,7 @@
         <div class="cat-bar-actions">
           @if (isAuth)
           {
-            <form method="post" action="/cikis" class="header-logout">
-              @Html.AntiForgeryToken()
-              <button class="link-quiet" type="submit">Çıkış</button>
-            </form>
+            <partial name="Shared/Partials/_AccountMenu" />
           }
           else
           {
@@ -112,9 +105,15 @@
     <a href="@(page == "home" ? "#sehirler" : "/#sehirler")">Şehirler</a>
     @if (isAuth)
     {
+      <a href="/panel">Panel</a>
+      <a href="/ilanlarim">İlanlarım</a>
+      <a href="/favorilerim">Favorilerim</a>
+      <a href="/mesajlarim">Mesajlarım</a>
+      <a href="/bilgilerim">Bilgilerim</a>
+      <a href="/ayarlar">Ayarlar</a>
       <form method="post" action="/cikis">
         @Html.AntiForgeryToken()
-        <button type="submit">Çıkış</button>
+        <button type="submit">Çıkış yap</button>
       </form>
     }
     else

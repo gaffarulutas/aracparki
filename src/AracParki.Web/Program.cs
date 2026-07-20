@@ -16,7 +16,7 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Host.UseSerilog((context, services, configuration) => configuration
+    builder.Host.UseSerilog((context, _, configuration) => configuration
         .ReadFrom.Configuration(context.Configuration)
         .Enrich.FromLogContext()
         .WriteTo.Console());
@@ -33,6 +33,8 @@ try
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddRazorPages();
     builder.Services.AddAntiforgery();
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddSingleton<SiteUrls>();
     builder.Services.AddDistributedMemoryCache();
     builder.Services.AddSession(options =>
     {
@@ -115,7 +117,27 @@ try
     app.UseSerilogRequestLogging();
     app.UseSecurityHeaders();
     app.UseHttpsRedirection();
-    app.UseStaticFiles();
+    var contentTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider
+    {
+        Mappings =
+        {
+            [".webmanifest"] = "application/manifest+json"
+        }
+    };
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        ContentTypeProvider = contentTypes,
+        OnPrepareResponse = ctx =>
+        {
+            // styles.css @import zinciri tarayıcıda agresif cache'lenir; Dev'de anlık CSS/JS için kapat.
+            if (app.Environment.IsDevelopment())
+            {
+                ctx.Context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+                ctx.Context.Response.Headers.Pragma = "no-cache";
+                ctx.Context.Response.Headers.Expires = "0";
+            }
+        }
+    });
     app.UseRouting();
     app.UseRateLimiter();
     app.UseAuthentication();

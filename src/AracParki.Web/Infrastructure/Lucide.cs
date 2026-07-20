@@ -10,10 +10,12 @@ public static partial class Lucide
 {
     private static readonly ConcurrentDictionary<string, string> BodyCache = new(StringComparer.OrdinalIgnoreCase);
     private static string _iconsRoot = string.Empty;
+    private static bool _cacheBodies = true;
 
     public static void Configure(IWebHostEnvironment env)
     {
         _iconsRoot = Path.Combine(env.WebRootPath, "lib", "lucide", "icons");
+        _cacheBodies = !env.IsDevelopment();
     }
 
     public static string Svg(string name, string? cssClass = "ap-icon", int size = 24, string strokeWidth = "2")
@@ -25,7 +27,9 @@ public static partial class Lucide
             return string.Empty;
         }
 
-        var body = BodyCache.GetOrAdd(safe, LoadBody);
+        var body = _cacheBodies
+            ? BodyCache.GetOrAdd(safe, LoadBody)
+            : LoadBody(safe);
         if (string.IsNullOrEmpty(body))
         {
             return string.Empty;

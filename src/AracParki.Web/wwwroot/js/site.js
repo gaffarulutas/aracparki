@@ -228,6 +228,133 @@
       },
     }));
 
+    Alpine.data("accountMenu", () => ({
+      open: false,
+      menuId: "",
+      triggerId: "",
+      activeIndex: -1,
+      panelTop: "0px",
+      panelLeft: "0px",
+      panelWidth: "264px",
+      _onReposition: null,
+      init() {
+        const id = "am-" + Math.random().toString(36).slice(2, 9);
+        this.menuId = id;
+        this.triggerId = id + "-btn";
+        this._onReposition = () => {
+          if (!this.open) return;
+          this.placePanel();
+        };
+        window.addEventListener("resize", this._onReposition);
+        window.addEventListener("scroll", this._onReposition, true);
+      },
+      destroy() {
+        window.removeEventListener("resize", this._onReposition);
+        window.removeEventListener("scroll", this._onReposition, true);
+      },
+      get openAria() {
+        return this.open ? "true" : "false";
+      },
+      get rootClass() {
+        return this.open ? "is-open" : "";
+      },
+      get panelStyle() {
+        return (
+          "top:" +
+          this.panelTop +
+          ";left:" +
+          this.panelLeft +
+          ";width:" +
+          this.panelWidth
+        );
+      },
+      items() {
+        return Array.from(this.$root.querySelectorAll('[role="menuitem"]'));
+      },
+      placePanel() {
+        const trigger = this.$refs.trigger;
+        if (!trigger) return;
+        const rect = trigger.getBoundingClientRect();
+        const width = Math.min(264, window.innerWidth - 24);
+        let left = rect.right - width;
+        if (left < 12) left = 12;
+        if (left + width > window.innerWidth - 12) {
+          left = Math.max(12, window.innerWidth - width - 12);
+        }
+        this.panelTop = Math.round(rect.bottom + 8) + "px";
+        this.panelLeft = Math.round(left) + "px";
+        this.panelWidth = Math.round(width) + "px";
+      },
+      toggle() {
+        if (this.open) {
+          this.close();
+          return;
+        }
+        this.open = true;
+        this.$nextTick(() => this.placePanel());
+      },
+      openMenu(index) {
+        this.open = true;
+        this.$nextTick(() => {
+          this.placePanel();
+          this.focusItem(index);
+        });
+      },
+      close() {
+        this.open = false;
+        this.activeIndex = -1;
+      },
+      focusItem(index) {
+        const list = this.items();
+        if (!list.length) return;
+        const i = ((index % list.length) + list.length) % list.length;
+        this.activeIndex = i;
+        list[i].focus();
+      },
+      onKey(event) {
+        const key = event.key;
+        if (key === "Escape") {
+          if (!this.open) return;
+          event.preventDefault();
+          this.close();
+          this.$refs.trigger && this.$refs.trigger.focus();
+          return;
+        }
+
+        if (!this.open) {
+          if (key === "ArrowDown" || key === "ArrowUp") {
+            event.preventDefault();
+            this.openMenu(key === "ArrowUp" ? -1 : 0);
+          }
+          return;
+        }
+
+        if (key === "ArrowDown") {
+          event.preventDefault();
+          this.focusItem(this.activeIndex + 1);
+          return;
+        }
+        if (key === "ArrowUp") {
+          event.preventDefault();
+          this.focusItem(this.activeIndex - 1);
+          return;
+        }
+        if (key === "Home") {
+          event.preventDefault();
+          this.focusItem(0);
+          return;
+        }
+        if (key === "End") {
+          event.preventDefault();
+          this.focusItem(-1);
+          return;
+        }
+        if (key === "Tab") {
+          this.close();
+        }
+      },
+    }));
+
     Alpine.data("authForm", () => ({
       showPassword: false,
       get passwordType() {

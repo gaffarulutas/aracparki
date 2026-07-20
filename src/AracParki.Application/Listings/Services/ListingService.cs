@@ -35,6 +35,19 @@ public sealed class ListingService(
         return listingQuery.GetPhoneByAdNoAsync(adNo.Trim(), cancellationToken);
     }
 
+    public Task<IReadOnlyList<ListingCardDto>> GetByAccountIdAsync(
+        long accountId,
+        int take,
+        CancellationToken cancellationToken)
+    {
+        if (accountId <= 0)
+        {
+            return Task.FromResult<IReadOnlyList<ListingCardDto>>([]);
+        }
+
+        return listingQuery.GetByAccountIdAsync(accountId, Math.Clamp(take, 1, 100), cancellationToken);
+    }
+
     private static ListingSearchQuery Normalize(ListingSearchQuery query)
     {
         var specValues = query.SpecValues

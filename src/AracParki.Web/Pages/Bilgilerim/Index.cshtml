@@ -1,0 +1,31 @@
+@page "/bilgilerim"
+@model AracParki.Web.Pages.Bilgilerim.IndexModel
+@{
+    Layout = "Shared/_AccountLayout";
+}
+<header class="page-account-head">
+  <h1>Bilgilerim</h1>
+  <p class="page-account-lead">Ad, e-posta, telefon ve doğrulama durumu</p>
+</header>
+
+@if (Model.Account is not null)
+{
+  <dl class="account-profile">
+    <div>
+      <dt>Ad Soyad</dt>
+      <dd>@Model.Account.DisplayName</dd>
+    </div>
+    <div>
+      <dt>E-posta</dt>
+      <dd>@Model.Account.Email</dd>
+    </div>
+    <div>
+      <dt>Telefon</dt>
+      <dd>@(string.IsNullOrWhiteSpace(Model.Account.Phone) ? "—" : Model.Account.Phone)</dd>
+    </div>
+    <div>
+      <dt>E-posta doğrulama</dt>
+      <dd>@(Model.Account.EmailConfirmed ? "Doğrulandı" : "Bekliyor")</dd>
+    </div>
+  </dl>
+}

@@ -1,0 +1,10 @@
+@page "/favorilerim"
+@model AracParki.Web.Pages.Favorilerim.IndexModel
+@{
+    Layout = "Shared/_AccountLayout";
+}
+<header class="page-account-head">
+  <h1>Favorilerim</h1>
+  <p class="page-account-lead">Beğendiğin iş makinesi ilanları</p>
+</header>
+<partial name="Shared/Partials/_AccountComingSoon" model="@($"Favori ilanlar yakında eklenecek. Beğendiğin ilanları tek yerden takip edebileceksin.")" />

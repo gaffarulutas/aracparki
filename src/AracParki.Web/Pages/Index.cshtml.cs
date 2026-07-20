@@ -36,5 +36,8 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
         ViewData["Description"] =
             "Satılık, kiralık ve ikinci el iş makineleri — tonaj, güç ve çalışma saatiyle karşılaştır.";
         ViewData["SearchQuery"] = Filter.Query;
+        ViewData["OgImageType"] = "image/jpeg";
+        ViewData["OgImageWidth"] = "1200";
+        ViewData["OgImageHeight"] = "630";
     }
 }

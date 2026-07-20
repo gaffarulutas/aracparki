@@ -12,6 +12,6 @@ else
 {
   foreach (var item in Model.Result.Items)
   {
-    <partial name="Shared/Partials/_ClassifiedRow" model="item" />
+    @await Html.PartialAsync("Shared/Partials/_ClassifiedRow", item)
   }
 }

@@ -120,6 +120,14 @@
     display: inline;
   }
 
+  .account-menu {
+    display: inline-flex;
+  }
+
+  .account-menu-trigger-text {
+    display: block;
+  }
+
   .nav-toggle {
     display: none;
   }
@@ -198,6 +206,17 @@
     grid-template-columns: 260px 1fr;
     align-items: start;
     gap: var(--space-3);
+  }
+
+  .account-layout {
+    grid-template-columns: 248px 1fr;
+    align-items: start;
+    gap: var(--space-2);
+  }
+
+  .account-aside {
+    position: sticky;
+    top: 88px;
   }
 
   .filter-box select,

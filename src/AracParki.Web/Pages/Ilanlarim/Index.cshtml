@@ -1,0 +1,26 @@
+@page "/ilanlarim"
+@model AracParki.Web.Pages.Ilanlarim.IndexModel
+@{
+    Layout = "Shared/_AccountLayout";
+}
+<header class="page-account-head">
+  <h1>İlanlarım</h1>
+  <p class="page-account-lead">Yayındaki ve yönettiğin iş makinesi ilanları</p>
+</header>
+
+@if (Model.Items.Count == 0)
+{
+  <div class="empty-state">
+    <p>Henüz yayınlanmış ilanın yok.</p>
+    <a class="btn btn-machine" href="/ilan-ver">Ücretsiz İlan Ver</a>
+  </div>
+}
+else
+{
+  <div class="account-listings">
+    @foreach (var item in Model.Items)
+    {
+      <partial name="Shared/Partials/_ClassifiedRow" model="item" />
+    }
+  </div>
+}

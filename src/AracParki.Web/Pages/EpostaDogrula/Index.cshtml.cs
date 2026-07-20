@@ -89,6 +89,7 @@ public sealed class IndexModel(AccountService accounts, ILogger<IndexModel> logg
     {
         ViewData["PageKey"] = "auth";
         ViewData["Title"] = "E-posta Doğrulama | Araç Parkı";
+        ViewData["Robots"] = "noindex, nofollow";
         ViewData["Description"] = "Araç Parkı hesap e-posta doğrulama.";
     }
 

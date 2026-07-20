@@ -1,31 +1,130 @@
-﻿@{
+﻿@using System.Text.Json
+@using AracParki.Web.Infrastructure
+@inject SiteUrls SiteUrls
+@{
     var pageKey = ViewData["PageKey"] as string ?? "home";
     var isAuth = pageKey == "auth";
     var title = ViewData["Title"] as string ?? "Araç Parkı";
     var description = ViewData["Description"] as string
         ?? "Araç Parkı — Türkiye genelinde satılık, kiralık ve ikinci el iş makineleri.";
     var ogTitle = ViewData["OgTitle"] as string ?? title;
-    var ogImage = $"{Context.Request.Scheme}://{Context.Request.Host}{Url.Content("~/assets/hero/banner-1200.jpg")}";
+    var robots = ViewData["Robots"] as string ?? "index, follow, max-image-preview:large";
+    var includeQueryInCanonical = ViewData["CanonicalIncludeQuery"] as bool? ?? pageKey == "list";
+    var canonical = ViewData["CanonicalUrl"] as string
+        ?? SiteUrls.CanonicalFromRequest(includeQueryInCanonical);
+    var ogUrl = ViewData["OgUrl"] as string ?? canonical;
+    var defaultOgImage = SiteUrls.Absolute(Url.Content("~/assets/hero/banner-1200.jpg"));
+    var ogImage = ViewData["OgImage"] as string ?? defaultOgImage;
+    if (!ogImage.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+    {
+        ogImage = SiteUrls.Absolute(ogImage);
+    }
+    var ogImageAlt = ViewData["OgImageAlt"] as string ?? "Araç Parkı — iş makineleri";
+    var ogType = ViewData["OgType"] as string ?? "website";
+    var twitterCard = ViewData["TwitterCard"] as string ?? "summary_large_image";
+    var cspNonce = Context.GetCspNonce();
+    var jsonLdExtra = ViewData["JsonLd"] as string;
+
+    var websiteLd = new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "WebSite",
+        ["name"] = "Araç Parkı",
+        ["url"] = SiteUrls.Origin + "/",
+        ["description"] = "Türkiye genelinde satılık, kiralık ve ikinci el iş makineleri.",
+        ["inLanguage"] = "tr-TR",
+        ["potentialAction"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "SearchAction",
+            ["target"] = SiteUrls.Origin + "/ilanlar?q={search_term_string}",
+            ["query-input"] = "required name=search_term_string"
+        }
+    };
+
+    var orgLd = new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "Organization",
+        ["name"] = "Araç Parkı",
+        ["url"] = SiteUrls.Origin + "/",
+        ["logo"] = SiteUrls.Absolute("/assets/logo/icon-512.png"),
+        ["description"] = "İş makineleri ilan platformu"
+    };
+
+    var jsonOpts = new JsonSerializerOptions { PropertyNamingPolicy = null };
+    var websiteJson = JsonSerializer.Serialize(websiteLd, jsonOpts);
+    var orgJson = JsonSerializer.Serialize(orgLd, jsonOpts);
 }
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>@title</title>
     <meta name="description" content="@description" />
-    <meta property="og:type" content="website" />
+    <meta name="robots" content="@robots" />
+    <meta name="theme-color" content="#ffe600" />
+    <meta name="color-scheme" content="light" />
+    <link rel="canonical" href="@canonical" />
+
+    <meta property="og:type" content="@ogType" />
     <meta property="og:locale" content="tr_TR" />
     <meta property="og:site_name" content="Araç Parkı" />
     <meta property="og:title" content="@ogTitle" />
     <meta property="og:description" content="@description" />
+    <meta property="og:url" content="@ogUrl" />
     <meta property="og:image" content="@ogImage" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <title>@title</title>
-    <link rel="icon" href="~/assets/favicon.svg" type="image/svg+xml" />
+    <meta property="og:image:secure_url" content="@ogImage" />
+    @if (ViewData["OgImageType"] is string ogImageType)
+    {
+        <meta property="og:image:type" content="@ogImageType" />
+    }
+    <meta property="og:image:width" content="@(ViewData["OgImageWidth"] as string ?? "1200")" />
+    <meta property="og:image:height" content="@(ViewData["OgImageHeight"] as string ?? "630")" />
+    <meta property="og:image:alt" content="@ogImageAlt" />
+
+    <meta name="twitter:card" content="@twitterCard" />
+    <meta name="twitter:title" content="@ogTitle" />
+    <meta name="twitter:description" content="@description" />
+    <meta name="twitter:image" content="@ogImage" />
+    <meta name="twitter:image:alt" content="@ogImageAlt" />
+
+    <link rel="manifest" href="~/manifest.webmanifest" asp-append-version="true" />
+    <link rel="icon" href="~/assets/logo/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="~/assets/logo/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="~/assets/logo/favicon-16.png" type="image/png" sizes="16x16" />
+    <link rel="apple-touch-icon" href="~/assets/logo/apple-touch-icon.png" sizes="180x180" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/tokens.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/base.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/components/buttons.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/components/icons.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/components/header.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/components/hero.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/pages/home.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/components/forms.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/components/cards.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/components/footer.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/pages/list.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/pages/detail.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/pages/auth.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/pages/ilan-ver.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/pages/legal.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/pages/account.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/responsive.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/styles.css" asp-append-version="true" />
+
+    @if (!string.IsNullOrEmpty(cspNonce))
+    {
+        <script type="application/ld+json" nonce="@cspNonce">@Html.Raw(websiteJson)</script>
+        <script type="application/ld+json" nonce="@cspNonce">@Html.Raw(orgJson)</script>
+        if (!string.IsNullOrWhiteSpace(jsonLdExtra))
+        {
+            <script type="application/ld+json" nonce="@cspNonce">@Html.Raw(jsonLdExtra)</script>
+        }
+    }
 </head>
 <body data-page="@pageKey" x-data="siteChrome">
     <a class="skip-link" href="#main">İçeriğe geç</a>
@@ -38,10 +137,7 @@
     @RenderBody()
 
     <div class="toast" id="toast" hidden role="status" aria-live="polite"
-         @if (TempData["AuthNotice"] is string notice)
-         {
-           <text>data-boot-toast="@notice"</text>
-         }></div>
+         data-boot-toast="@(TempData["AuthNotice"] as string)"></div>
 
     @if (!isAuth)
     {

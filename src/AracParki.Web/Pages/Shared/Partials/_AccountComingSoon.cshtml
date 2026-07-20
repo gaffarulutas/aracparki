@@ -1,0 +1,9 @@
+@model string
+@{
+    var message = string.IsNullOrWhiteSpace(Model)
+        ? "Bu bölüm yakında kullanıma açılacak."
+        : Model;
+}
+<div class="empty-state">
+  <p>@message</p>
+</div>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Araç Parkı">
+  <title>Araç Parkı — steep</title>
+  <defs>
+    <style>
+      .mark {
+        font-family: Archivo, Arial Black, Arial, sans-serif;
+        font-weight: 900;
+        font-size: 210px;
+        letter-spacing: -0.06em;
+      }
+    </style>
+    <clipPath id="sq"><rect width="512" height="512" rx="48" ry="48"/></clipPath>
+  </defs>
+  <g clip-path="url(#sq)">
+    <rect width="512" height="512" fill="#0c0c0c"/>
+    <polygon points="0,0 220.0,0 80.0,512 0,512" fill="#ffe600"/>
+    <polygon points="180.0,0 220.0,0 80.0,512 40.0,512" fill="#e6cf00"/>
+    <text class="mark" x="118" y="335" text-anchor="middle" fill="#0c0c0c"
+          transform="rotate(-6 118 280)">A</text>
+    <text class="mark" x="370" y="355" text-anchor="middle" fill="#ffe600"
+          transform="rotate(8 370 300)">P</text>
+  </g>
+</svg>

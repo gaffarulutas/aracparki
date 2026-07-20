@@ -52,6 +52,7 @@ public sealed class IndexModel(AccountService accounts) : PageModel
         VerificationEmailSent = emailSent;
         ViewData["Title"] = "E-postanı Kontrol Et | Araç Parkı";
         ViewData["Description"] = "Araç Parkı hesap doğrulama e-postasını kontrol et.";
+        ViewData["Robots"] = "noindex, nofollow";
         return Page();
     }
 
@@ -60,5 +61,6 @@ public sealed class IndexModel(AccountService accounts) : PageModel
         ViewData["PageKey"] = "auth";
         ViewData["Title"] = "Hesap Oluştur | Araç Parkı";
         ViewData["Description"] = "Araç Parkı’na üye ol — satılık ve kiralık iş makinesi ilanı ver.";
+        ViewData["Robots"] = "noindex, nofollow";
     }
 }

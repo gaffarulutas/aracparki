@@ -19,6 +19,7 @@ public sealed class IndexModel(AccountService accounts, ILogger<IndexModel> logg
         ViewData["PageKey"] = "auth";
         ViewData["Title"] = "Şifremi Unuttum | Araç Parkı";
         ViewData["Description"] = "Araç Parkı hesap şifreni sıfırla.";
+        ViewData["Robots"] = "noindex, nofollow";
         return Page();
     }
 
@@ -27,6 +28,7 @@ public sealed class IndexModel(AccountService accounts, ILogger<IndexModel> logg
     {
         ViewData["PageKey"] = "auth";
         ViewData["Title"] = "Şifremi Unuttum | Araç Parkı";
+        ViewData["Robots"] = "noindex, nofollow";
 
         if (!ModelState.IsValid)
         {

@@ -1,0 +1,83 @@
+@{
+    var path = ViewContext.HttpContext.Request.Path.Value ?? string.Empty;
+    bool On(string prefix) => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+    var isPanel = On("/panel");
+    var isIlanlarim = On("/ilanlarim");
+    var isIlanVer = On("/ilan-ver");
+    var isFavorilerim = On("/favorilerim");
+    var isKayitli = On("/kayitli-aramalar");
+    var isMesajlarim = On("/mesajlarim");
+    var isBildirimler = On("/bildirimler");
+    var isBilgilerim = On("/bilgilerim") || On("/hesabim");
+    var isAyarlar = On("/ayarlar");
+}
+<div class="aside-card">
+  <h2 class="aside-title">Özet</h2>
+  <ul class="aside-list" aria-label="Panel">
+    <li>
+      <partial name="Shared/Partials/_AccountNavItem" model='("/panel", "Panel", "layout-dashboard", isPanel)' />
+    </li>
+  </ul>
+</div>
+
+<div class="aside-card">
+  <h2 class="aside-title">İlanlar</h2>
+  <ul class="aside-list" aria-label="İlan işlemleri">
+    <li>
+      <partial name="Shared/Partials/_AccountNavItem" model='("/ilanlarim", "İlanlarım", "list", isIlanlarim)' />
+    </li>
+    <li>
+      <partial name="Shared/Partials/_AccountNavItem" model='("/ilan-ver", "İlan ver", "plus", isIlanVer)' />
+    </li>
+  </ul>
+</div>
+
+<div class="aside-card">
+  <h2 class="aside-title">Takip</h2>
+  <ul class="aside-list" aria-label="Takip işlemleri">
+    <li>
+      <partial name="Shared/Partials/_AccountNavItem" model='("/favorilerim", "Favorilerim", "heart", isFavorilerim)' />
+    </li>
+    <li>
+      <partial name="Shared/Partials/_AccountNavItem" model='("/kayitli-aramalar", "Kayıtlı aramalar", "bookmark", isKayitli)' />
+    </li>
+  </ul>
+</div>
+
+<div class="aside-card">
+  <h2 class="aside-title">İletişim</h2>
+  <ul class="aside-list" aria-label="İletişim">
+    <li>
+      <partial name="Shared/Partials/_AccountNavItem" model='("/mesajlarim", "Mesajlarım", "message-circle", isMesajlarim)' />
+    </li>
+    <li>
+      <partial name="Shared/Partials/_AccountNavItem" model='("/bildirimler", "Bildirimler", "bell", isBildirimler)' />
+    </li>
+  </ul>
+</div>
+
+<div class="aside-card">
+  <h2 class="aside-title">Hesabım</h2>
+  <ul class="aside-list" aria-label="Hesap işlemleri">
+    <li>
+      <partial name="Shared/Partials/_AccountNavItem" model='("/bilgilerim", "Bilgilerim", "circle-user", isBilgilerim)' />
+    </li>
+    <li>
+      <partial name="Shared/Partials/_AccountNavItem" model='("/ayarlar", "Ayarlar", "settings", isAyarlar)' />
+    </li>
+  </ul>
+</div>
+
+<div class="aside-card">
+  <ul class="aside-list account-aside-logout">
+    <li>
+      <form method="post" action="/cikis">
+        @Html.AntiForgeryToken()
+        <button type="submit">
+          <ap-icon name="log-out" size="18" class="ap-icon cat-ico" />
+          <span>Çıkış yap</span>
+        </button>
+      </form>
+    </li>
+  </ul>
+</div>

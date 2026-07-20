@@ -631,5 +631,6 @@ public sealed class IndexModel(
         ViewData["PageKey"] = "wizard";
         ViewData["Title"] = $"Ücretsiz İlan Ver · {StepTitle} | Araç Parkı";
         ViewData["Description"] = "Makineni Araç Parkı’nda ücretsiz yayınla — satılık veya kiralık.";
+        ViewData["Robots"] = "noindex, nofollow";
     }
 }

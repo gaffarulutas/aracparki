@@ -8,10 +8,10 @@
     var initialDistrictsJson = System.Text.Json.JsonSerializer.Serialize(
         Model.Districts.Select(d => new { id = d.Id, name = d.Name }));
     var imageUrlsJson = System.Text.Json.JsonSerializer.Serialize(
-        draft.ImageUrls.Count > 0 ? draft.ImageUrls : new List<string> { "" });
+        draft.ImageUrls.Count > 0 ? draft.ImageUrls : [""]);
 }
-<main id="main" class="wizard-page">
-  <div class="container wizard-shell @(step == 1 ? "wizard-shell--wide" : null)">
+<main id="main" class="container wizard-page">
+  <div class="wizard-shell">
     <header class="wizard-header">
       <p class="wizard-kicker">Ücretsiz ilan ver</p>
       <h1 class="wizard-title">@Model.StepTitle</h1>
@@ -217,7 +217,10 @@
           <strong>
             @(string.Join(" › ", new[] { draft.GroupName, draft.CategoryName, draft.BrandName, draft.ModelName }
               .Where(s => !string.IsNullOrWhiteSpace(s))))
-            @if (draft.ModelYear > 0) { <text> · @draft.ModelYear</text> }
+            @if (draft.ModelYear > 0)
+            {
+              <span> · @draft.ModelYear</span>
+            }
           </strong>
           — makine detaylarını tamamla.
           <a class="wizard-inline-link" href="/ilan-ver?adim=1">Kategoriyi değiştir</a>
@@ -592,7 +595,7 @@
               · Telefon: @(Model.RequirePhone ? draft.Phone : Model.AccountPhone)
               @if (draft.AttachmentIds.Count > 0)
               {
-                <text>· Ekipman: @draft.AttachmentIds.Count</text>
+                <span>· Ekipman: @draft.AttachmentIds.Count</span>
               }
             </p>
           </div>

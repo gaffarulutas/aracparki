@@ -1,0 +1,54 @@
+@page "/panel"
+@model AracParki.Web.Pages.Panel.IndexModel
+@{
+    Layout = "Shared/_AccountLayout";
+}
+<header class="page-account-head">
+  <h1>Panel</h1>
+  <p class="page-account-lead">@(Model.Greeting)</p>
+</header>
+
+<div class="account-dash">
+  <a class="account-dash-card" href="/ilanlarim">
+    <span class="account-dash-icon" aria-hidden="true"><ap-icon name="list" size="22" class="ap-icon" /></span>
+    <span class="account-dash-body">
+      <span class="account-dash-title">İlanlarım</span>
+      <span class="account-dash-meta">@(Model.ListingCount) yayınlanan ilan</span>
+    </span>
+  </a>
+  <a class="account-dash-card" href="/ilan-ver">
+    <span class="account-dash-icon" aria-hidden="true"><ap-icon name="plus" size="22" class="ap-icon" /></span>
+    <span class="account-dash-body">
+      <span class="account-dash-title">İlan ver</span>
+      <span class="account-dash-meta">Yeni iş makinesi ilanı ekle</span>
+    </span>
+  </a>
+  <a class="account-dash-card" href="/favorilerim">
+    <span class="account-dash-icon" aria-hidden="true"><ap-icon name="heart" size="22" class="ap-icon" /></span>
+    <span class="account-dash-body">
+      <span class="account-dash-title">Favorilerim</span>
+      <span class="account-dash-meta">Beğendiğin ilanlar</span>
+    </span>
+  </a>
+  <a class="account-dash-card" href="/mesajlarim">
+    <span class="account-dash-icon" aria-hidden="true"><ap-icon name="message-circle" size="22" class="ap-icon" /></span>
+    <span class="account-dash-body">
+      <span class="account-dash-title">Mesajlarım</span>
+      <span class="account-dash-meta">Yazışmaların</span>
+    </span>
+  </a>
+  <a class="account-dash-card" href="/bilgilerim">
+    <span class="account-dash-icon" aria-hidden="true"><ap-icon name="circle-user" size="22" class="ap-icon" /></span>
+    <span class="account-dash-body">
+      <span class="account-dash-title">Bilgilerim</span>
+      <span class="account-dash-meta">Ad, e-posta ve telefon</span>
+    </span>
+  </a>
+  <a class="account-dash-card" href="/ayarlar">
+    <span class="account-dash-icon" aria-hidden="true"><ap-icon name="settings" size="22" class="ap-icon" /></span>
+    <span class="account-dash-body">
+      <span class="account-dash-title">Ayarlar</span>
+      <span class="account-dash-meta">Hesap tercihleri</span>
+    </span>
+  </a>
+</div>

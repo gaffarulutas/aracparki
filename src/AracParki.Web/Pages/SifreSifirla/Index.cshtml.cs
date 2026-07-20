@@ -24,6 +24,7 @@ public sealed class IndexModel(AccountService accounts) : PageModel
     {
         ViewData["PageKey"] = "auth";
         ViewData["Title"] = "Yeni Şifre | Araç Parkı";
+        ViewData["Robots"] = "noindex, nofollow";
         if (string.IsNullOrWhiteSpace(Token))
         {
             FormError = "Geçersiz bağlantı.";
@@ -37,6 +38,7 @@ public sealed class IndexModel(AccountService accounts) : PageModel
     {
         ViewData["PageKey"] = "auth";
         ViewData["Title"] = "Yeni Şifre | Araç Parkı";
+        ViewData["Robots"] = "noindex, nofollow";
 
         if (string.IsNullOrWhiteSpace(Token))
         {

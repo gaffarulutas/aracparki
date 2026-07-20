@@ -1,0 +1,10 @@
+@page "/kayitli-aramalar"
+@model AracParki.Web.Pages.KayitliAramalar.IndexModel
+@{
+    Layout = "Shared/_AccountLayout";
+}
+<header class="page-account-head">
+  <h1>Kayıtlı aramalar</h1>
+  <p class="page-account-lead">Kaydettiğin filtreler ve arama kriterleri</p>
+</header>
+<partial name="Shared/Partials/_AccountComingSoon" model="@($"Kayıtlı aramalar yakında eklenecek. Sık kullandığın filtreleri kaydedip yeni ilanlardan haberdar olabileceksin.")" />

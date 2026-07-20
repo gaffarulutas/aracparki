@@ -1,0 +1,115 @@
+@using System.Security.Claims
+@{
+    var displayName = User.Identity?.Name;
+    if (string.IsNullOrWhiteSpace(displayName))
+    {
+        displayName = User.FindFirstValue(ClaimTypes.Email) ?? "Hesabım";
+    }
+
+    var email = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
+    var parts = displayName.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    string initials;
+    if (parts.Length >= 2)
+    {
+        initials = $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[^1][0])}";
+    }
+    else
+    {
+        var raw = parts.Length == 1 ? parts[0] : "AP";
+        initials = raw.Length >= 2
+            ? $"{char.ToUpperInvariant(raw[0])}{char.ToUpperInvariant(raw[1])}"
+            : char.ToUpperInvariant(raw[0]).ToString();
+    }
+}
+<div class="account-menu"
+     x-data="accountMenu"
+     :class="rootClass"
+     @@keydown="onKey"
+     @@click.outside="close">
+  <button
+    type="button"
+    class="account-menu-trigger"
+    x-ref="trigger"
+    @@click="toggle"
+    :id="triggerId"
+    :aria-expanded="openAria"
+    :aria-controls="menuId"
+    aria-haspopup="menu">
+    <span class="account-menu-avatar" aria-hidden="true">@initials</span>
+    <span class="account-menu-trigger-text">
+      <span class="account-menu-name">@displayName</span>
+    </span>
+    <ap-icon name="chevron-down" size="16" class="ap-icon account-menu-caret" />
+  </button>
+
+  <div
+    class="account-menu-panel"
+    role="menu"
+    :id="menuId"
+    :aria-labelledby="triggerId"
+    :style="panelStyle"
+    x-show="open"
+    x-cloak
+    x-transition:enter="account-menu-anim-in"
+    x-transition:enter-start="account-menu-anim-start"
+    x-transition:enter-end="account-menu-anim-end"
+    x-transition:leave="account-menu-anim-out"
+    x-transition:leave-start="account-menu-anim-end"
+    x-transition:leave-end="account-menu-anim-start">
+    <a class="account-menu-label" href="/panel" role="menuitem" tabindex="-1">
+      <span class="account-menu-avatar account-menu-avatar-lg" aria-hidden="true">@initials</span>
+      <span class="account-menu-label-text">
+        <span class="account-menu-label-name">@displayName</span>
+        @if (!string.IsNullOrWhiteSpace(email))
+        {
+          <span class="account-menu-label-email">@email</span>
+        }
+      </span>
+    </a>
+
+    <div class="account-menu-sep" role="separator"></div>
+
+    <ul class="account-menu-list" role="none">
+      <li role="none">
+        <a class="account-menu-item" role="menuitem" tabindex="-1" href="/ilanlarim">
+          <ap-icon name="list" size="16" />
+          <span>İlanlarım</span>
+        </a>
+      </li>
+      <li role="none">
+        <a class="account-menu-item" role="menuitem" tabindex="-1" href="/favorilerim">
+          <ap-icon name="heart" size="16" />
+          <span>Favorilerim</span>
+        </a>
+      </li>
+      <li role="none">
+        <a class="account-menu-item" role="menuitem" tabindex="-1" href="/mesajlarim">
+          <ap-icon name="message-circle" size="16" />
+          <span>Mesajlarım</span>
+        </a>
+      </li>
+      <li role="none">
+        <a class="account-menu-item" role="menuitem" tabindex="-1" href="/bilgilerim">
+          <ap-icon name="circle-user" size="16" />
+          <span>Bilgilerim</span>
+        </a>
+      </li>
+      <li role="none">
+        <a class="account-menu-item" role="menuitem" tabindex="-1" href="/ayarlar">
+          <ap-icon name="settings" size="16" />
+          <span>Ayarlar</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="account-menu-sep" role="separator"></div>
+
+    <form method="post" action="/cikis" class="account-menu-logout" role="none">
+      @Html.AntiForgeryToken()
+      <button class="account-menu-item account-menu-item-danger" type="submit" role="menuitem" tabindex="-1">
+        <ap-icon name="log-out" size="16" />
+        <span>Çıkış yap</span>
+      </button>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 56" role="img" aria-label="Araç Parkı">
+  <title>Araç Parkı</title>
+  <defs>
+    <style>
+      .word {
+        font-family: Archivo, Arial Black, Arial, sans-serif;
+        font-weight: 800;
+        font-size: 28px;
+        letter-spacing: -0.03em;
+      }
+    </style>
+    <clipPath id="logoClip">
+      <rect width="280" height="56" rx="6" ry="6"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#logoClip)">
+    <rect width="128" height="56" fill="#ffe600"/>
+    <rect x="128" width="152" height="56" fill="#0c0c0c"/>
+    <text class="word" x="64" y="37" text-anchor="middle" fill="#0c0c0c">Araç</text>
+    <text class="word" x="204" y="37" text-anchor="middle" fill="#ffe600">Parkı</text>
+  </g>
+</svg>

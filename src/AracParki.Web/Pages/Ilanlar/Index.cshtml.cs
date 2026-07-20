@@ -70,9 +70,11 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
 
         ViewData["PageKey"] = "list";
         ViewData["Title"] = $"{categoryName ?? "İş Makinesi"} İlanları | Araç Parkı";
-        ViewData["Description"] = "İş makinesi ilanları — satılık ve kiralık. Araç Parkı.";
+        ViewData["Description"] =
+            $"{heading} — satılık ve kiralık iş makinelerini Araç Parkı’nda karşılaştır.";
         ViewData["SearchQuery"] = Filter.Query;
         ViewData["ListHeading"] = heading;
+        ViewData["CanonicalIncludeQuery"] = true;
     }
 
     public string SpecValue(string key)

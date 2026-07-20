@@ -1,20 +1,16 @@
 /* —— Ücretsiz İlan Ver wizard —— */
+/* Genişlik: hesap sayfalarındaki içerik sütunu (~1240 - 248 sidebar) */
 .wizard-page {
-  padding: var(--space-4) 0 calc(var(--space-6) + 72px);
-  background:
-    radial-gradient(900px 420px at 8% -10%, rgba(255, 230, 0, 0.14), transparent 55%),
-    linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
-  min-height: 70vh;
+  padding-block: var(--space-3) calc(var(--space-5) + 72px);
+  min-width: 0;
 }
 
 .wizard-shell {
-  width: min(100%, 720px);
+  width: auto;
+  max-width: 100%;
   display: grid;
   gap: var(--space-3);
-}
-
-.wizard-shell--wide {
-  width: min(100%, 1100px);
+  min-width: 0;
 }
 
 .wizard-inline-link {
@@ -543,7 +539,7 @@
   }
 
   .wizard-page {
-    padding-bottom: var(--space-6);
+    padding-bottom: var(--space-5);
   }
 }
 
