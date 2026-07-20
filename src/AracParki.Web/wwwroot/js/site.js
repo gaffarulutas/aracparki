@@ -1093,7 +1093,16 @@
     // CSP-friendly shell for /ilanlar mobile filter drawer (no inline object/ternary expressions).
     Alpine.data("listShell", () => ({
       filtersOpen: false,
+      viewType: "list",
       init() {
+        try {
+          const stored = localStorage.getItem("ap-list-view");
+          if (stored === "grid" || stored === "list") {
+            this.viewType = stored;
+          }
+        } catch {
+          /* ignore */
+        }
         this.$watch("filtersOpen", (open) => {
           document.body.classList.toggle("no-scroll", !!open);
         });
@@ -1106,6 +1115,37 @@
       },
       get filtersExpandedAria() {
         return this.filtersOpen ? "true" : "false";
+      },
+      get resultsViewClass() {
+        return this.viewType === "grid" ? "is-view-grid" : "is-view-list";
+      },
+      get listViewBtnClass() {
+        return this.viewType === "list" ? "is-active" : "";
+      },
+      get gridViewBtnClass() {
+        return this.viewType === "grid" ? "is-active" : "";
+      },
+      get listViewPressed() {
+        return this.viewType === "list" ? "true" : "false";
+      },
+      get gridViewPressed() {
+        return this.viewType === "grid" ? "true" : "false";
+      },
+      setListView() {
+        this.viewType = "list";
+        try {
+          localStorage.setItem("ap-list-view", "list");
+        } catch {
+          /* ignore */
+        }
+      },
+      setGridView() {
+        this.viewType = "grid";
+        try {
+          localStorage.setItem("ap-list-view", "grid");
+        } catch {
+          /* ignore */
+        }
       },
       openFilters() {
         this.filtersOpen = true;

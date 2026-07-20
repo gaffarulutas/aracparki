@@ -193,12 +193,14 @@
 @media (min-width: 980px) {
   .home {
     grid-template-columns: 248px 1fr;
+    align-items: start;
     gap: var(--space-2);
     padding-block: var(--space-3) var(--space-6);
   }
 
   .home-main {
     order: 0;
+    align-content: start;
   }
 
   .listing-grid {
@@ -236,6 +238,10 @@
 @media (min-width: 1100px) {
   .listing-grid {
     grid-template-columns: repeat(4, 1fr);
+  }
+
+  .home .listing-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
 

@@ -134,6 +134,7 @@
         @if (!isAuth)
         {
             <partial name="Shared/_Header" model="pageKey" />
+            @await RenderSectionAsync("CrumbBar", required: false)
         }
 
         <partial name="Shared/_EmailVerifyBanner" />

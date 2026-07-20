@@ -20,7 +20,7 @@
     var crumbCaret = $"<span class=\"bc-caret\" aria-hidden=\"true\">{Lucide.Svg("chevron-right", "ap-icon bc-caret-right", 12)}{Lucide.Svg("chevron-down", "ap-icon bc-caret-down", 12)}</span>";
     var crumbSep = $"<span class=\"bc-sep\" aria-hidden=\"true\">{Lucide.Svg("chevron-right", "ap-icon bc-sep-icon", 12)}</span>";
 }
-<div class="list-crumb-bar">
+<div id="site-crumb-bar" class="list-crumb-bar" hx-swap-oob="true">
   <div class="list-crumb-inner">
     <nav class="list-crumb" aria-label="Sayfa yolu">
       <ol class="breadcrumb">

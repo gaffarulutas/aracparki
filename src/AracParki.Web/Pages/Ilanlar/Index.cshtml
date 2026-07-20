@@ -6,8 +6,6 @@
 <main class="page-list" id="main">
   <div id="list-live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
   <div id="list-shell">
-    <partial name="Shared/Partials/_ListBreadcrumb" model="Model" />
-
     <div class="container list-body">
     <div class="list-layout"
          x-data="listShell"
@@ -471,31 +469,53 @@
                hx-swap="outerHTML"
                hx-push-url="true">Bayiden</a>
           </nav>
-          <label class="list-sort">
-            <span class="sr-only">Sırala</span>
-            <select id="sort-select"
-                    name="sort"
-                    form="list-filter-form"
-                    class="list-sort-select"
-                    aria-label="Sıralama"
-                    hx-get="/ilanlar"
-                    hx-select="#list-shell"
-                    hx-target="#list-shell"
-                    hx-swap="outerHTML"
-                    hx-push-url="true"
-                    hx-include="#list-filter-form">
-              <option value="@ListingSort.Newest" selected="@(Model.Filter.Sort == ListingSort.Newest)">En yeni</option>
-              <option value="@ListingSort.PriceAsc" selected="@(Model.Filter.Sort == ListingSort.PriceAsc)">Fiyat artan</option>
-              <option value="@ListingSort.PriceDesc" selected="@(Model.Filter.Sort == ListingSort.PriceDesc)">Fiyat azalan</option>
-              <option value="@ListingSort.HoursAsc" selected="@(Model.Filter.Sort == ListingSort.HoursAsc)">Saat artan</option>
-            </select>
-            <span class="list-sort-chevron" aria-hidden="true">
-              <ap-icon name="chevron-down" size="14" class="ap-icon" />
-            </span>
-          </label>
+          <div class="list-toolbar-end">
+            <div class="list-view-toggle" role="group" aria-label="Görünüm">
+              <button type="button"
+                      class="list-view-btn"
+                      :class="listViewBtnClass"
+                      :aria-pressed="listViewPressed"
+                      @@click="setListView"
+                      title="Liste"
+                      aria-label="Liste görünümü">
+                <ap-icon name="list" size="16" class="ap-icon" aria-hidden="true" />
+              </button>
+              <button type="button"
+                      class="list-view-btn"
+                      :class="gridViewBtnClass"
+                      :aria-pressed="gridViewPressed"
+                      @@click="setGridView"
+                      title="Izgara"
+                      aria-label="Izgara görünümü">
+                <ap-icon name="layout-grid" size="16" class="ap-icon" aria-hidden="true" />
+              </button>
+            </div>
+            <label class="list-sort">
+              <span class="sr-only">Sırala</span>
+              <select id="sort-select"
+                      name="sort"
+                      form="list-filter-form"
+                      class="list-sort-select"
+                      aria-label="Sıralama"
+                      hx-get="/ilanlar"
+                      hx-select="#list-shell"
+                      hx-target="#list-shell"
+                      hx-swap="outerHTML"
+                      hx-push-url="true"
+                      hx-include="#list-filter-form">
+                <option value="@ListingSort.Newest" selected="@(Model.Filter.Sort == ListingSort.Newest)">En yeni</option>
+                <option value="@ListingSort.PriceAsc" selected="@(Model.Filter.Sort == ListingSort.PriceAsc)">Fiyat artan</option>
+                <option value="@ListingSort.PriceDesc" selected="@(Model.Filter.Sort == ListingSort.PriceDesc)">Fiyat azalan</option>
+                <option value="@ListingSort.HoursAsc" selected="@(Model.Filter.Sort == ListingSort.HoursAsc)">Saat artan</option>
+              </select>
+              <span class="list-sort-chevron" aria-hidden="true">
+                <ap-icon name="chevron-down" size="14" class="ap-icon" />
+              </span>
+            </label>
+          </div>
         </div>
 
-        <div id="list-results" class="classified-list">
+        <div id="list-results" class="classified-list" :class="resultsViewClass">
           <partial name="Shared/Partials/_ListingResults" model="Model" />
         </div>
 
@@ -566,3 +586,7 @@
     </div>
   </div>
 </main>
+
+@section CrumbBar {
+  <partial name="Shared/Partials/_ListBreadcrumb" model="Model" />
+}

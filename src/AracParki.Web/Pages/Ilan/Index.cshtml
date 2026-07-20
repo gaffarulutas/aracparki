@@ -4,19 +4,10 @@
     var listing = Model.Listing!;
     var badgeClass = ListingIntent.BadgeClass(listing.PrimaryIntent);
     var badgeText = ListingIntent.Label(listing.PrimaryIntent);
-    var back = Model.BackToListUrl();
     var sellerLabel = SellerType.Label(listing.SellerType);
 }
 
 <main class="container page-detail" id="main" data-recent-id="@listing.Id">
-  <nav class="breadcrumb" aria-label="Sayfa yolu">
-    <a href="/">Anasayfa</a>
-    <span class="bc-sep">/</span>
-    <a href="@back">@listing.Category</a>
-    <span class="bc-sep">/</span>
-    <span>@listing.Title</span>
-  </nav>
-
   <div class="detail-layout">
     <div class="detail-left">
       <h1 class="detail-title">@listing.Title</h1>
@@ -111,7 +102,7 @@
           <span>@sellerLabel@(listing.IsVerified ? " · Doğrulanmış" : "")</span>
         </div>
 
-        <a class="detail-back" href="@back">← Benzer ilanlara dön</a>
+        <a class="detail-back" href="@Model.BackToListUrl()">← Benzer ilanlara dön</a>
       </div>
     </aside>
   </div>
@@ -128,3 +119,7 @@
     </button>
   </div>
 </main>
+
+@section CrumbBar {
+  <partial name="Shared/Partials/_DetailBreadcrumb" model="Model" />
+}

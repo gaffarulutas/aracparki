@@ -29,7 +29,7 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
         PopularCities = await catalogService.GetPopularCitiesAsync(cancellationToken);
         CategoryOptions = await catalogService.GetAllCategoriesAsync(cancellationToken);
         CityOptions = await catalogService.GetAllCitiesAsync(cancellationToken);
-        Featured = await listingService.GetFeaturedAsync(Filter, 12, cancellationToken);
+        Featured = await listingService.GetFeaturedAsync(Filter, 15, cancellationToken);
 
         ViewData["PageKey"] = "home";
         ViewData["Title"] = "Araç Parkı | Türkiye İş Makinesi Satılık · Kiralık · İkinci El";

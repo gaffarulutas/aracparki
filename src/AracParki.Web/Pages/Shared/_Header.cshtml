@@ -1,7 +1,7 @@
 @model string
 @{
     var page = Model ?? "home";
-    var showCat = page is not ("detail" or "auth" or "wizard" or "account");
+    var showCat = page is not ("list" or "detail" or "auth" or "wizard" or "account");
     var isAuth = User.Identity?.IsAuthenticated == true;
 }
 <header class="site-header" id="top">
