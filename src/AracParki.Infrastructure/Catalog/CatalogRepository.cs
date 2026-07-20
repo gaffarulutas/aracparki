@@ -89,6 +89,16 @@ public sealed class CatalogRepository(IDbConnectionFactory connectionFactory, IS
         return rows.AsList();
     }
 
+    public async Task<EquipmentModelOptionDto?> GetModelByIdAsync(int modelId, CancellationToken cancellationToken)
+    {
+        await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        return await connection.QuerySingleOrDefaultAsync<EquipmentModelOptionDto>(
+            new CommandDefinition(
+                sql.Get("Catalog/GetModelById.sql"),
+                new { Id = modelId },
+                cancellationToken: cancellationToken));
+    }
+
     public async Task<IReadOnlyList<CategoryAttributeDto>> GetCategoryAttributesAsync(int categoryId, CancellationToken cancellationToken)
     {
         await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
@@ -106,6 +116,26 @@ public sealed class CatalogRepository(IDbConnectionFactory connectionFactory, IS
         var rows = await connection.QueryAsync<AttachmentOptionDto>(
             new CommandDefinition(sql.Get("Catalog/GetAttachments.sql"), cancellationToken: cancellationToken));
         return rows.AsList();
+    }
+
+    public async Task<IReadOnlyList<AttachmentOptionDto>> GetAttachmentsByCategoryAsync(
+        int categoryId,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        var rows = await connection.QueryAsync<AttachmentOptionDto>(
+            new CommandDefinition(
+                sql.Get("Catalog/GetAttachmentsByCategory.sql"),
+                new { CategoryId = categoryId },
+                cancellationToken: cancellationToken)).ConfigureAwait(false);
+        var list = rows.AsList();
+        if (list.Count > 0)
+        {
+            return list;
+        }
+
+        // Kategori eşlemesi yoksa boş dön — global liste gürültü yaratmasın.
+        return [];
     }
 
     public async Task<IReadOnlyList<FacetCountDto>> GetBrandFacetsAsync(int? categoryId, CancellationToken cancellationToken)

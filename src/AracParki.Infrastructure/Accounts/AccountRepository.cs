@@ -14,6 +14,7 @@ public sealed class AccountRepository(IDbConnectionFactory connectionFactory) : 
                first_name AS FirstName,
                last_name AS LastName,
                phone,
+               phone_confirmed_at AS PhoneConfirmedAt,
                email_confirmed_at AS EmailConfirmedAt,
                security_stamp AS SecurityStamp
         FROM accounts
@@ -93,10 +94,29 @@ public sealed class AccountRepository(IDbConnectionFactory connectionFactory) : 
             new CommandDefinition(
                 """
                 UPDATE accounts
-                SET phone = @Phone
+                SET phone = @Phone,
+                    phone_confirmed_at = CASE
+                        WHEN phone IS NOT DISTINCT FROM @Phone THEN phone_confirmed_at
+                        ELSE NULL
+                    END
                 WHERE id = @Id
                 """,
                 new { Id = accountId, Phone = phone },
+                cancellationToken: cancellationToken));
+    }
+
+    public async Task ConfirmPhoneAsync(long accountId, CancellationToken cancellationToken)
+    {
+        await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                """
+                UPDATE accounts
+                SET phone_confirmed_at = NOW()
+                WHERE id = @Id
+                  AND phone IS NOT NULL
+                """,
+                new { Id = accountId },
                 cancellationToken: cancellationToken));
     }
 
@@ -324,7 +344,7 @@ public sealed class AccountRepository(IDbConnectionFactory connectionFactory) : 
         }
     }
 
-    public async Task<(long AccountId, bool EmailConfirmed)?> FindAccountByVerificationTokenHashAsync(
+    public async Task<(long AccountId, bool EmailConfirmed, bool TokenUsable)?> FindAccountByVerificationTokenHashAsync(
         string tokenHash,
         CancellationToken cancellationToken)
     {
@@ -333,7 +353,8 @@ public sealed class AccountRepository(IDbConnectionFactory connectionFactory) : 
             new CommandDefinition(
                 """
                 SELECT a.id AS AccountId,
-                       (a.email_confirmed_at IS NOT NULL) AS EmailConfirmed
+                       (a.email_confirmed_at IS NOT NULL) AS EmailConfirmed,
+                       (t.used_at IS NULL AND t.expires_at > NOW()) AS TokenUsable
                 FROM email_verification_tokens t
                 JOIN accounts a ON a.id = t.account_id
                 WHERE t.token_hash = @TokenHash
@@ -342,12 +363,13 @@ public sealed class AccountRepository(IDbConnectionFactory connectionFactory) : 
                 new { TokenHash = tokenHash },
                 cancellationToken: cancellationToken));
 
-        return row is null ? null : (row.AccountId, row.EmailConfirmed);
+        return row is null ? null : (row.AccountId, row.EmailConfirmed, row.TokenUsable);
     }
 
     private sealed class TokenAccountRow
     {
         public long AccountId { get; init; }
         public bool EmailConfirmed { get; init; }
+        public bool TokenUsable { get; init; }
     }
 }

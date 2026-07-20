@@ -10,132 +10,94 @@
       <p class="auth-kicker">Sat · kirala · bul</p>
     </header>
 
-    @if (Model.Submitted)
-    {
-      <section class="auth-card auth-card--status" aria-labelledby="auth-title">
-        <h1 class="auth-title" id="auth-title">E-postanı kontrol et</h1>
+    <section class="auth-card" aria-labelledby="auth-title" x-data="authForm">
+      <h1 class="auth-title" id="auth-title">Hesap oluştur</h1>
+      <p class="auth-lead">Adın, soyadın, e-postan ve şifren yeterli. Telefonu ilk ilanda doğrularsın.</p>
 
-        @if (!Model.VerificationEmailSent)
-        {
-          <div class="auth-alert" role="alert">
-            Hesabın oluştu; doğrulama maili şu an gönderilemedi.
-          </div>
-          <p class="auth-email-chip">@Model.Input.Email</p>
-          <a class="btn btn-machine btn-block auth-submit"
-             href="/eposta-dogrula?email=@Uri.EscapeDataString(Model.Input.Email)">
-            Tekrar gönder
-          </a>
-        }
-        else
-        {
-          <p class="auth-lead auth-lead--center">
-            <strong>@Model.Input.Email</strong> adresine onay bağlantısı gönderdik.
-          </p>
-          <p class="auth-hint auth-hint--center">
-            Spam klasörünü de kontrol et. Bağlantı 48 saat geçerli.
-          </p>
-          <p class="auth-switch">
-            Mail gelmedi mi?
-            <a href="/eposta-dogrula?email=@Uri.EscapeDataString(Model.Input.Email)">Tekrar gönder</a>
-          </p>
-        }
+      @if (!string.IsNullOrEmpty(Model.FormError))
+      {
+        <div class="auth-alert" role="alert">@Model.FormError</div>
+      }
 
-        <p class="auth-switch">
-          <a href="/giris">Girişe dön</a>
-        </p>
-      </section>
-    }
-    else
-    {
-      <section class="auth-card" aria-labelledby="auth-title" x-data="authForm">
-        <h1 class="auth-title" id="auth-title">Hesap oluştur</h1>
-        <p class="auth-lead">Adın, soyadın, e-postan ve şifren yeterli. Telefonu ilk ilanda doğrularsın.</p>
-
-        @if (!string.IsNullOrEmpty(Model.FormError))
-        {
-          <div class="auth-alert" role="alert">@Model.FormError</div>
-        }
-
-        <form method="post" class="auth-form" novalidate>
-          <div class="auth-name-row">
-            <div class="auth-field">
-              <label asp-for="Input.FirstName"></label>
-              <input asp-for="Input.FirstName" autocomplete="given-name" autofocus />
-              <span asp-validation-for="Input.FirstName" class="auth-error"></span>
-            </div>
-            <div class="auth-field">
-              <label asp-for="Input.LastName"></label>
-              <input asp-for="Input.LastName" autocomplete="family-name" />
-              <span asp-validation-for="Input.LastName" class="auth-error"></span>
-            </div>
-          </div>
-
+      <form method="post" class="auth-form" novalidate>
+        <div class="auth-name-row">
           <div class="auth-field">
-            <label asp-for="Input.Email"></label>
-            <input asp-for="Input.Email" type="email" autocomplete="email" inputmode="email" />
-            <span asp-validation-for="Input.Email" class="auth-error"></span>
+            <label asp-for="Input.FirstName"></label>
+            <input asp-for="Input.FirstName" autocomplete="given-name" autofocus />
+            <span asp-validation-for="Input.FirstName" class="auth-error"></span>
           </div>
-
           <div class="auth-field">
-            <label asp-for="Input.Password"></label>
-            <div class="auth-password">
-              <input asp-for="Input.Password" id="Input_Password" autocomplete="new-password"
-                     data-password-rules="#password-rules"
-                     aria-describedby="password-hint password-rules"
-                     :type="passwordType" />
-              <button class="auth-password-toggle" type="button"
-                      @@click="togglePassword"
-                      :aria-label="passwordToggleLabel">
-                <span x-show="showEye"><ap-icon name="eye" size="18" /></span>
-                <span x-show="showEyeOff" x-cloak><ap-icon name="eye-off" size="18" /></span>
-              </button>
-            </div>
-            <p class="auth-hint" id="password-hint">En az 8 karakter · 1 harf · 1 rakam</p>
-            <ul class="auth-rules" id="password-rules" hidden aria-live="polite" aria-label="Şifre kuralları">
-              <li data-rule="len">En az 8 karakter</li>
-              <li data-rule="letter">En az bir harf</li>
-              <li data-rule="digit">En az bir rakam</li>
-              <li data-rule="noTriple">Üç aynı karakter yan yana yok</li>
-            </ul>
-            <span asp-validation-for="Input.Password" class="auth-error"></span>
+            <label asp-for="Input.LastName"></label>
+            <input asp-for="Input.LastName" autocomplete="family-name" />
+            <span asp-validation-for="Input.LastName" class="auth-error"></span>
           </div>
+        </div>
 
-          <div class="auth-field">
-            <label asp-for="Input.ConfirmPassword"></label>
-            <div class="auth-password">
-              <input asp-for="Input.ConfirmPassword" id="Input_ConfirmPassword" autocomplete="new-password"
-                     data-password-match="#password-match"
-                     aria-describedby="password-match"
-                     :type="passwordType" />
-            </div>
-            <ul class="auth-rules" id="password-match" hidden aria-live="polite" aria-label="Şifre eşleşmesi">
-              <li data-rule="match"
-                  data-ok-text="Şifreler eşleşiyor"
-                  data-fail-text="Şifreler eşleşmiyor">Şifreler eşleşiyor</li>
-            </ul>
-            <span asp-validation-for="Input.ConfirmPassword" class="auth-error"></span>
+        <div class="auth-field">
+          <label asp-for="Input.Email"></label>
+          <input asp-for="Input.Email" type="email" autocomplete="email" inputmode="email" />
+          <span asp-validation-for="Input.Email" class="auth-error"></span>
+        </div>
+
+        <div class="auth-field">
+          <label asp-for="Input.Password"></label>
+          <div class="auth-password">
+            <input asp-for="Input.Password" id="Input_Password" autocomplete="new-password"
+                   data-password-rules="#password-rules"
+                   aria-describedby="password-hint password-rules"
+                   :type="passwordType" />
+            <button class="auth-password-toggle" type="button"
+                    @@click="togglePassword"
+                    :aria-label="passwordToggleLabel">
+              <span x-show="showEye"><ap-icon name="eye" size="18" /></span>
+              <span x-show="showEyeOff" x-cloak><ap-icon name="eye-off" size="18" /></span>
+            </button>
           </div>
+          <p class="auth-hint" id="password-hint">En az 8 karakter · 1 harf · 1 rakam</p>
+          <ul class="auth-rules" id="password-rules" hidden aria-live="polite" aria-label="Şifre kuralları">
+            <li data-rule="len">En az 8 karakter</li>
+            <li data-rule="letter">En az bir harf</li>
+            <li data-rule="digit">En az bir rakam</li>
+            <li data-rule="noTriple">Üç aynı karakter yan yana yok</li>
+          </ul>
+          <span asp-validation-for="Input.Password" class="auth-error"></span>
+        </div>
 
-          <label class="auth-check">
-            <input asp-for="Input.AcceptTerms" />
-            <span>
-              <a href="/kullanim-kosullari" target="_blank" rel="noopener">Kullanım koşulları</a> ve
-              <a href="/gizlilik" target="_blank" rel="noopener">gizlilik bildirimi</a>ni kabul ediyorum.
-            </span>
-          </label>
-          <span asp-validation-for="Input.AcceptTerms" class="auth-error"></span>
+        <div class="auth-field">
+          <label asp-for="Input.ConfirmPassword"></label>
+          <div class="auth-password">
+            <input asp-for="Input.ConfirmPassword" id="Input_ConfirmPassword" autocomplete="new-password"
+                   data-password-match="#password-match"
+                   aria-describedby="password-match"
+                   :type="passwordType" />
+          </div>
+          <ul class="auth-rules" id="password-match" hidden aria-live="polite" aria-label="Şifre eşleşmesi">
+            <li data-rule="match"
+                data-ok-text="Şifreler eşleşiyor"
+                data-fail-text="Şifreler eşleşmiyor">Şifreler eşleşiyor</li>
+          </ul>
+          <span asp-validation-for="Input.ConfirmPassword" class="auth-error"></span>
+        </div>
 
-          <button class="btn btn-machine btn-block auth-submit" type="submit">Hesabı oluştur</button>
-        </form>
+        <label class="auth-check">
+          <input asp-for="Input.AcceptTerms" />
+          <span>
+            <a href="/kullanim-kosullari" target="_blank" rel="noopener">Kullanım koşulları</a> ve
+            <a href="/gizlilik" target="_blank" rel="noopener">gizlilik bildirimi</a>ni kabul ediyorum.
+          </span>
+        </label>
+        <span asp-validation-for="Input.AcceptTerms" class="auth-error"></span>
 
-        <p class="auth-trust">Ücretsiz üyelik · Telefon ilk ilanda</p>
+        <button class="btn btn-machine btn-block auth-submit" type="submit">Hesabı oluştur</button>
+      </form>
 
-        <p class="auth-switch">
-          Zaten üye misin?
-          <a href="/giris">Giriş yap</a>
-        </p>
-      </section>
-    }
+      <p class="auth-trust">Ücretsiz üyelik · Telefon ilk ilanda</p>
+
+      <p class="auth-switch">
+        Zaten üye misin?
+        <a href="/giris">Giriş yap</a>
+      </p>
+    </section>
 
     <p class="auth-footnote">
       <a href="/">← Anasayfa</a>

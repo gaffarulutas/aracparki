@@ -29,19 +29,19 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
                     INSERT INTO listings (
                         ad_no, title, description,
                         category_id, brand_id, model_id, model_name, serial_no,
-                        city_id, district_id, seller_id,
+                        city_id, district_id, neighborhood_id, seller_id,
                         primary_intent, intents, condition,
                         model_year, hours, tons, capacity_kg, horsepower,
-                        price, price_unit, includes_operator, specs,
+                        price, rent_price, price_unit, includes_operator, specs,
                         cover_image_url, status, listed_at
                     )
                     VALUES (
                         @AdNo, @Title, @Description,
                         @CategoryId, @BrandId, @ModelId, @ModelName, @SerialNo,
-                        @CityId, @DistrictId, @SellerId,
+                        @CityId, @DistrictId, @NeighborhoodId, @SellerId,
                         @PrimaryIntent, @Intents, @Condition,
                         @ModelYear, @Hours, @Tons, @CapacityKg, @Horsepower,
-                        @Price, @PriceUnit, @IncludesOperator, CAST(@SpecsJson AS jsonb),
+                        @Price, @RentPrice, @PriceUnit, @IncludesOperator, CAST(@SpecsJson AS jsonb),
                         @CoverImageUrl, @Status, NOW()
                     )
                     RETURNING id
@@ -58,6 +58,7 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
                         command.SerialNo,
                         command.CityId,
                         command.DistrictId,
+                        command.NeighborhoodId,
                         SellerId = sellerId,
                         command.PrimaryIntent,
                         Intents = command.Intents,
@@ -68,6 +69,7 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
                         command.CapacityKg,
                         command.Horsepower,
                         command.Price,
+                        command.RentPrice,
                         command.PriceUnit,
                         command.IncludesOperator,
                         command.SpecsJson,
@@ -132,6 +134,10 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
         CreatePublishedListingCommand command,
         CancellationToken cancellationToken)
     {
+        var sellerType = SellerType.Known.Contains(command.SellerType)
+            ? command.SellerType
+            : SellerType.Owner;
+
         return await connection.ExecuteScalarAsync<long>(
             new CommandDefinition(
                 """
@@ -139,6 +145,7 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
                 VALUES (@DisplayName, @SellerType, @Phone, @AccountId)
                 ON CONFLICT (account_id) DO UPDATE
                 SET phone = EXCLUDED.phone,
+                    seller_type = EXCLUDED.seller_type,
                     display_name = CASE
                         WHEN NULLIF(BTRIM(sellers.display_name), '') IS NULL THEN EXCLUDED.display_name
                         ELSE sellers.display_name
@@ -148,7 +155,7 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
                 new
                 {
                     DisplayName = command.SellerDisplayName,
-                    SellerType = SellerType.Owner,
+                    SellerType = sellerType,
                     command.Phone,
                     command.AccountId
                 },

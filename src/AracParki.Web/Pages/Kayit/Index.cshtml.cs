@@ -1,4 +1,7 @@
 using AracParki.Application.Accounts.Services;
+using AracParki.Web.Infrastructure;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.RateLimiting;
@@ -11,8 +14,6 @@ public sealed class IndexModel(AccountService accounts) : PageModel
     public RegisterInput Input { get; set; } = new();
 
     public string? FormError { get; private set; }
-    public bool Submitted { get; private set; }
-    public bool VerificationEmailSent { get; private set; } = true;
 
     public IActionResult OnGet()
     {
@@ -48,12 +49,25 @@ public sealed class IndexModel(AccountService accounts) : PageModel
             return Page();
         }
 
-        Submitted = true;
-        VerificationEmailSent = emailSent;
-        ViewData["Title"] = "E-postanı Kontrol Et | Araç Parkı";
-        ViewData["Description"] = "Araç Parkı hesap doğrulama e-postasını kontrol et.";
-        ViewData["Robots"] = "noindex, nofollow";
-        return Page();
+        // Soft gate: sign in immediately; sticky banner nudges email verification.
+        var (loginOk, _, account) = await accounts.LoginAsync(Input.Email, Input.Password, cancellationToken);
+        if (loginOk && account is not null)
+        {
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                AuthCookie.CreatePrincipal(account),
+                new AuthenticationProperties
+                {
+                    IsPersistent = true,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
+                });
+        }
+
+        TempData["AuthNotice"] = emailSent
+            ? "Hesabın hazır. Onay mailini gönderdik — üstteki bardan tekrar gönderebilirsin."
+            : "Hesabın hazır. Onay maili şu an gönderilemedi; üstteki bardan tekrar dene.";
+
+        return Redirect("/");
     }
 
     private void SetMeta()

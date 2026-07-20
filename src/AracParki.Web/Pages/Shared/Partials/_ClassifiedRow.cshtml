@@ -17,7 +17,10 @@
         <span class="@badgeClass">@badgeText</span>
         <span>@Model.Brand @Model.ModelName</span>
         <span>@Model.ModelYear</span>
-        <span>@Formatters.Hours(Model.Hours)</span>
+        @if (Model.Hours is not null)
+        {
+          <span>@Formatters.Hours(Model.Hours.Value)</span>
+        }
         @if (Model.CapacityKg is > 0)
         {
           <span>@Model.CapacityKg.Value.ToString("N0") kg</span>

@@ -1,4 +1,7 @@
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace AracParki.Web.Infrastructure;
 
@@ -8,6 +11,11 @@ public static class SecurityHeadersExtensions
 
     public static IApplicationBuilder UseSecurityHeaders(this IApplicationBuilder app)
     {
+        var env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
+        var connectSrc = env.IsDevelopment()
+            ? "connect-src 'self' ws://localhost:* ws://127.0.0.1:* wss://localhost:* wss://127.0.0.1:*; "
+            : "connect-src 'self'; ";
+
         return app.Use(async (context, next) =>
         {
             var nonceBytes = RandomNumberGenerator.GetBytes(16);
@@ -25,7 +33,7 @@ public static class SecurityHeadersExtensions
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
                 "font-src 'self' https://fonts.gstatic.com data:; " +
                 "img-src 'self' data: https:; " +
-                "connect-src 'self'; " +
+                connectSrc +
                 "frame-ancestors 'none'; " +
                 "base-uri 'self'; " +
                 "form-action 'self'";

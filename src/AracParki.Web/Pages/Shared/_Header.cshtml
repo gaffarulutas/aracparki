@@ -66,33 +66,15 @@
   @if (showCat)
   {
     <nav class="cat-bar" aria-label="Hızlı kategoriler">
-      <div class="container cat-bar-row">
-        <a class="logo cat-bar-brand" href="/" aria-label="Araç Parkı ana sayfa">
-          <span class="logo-arac">Araç</span><span class="logo-parki">Parkı</span>
-        </a>
-        <div class="cat-bar-clip">
-          <div class="cat-bar-inner">
-            <a href="/ilanlar?kategori=Paletli%20Ekskavat%C3%B6r">Ekskavatör</a>
-            <a href="/ilanlar?kategori=Beko%20Loder">Beko Loder</a>
-            <a href="/ilanlar?kategori=Lastikli%20Y%C3%BCkleyici">Loader</a>
-            <a href="/ilanlar?kategori=Forklift">Forklift</a>
-            <a href="/ilanlar?kategori=Vin%C3%A7">Vinç</a>
-            <a href="/ilanlar?tip=kiralik">Kiralık</a>
-            <a href="/ilanlar?tip=satilik">Satılık</a>
-            <a href="/ilanlar">Tüm İlanlar</a>
-          </div>
-        </div>
-        <div class="cat-bar-actions">
-          @if (isAuth)
-          {
-            <partial name="Shared/Partials/_AccountMenu" />
-          }
-          else
-          {
-            <a class="link-quiet" href="/giris">Giriş Yap</a>
-          }
-          <a class="btn btn-machine header-cta" href="/ilan-ver">Ücretsiz İlan Ver</a>
-        </div>
+      <div class="container cat-bar-inner">
+        <a href="/ilanlar?kategori=Paletli%20Ekskavat%C3%B6r">Ekskavatör</a>
+        <a href="/ilanlar?kategori=Beko%20Loder">Beko Loder</a>
+        <a href="/ilanlar?kategori=Lastikli%20Y%C3%BCkleyici">Loader</a>
+        <a href="/ilanlar?kategori=Forklift">Forklift</a>
+        <a href="/ilanlar?kategori=Vin%C3%A7">Vinç</a>
+        <a href="/ilanlar?tip=kiralik">Kiralık</a>
+        <a href="/ilanlar?tip=satilik">Satılık</a>
+        <a href="/ilanlar">Tüm İlanlar</a>
       </div>
     </nav>
   }

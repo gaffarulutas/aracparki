@@ -2,6 +2,10 @@
 .DS_Store
 Thumbs.db
 
+# Uploaded listing images (keep folder)
+src/AracParki.Web/wwwroot/uploads/listings/**
+!src/AracParki.Web/wwwroot/uploads/listings/.gitkeep
+
 # Editors / IDEs
 .vs/
 .idea/

@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using AracParki.Application.Accounts.Services;
 using AracParki.Web.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
@@ -9,14 +8,13 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace AracParki.Web.Pages.Giris;
 
-public sealed class IndexModel(AccountService accounts, ILogger<IndexModel> logger) : PageModel
+public sealed class IndexModel(AccountService accounts) : PageModel
 {
     [BindProperty]
     public LoginInput Input { get; set; } = new();
 
     public string? ReturnUrl { get; private set; }
     public string? FormError { get; private set; }
-    public bool NeedsEmailConfirm { get; private set; }
 
     public IActionResult OnGet(string? returnUrl = null)
     {
@@ -42,22 +40,6 @@ public sealed class IndexModel(AccountService accounts, ILogger<IndexModel> logg
         }
 
         var (ok, error, account) = await accounts.LoginAsync(Input.Email, Input.Password, cancellationToken);
-        if (error == "email_unconfirmed" && account is not null)
-        {
-            NeedsEmailConfirm = true;
-            FormError = "E-posta adresini henüz onaylamadın. Gelen kutundaki bağlantıyı kullan veya yeniden gönder.";
-            try
-            {
-                await accounts.ResendEmailVerificationAsync(account.Email, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Resend verification failed");
-            }
-
-            return Page();
-        }
-
         if (!ok || account is null)
         {
             FormError = error ?? "Giriş başarısız.";

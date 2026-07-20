@@ -3,7 +3,7 @@
 
   const STORAGE_RECENT = "ap:recent";
 
-  const toast = (message) => {
+  const toast = (message, durationMs = 2800) => {
     const el = document.getElementById("toast");
     if (!el || !message) return;
     el.hidden = false;
@@ -12,7 +12,57 @@
     toast._t = setTimeout(() => {
       el.hidden = true;
       el.textContent = "";
-    }, 2800);
+    }, durationMs);
+  };
+
+  const VERIFY_COOLDOWN_SEC = 60;
+
+  const setVerifyBtnState = (btn, { busy = false, disabled = false, label } = {}) => {
+    if (!(btn instanceof HTMLButtonElement)) return;
+    btn.disabled = disabled || busy;
+    btn.setAttribute("aria-busy", busy ? "true" : "false");
+    btn.classList.toggle("is-loading", busy);
+    btn.classList.toggle("is-cooldown", disabled && !busy);
+    if (typeof label === "string") btn.textContent = label;
+  };
+
+  const startVerifyCooldown = (btn, seconds = VERIFY_COOLDOWN_SEC) => {
+    if (!(btn instanceof HTMLButtonElement)) return;
+    const idle = btn.getAttribute("data-label-idle") || "Doğrulama e-postası gönder";
+    const template = btn.getAttribute("data-label-cooldown") || "Tekrar gönder ({s}s)";
+    let left = Math.max(0, Math.floor(seconds));
+    clearInterval(btn._cooldownTimer);
+    const tick = () => {
+      if (left <= 0) {
+        clearInterval(btn._cooldownTimer);
+        setVerifyBtnState(btn, { busy: false, disabled: false, label: idle });
+        return;
+      }
+      setVerifyBtnState(btn, {
+        busy: false,
+        disabled: true,
+        label: template.replace("{s}", String(left)),
+      });
+      left -= 1;
+    };
+    tick();
+    btn._cooldownTimer = setInterval(tick, 1000);
+  };
+
+  const initVerifyBanner = () => {
+    const form = document.querySelector("[data-verify-resend-form]");
+    const btn = document.querySelector("[data-verify-resend-btn]");
+    if (!(form instanceof HTMLFormElement) || !(btn instanceof HTMLButtonElement)) return;
+
+    form.addEventListener("submit", () => {
+      if (btn.disabled && btn.getAttribute("aria-busy") !== "true") return;
+      const loading = btn.getAttribute("data-label-loading") || "Gönderiliyor…";
+      setVerifyBtnState(btn, { busy: true, disabled: true, label: loading });
+    });
+
+    if (document.querySelector("[data-verify-banner][data-verify-sent]")) {
+      startVerifyCooldown(btn, VERIFY_COOLDOWN_SEC);
+    }
   };
 
   const trackRecent = () => {
@@ -374,6 +424,272 @@
       },
     }));
 
+    function maskTrPhone(raw) {
+      let digits = String(raw || "").replace(/\D/g, "");
+      if (digits.length >= 12 && digits.startsWith("90")) digits = digits.slice(2);
+      if (digits.length > 10) digits = digits.slice(-10);
+      if (digits.length < 4) return "••••";
+      if (digits.length === 10) {
+        return digits[0] + "•• ••• •• " + digits.slice(8);
+      }
+      return "••••" + digits.slice(-4);
+    }
+
+    /** Format TR mobile as "532 123 45 67" while typing (CSP-safe input mask). */
+    function formatTrPhoneInput(raw) {
+      let digits = String(raw || "").replace(/\D/g, "");
+      if (digits.startsWith("90") && digits.length > 10) digits = digits.slice(2);
+      if (digits.startsWith("0")) digits = digits.slice(1);
+      digits = digits.slice(0, 10);
+      const parts = [];
+      if (digits.length > 0) parts.push(digits.slice(0, 3));
+      if (digits.length > 3) parts.push(digits.slice(3, 6));
+      if (digits.length > 6) parts.push(digits.slice(6, 8));
+      if (digits.length > 8) parts.push(digits.slice(8, 10));
+      return parts.join(" ");
+    }
+
+    Alpine.data("phoneVerifyModal", () => ({
+      step: "phone",
+      phone: "",
+      serverPhone: "",
+      _maskedFromServer: "",
+      otp: "",
+      error: "",
+      info: "",
+      devCode: "",
+      busy: false,
+      cooldown: 0,
+      sendUrl: "",
+      verifyUrl: "",
+      trapOpen: true,
+      _timer: null,
+
+      get canSubmit() {
+        if (this.step === "phone") {
+          return String(this.phone || "").replace(/\D/g, "").length >= 10;
+        }
+        return /^\d{6}$/.test(String(this.otp || "").trim());
+      },
+
+      get submitDisabled() {
+        return this.busy || !this.canSubmit;
+      },
+
+      get resendDisabled() {
+        return this.busy || this.cooldown > 0;
+      },
+
+      get showInfo() {
+        return !!(this.info && !this.error);
+      },
+
+      get busyAria() {
+        return this.busy ? "true" : "false";
+      },
+
+      get submitLabel() {
+        return this.step === "phone" ? "WhatsApp’a kod gönder" : "Doğrula";
+      },
+
+      get ctaLabel() {
+        if (this.busy) {
+          return this.step === "phone" ? "Gönderiliyor…" : "Doğrulanıyor…";
+        }
+        return this.submitLabel;
+      },
+
+      get headerDesc() {
+        if (this.step === "otp") {
+          return (
+            "WhatsApp’tan gelen 6 haneli kodu " +
+            this.maskedPhone +
+            " numarasına gönderildi."
+          );
+        }
+        return "İlan yayımlamak için cep numaranı WhatsApp ile doğrula.";
+      },
+
+      get resendLabel() {
+        return this.cooldown > 0
+          ? "Tekrar gönder (" + this.cooldown + "s)"
+          : "Tekrar gönder";
+      },
+
+      get maskedPhone() {
+        if (this._maskedFromServer) return this._maskedFromServer;
+        return maskTrPhone(this.serverPhone || this.phone);
+      },
+
+      init() {
+        this.phone = formatTrPhoneInput(this.$el.dataset.phone || "");
+        this.sendUrl = this.$el.dataset.sendUrl || "";
+        this.verifyUrl = this.$el.dataset.verifyUrl || "";
+        this.$nextTick(() => {
+          document.getElementById("phone-verify-input")?.focus();
+        });
+      },
+
+      onPhoneInput(event) {
+        const el = event && event.target;
+        if (!el) return;
+        const formatted = formatTrPhoneInput(el.value);
+        this.phone = formatted;
+        if (el.value !== formatted) {
+          el.value = formatted;
+        }
+      },
+
+      onOtpInput(event) {
+        const el = event && event.target;
+        if (!el) return;
+        const digits = String(el.value || "")
+          .replace(/\D/g, "")
+          .slice(0, 6);
+        this.otp = digits;
+        if (el.value !== digits) {
+          el.value = digits;
+        }
+      },
+
+      editPhone() {
+        this.step = "phone";
+        this.otp = "";
+        this.error = "";
+        this.info = "";
+        this.devCode = "";
+        this.serverPhone = "";
+        this._maskedFromServer = "";
+        this.$nextTick(() => {
+          document.getElementById("phone-verify-input")?.focus();
+        });
+      },
+
+      startCooldown(seconds) {
+        this.cooldown = seconds;
+        if (this._timer) clearInterval(this._timer);
+        this._timer = setInterval(() => {
+          if (this.cooldown <= 1) {
+            this.cooldown = 0;
+            clearInterval(this._timer);
+            this._timer = null;
+            return;
+          }
+          this.cooldown -= 1;
+        }, 1000);
+      },
+
+      antiforgeryToken() {
+        return (
+          this.$el.querySelector('input[name="__RequestVerificationToken"]')?.value || ""
+        );
+      },
+
+      async post(url, fields) {
+        const token = this.antiforgeryToken();
+        const fd = new FormData();
+        fd.append("__RequestVerificationToken", token);
+        Object.keys(fields).forEach((key) => {
+          if (fields[key] != null) fd.append(key, fields[key]);
+        });
+        const res = await fetch(url, {
+          method: "POST",
+          body: fd,
+          headers: {
+            RequestVerificationToken: token,
+            Accept: "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          credentials: "same-origin",
+        });
+        let data = null;
+        try {
+          data = await res.json();
+        } catch {
+          data = null;
+        }
+        return { res, data };
+      },
+
+      async onSubmit() {
+        if (this.busy || !this.canSubmit) return;
+        if (this.step === "phone") {
+          await this.sendCode();
+          return;
+        }
+        await this.verifyCode();
+      },
+
+      async resend() {
+        if (this.busy || this.cooldown > 0) return;
+        await this.sendCode();
+      },
+
+      async sendCode() {
+        this.busy = true;
+        this.error = "";
+        this.info = "";
+        this.devCode = "";
+        try {
+          const { res, data } = await this.post(this.sendUrl, { phone: this.phone });
+          if (res.status === 429 || res.status === 503) {
+            this.error = "Çok fazla deneme. Biraz sonra tekrar dene.";
+            return;
+          }
+          if (data?.alreadyVerified) {
+            window.location.reload();
+            return;
+          }
+          if (!res.ok || !data?.ok) {
+            this.error = data?.error || "Kod gönderilemedi.";
+            return;
+          }
+          this.serverPhone = this.phone;
+          this._maskedFromServer = data.maskedPhone || maskTrPhone(this.phone);
+          this.step = "otp";
+          this.info = data.message || "Kod WhatsApp’a gönderildi.";
+          this.devCode = data.devCode || "";
+          this.startCooldown(60);
+          this.$nextTick(() => {
+            document.getElementById("phone-otp-input")?.focus();
+          });
+        } catch {
+          this.error = "Bağlantı hatası. Tekrar dene.";
+        } finally {
+          this.busy = false;
+        }
+      },
+
+      async verifyCode() {
+        this.busy = true;
+        this.error = "";
+        this.info = "";
+        try {
+          const { res, data } = await this.post(this.verifyUrl, {
+            phone: this.serverPhone || this.phone,
+            otpCode: this.otp,
+          });
+          if (res.status === 429 || res.status === 503) {
+            this.error = "Çok fazla deneme. Biraz sonra tekrar dene.";
+            return;
+          }
+          if (data?.alreadyVerified || (data?.ok && data?.reload)) {
+            window.location.reload();
+            return;
+          }
+          if (!res.ok || !data?.ok) {
+            this.error = data?.error || "Doğrulama başarısız.";
+            return;
+          }
+          window.location.reload();
+        } catch {
+          this.error = "Bağlantı hatası. Tekrar dene.";
+        } finally {
+          this.busy = false;
+        }
+      },
+    }));
+
     const parseJsonAttr = (el, name, fallback) => {
       try {
         const raw = el.getAttribute(name);
@@ -705,59 +1021,44 @@
       },
     }));
 
-    Alpine.data("ilanVerMachine", () => ({
-      categoryId: 0,
-      brandId: 0,
-      modelId: 0,
-      modelName: "",
-      models: [],
-      init() {
-        this.categoryId = Number(this.$el.dataset.categoryId || 0);
-        this.brandId = Number(this.$el.dataset.brandId || 0);
-        this.modelId = Number(this.$el.dataset.modelId || 0);
-        this.modelName = this.$el.dataset.modelName || "";
-        this.models = parseJsonAttr(this.$el, "data-models", []);
-      },
-      async onBrandChange() {
-        this.modelId = 0;
-        this.models = [];
-        if (!this.categoryId || !this.brandId) return;
-        try {
-          const res = await fetch(
-            `/api/catalog/categories/${this.categoryId}/brands/${this.brandId}/models`
-          );
-          if (!res.ok) return;
-          const data = await res.json();
-          this.models = (data || []).map((m) => ({
-            id: m.id ?? m.Id,
-            name: m.name ?? m.Name,
-          }));
-        } catch {
-          this.models = [];
-        }
-      },
-      onModelChange() {
-        const found = this.models.find((m) => Number(m.id) === Number(this.modelId));
-        if (found) this.modelName = found.name;
-      },
-    }));
-
     Alpine.data("ilanVerSale", () => ({
       cityId: 0,
       districtId: 0,
+      neighborhoodId: 0,
       primaryIntent: "satilik",
       rent: false,
+      bothSaleRent: false,
+      sellerType: "",
       districts: [],
+      neighborhoods: [],
       init() {
         this.cityId = Number(this.$el.dataset.cityId || 0);
         this.districtId = Number(this.$el.dataset.districtId || 0);
+        this.neighborhoodId = Number(this.$el.dataset.neighborhoodId || 0);
         this.primaryIntent = this.$el.dataset.primaryIntent || "satilik";
         this.rent = this.$el.dataset.rent === "1";
+        this.bothSaleRent = this.$el.dataset.bothSaleRent === "1";
+        this.sellerType = this.$el.dataset.sellerType || "";
         this.districts = parseJsonAttr(this.$el, "data-districts", []);
+        this.neighborhoods = parseJsonAttr(this.$el, "data-neighborhoods", []);
+      },
+      onIntentsChange() {
+        const form = this.$el;
+        const boxes = form.querySelectorAll('input[name="intents"]');
+        let hasSale = false;
+        let hasRent = false;
+        boxes.forEach((cb) => {
+          if (cb.value === "satilik" && cb.checked) hasSale = true;
+          if (cb.value === "kiralik" && cb.checked) hasRent = true;
+        });
+        this.rent = hasRent;
+        this.bothSaleRent = hasSale && hasRent;
       },
       async onCityChange() {
         this.districtId = 0;
+        this.neighborhoodId = 0;
         this.districts = [];
+        this.neighborhoods = [];
         if (!this.cityId) return;
         try {
           const res = await fetch(`/api/locations/cities/${this.cityId}/districts`);
@@ -771,6 +1072,22 @@
           this.districts = [];
         }
       },
+      async onDistrictChange() {
+        this.neighborhoodId = 0;
+        this.neighborhoods = [];
+        if (!this.districtId) return;
+        try {
+          const res = await fetch(`/api/locations/districts/${this.districtId}/neighborhoods`);
+          if (!res.ok) return;
+          const data = await res.json();
+          this.neighborhoods = (data || []).map((n) => ({
+            id: n.id ?? n.Id,
+            name: n.displayName ?? n.DisplayName ?? n.name ?? n.Name,
+          }));
+        } catch {
+          this.neighborhoods = [];
+        }
+      },
     }));
 
     Alpine.data("ilanVerImages", () => ({
@@ -780,6 +1097,9 @@
       },
       get canAdd() {
         return this.urls.length < 8;
+      },
+      get hasAnyUrl() {
+        return this.urls.some((u) => !!String(u || "").trim());
       },
       init() {
         const parsed = parseJsonAttr(this.$el, "data-urls", [""]);
@@ -806,8 +1126,13 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     trackRecent();
+    initVerifyBanner();
     const boot = document.getElementById("toast")?.getAttribute("data-boot-toast");
-    if (boot) toast(boot);
+    if (boot) {
+      // Auth / e-posta bildirimleri daha uzun kalsın — kullanıcı okusun.
+      const longer = /mail|e-posta|doğrulama|onay/i.test(boot);
+      toast(boot, longer ? 6000 : 2800);
+    }
     document.querySelectorAll("input[data-password-rules]").forEach((input) => {
       if (input instanceof HTMLInputElement) {
         syncPasswordRules(input, { showFail: input.dataset.touched === "1" });

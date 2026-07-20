@@ -83,6 +83,11 @@ INSERT INTO cities (id, name, plate_code, is_popular, sort_order) VALUES
 (78, 'Karabük', 78, false, 178),
 (79, 'Kilis', 79, false, 179),
 (80, 'Osmaniye', 80, false, 180),
-(81, 'Düzce', 81, false, 181);
+(81, 'Düzce', 81, false, 181)
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  plate_code = EXCLUDED.plate_code,
+  is_popular = EXCLUDED.is_popular,
+  sort_order = EXCLUDED.sort_order;
 
 COMMIT;

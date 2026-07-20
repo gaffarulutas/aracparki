@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
+using AracParki.Application.Accounts;
 using AracParki.Application.Accounts.Services;
 using AracParki.Application.Catalog.Dtos;
 using AracParki.Application.Catalog.Services;
@@ -15,6 +16,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace AracParki.Web.Pages.IlanVer;
 
@@ -23,6 +25,9 @@ public sealed class IndexModel(
     CatalogService catalog,
     AccountService accounts,
     ListingCommandService listingCommands,
+    IListingImageStorage imageStorage,
+    IWizardDraftStore wizardDrafts,
+    IPhoneOtpService phoneOtp,
     ILogger<IndexModel> logger) : PageModel
 {
     private static readonly string[] StepTitles =
@@ -34,12 +39,21 @@ public sealed class IndexModel(
         "Önizleme"
     ];
 
+    private static readonly JsonSerializerOptions AttrJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     public WizardDraft Draft { get; private set; } = new();
     public int Step { get; private set; } = 1;
     public string StepTitle => StepTitles[Math.Clamp(Step, 1, 5) - 1];
     public string? FormError { get; private set; }
-    public bool RequirePhone { get; private set; }
+    public IReadOnlyList<string> FormErrors { get; private set; } = [];
+    public bool RequirePhoneVerification { get; private set; }
+    public bool ShowPhoneGate => RequirePhoneVerification;
     public string? AccountPhone { get; private set; }
+    public bool AccountPhoneConfirmed { get; private set; }
+    public string? PublishToken { get; private set; }
 
     public IReadOnlyList<CategoryGroupDto> CategoryGroups { get; private set; } = [];
     public IReadOnlyList<BrandOptionDto> Brands { get; private set; } = [];
@@ -48,15 +62,138 @@ public sealed class IndexModel(
     public IReadOnlyList<AttachmentOptionDto> Attachments { get; private set; } = [];
     public IReadOnlyList<CityOptionDto> Cities { get; private set; } = [];
     public IReadOnlyList<DistrictOptionDto> Districts { get; private set; } = [];
+    public IReadOnlyList<NeighborhoodOptionDto> Neighborhoods { get; private set; } = [];
+
+    public string AttrJson(object value) =>
+        JsonSerializer.Serialize(value, AttrJsonOptions);
+
+    private async Task<WizardDraft> LoadDraftAsync(CancellationToken cancellationToken)
+    {
+        var draft = await WizardDraftStore.LoadAsync(
+            HttpContext.Session, wizardDrafts, GetAccountId(), cancellationToken);
+        Draft = draft;
+        SyncPhoneFromAccount();
+        return draft;
+    }
 
     public async Task<IActionResult> OnGetAsync(int? adim, CancellationToken cancellationToken)
     {
         await LoadAccountPhoneAsync(cancellationToken);
-        Draft = WizardDraftStore.Get(HttpContext.Session);
-        Step = ResolveStep(adim, Draft);
+        await LoadDraftAsync(cancellationToken);
+        Step = ResolveStep(adim, Draft, RequirePhoneVerification);
         await LoadLookupsAsync(cancellationToken);
+        PublishToken = EnsurePublishToken();
         SetMeta();
         return Page();
+    }
+
+    [EnableRateLimiting("phone-otp")]
+    public async Task<IActionResult> OnPostSendPhoneOtpAsync(
+        string? phone,
+        CancellationToken cancellationToken)
+    {
+        var accountId = GetAccountId();
+        if (accountId is null)
+        {
+            return Challenge();
+        }
+
+        await LoadAccountPhoneAsync(cancellationToken);
+        if (!RequirePhoneVerification)
+        {
+            return new JsonResult(new { ok = true, alreadyVerified = true });
+        }
+
+        var normalized = AccountService.NormalizePhone(phone)
+                         ?? AccountService.NormalizePhone(AccountPhone);
+        if (normalized is null)
+        {
+            return new JsonResult(new { ok = false, error = "Geçerli bir telefon numarası gir (10–15 rakam)." })
+            {
+                StatusCode = StatusCodes.Status400BadRequest
+            };
+        }
+
+        var (ok, error, devCode) = await phoneOtp.SendAsync(accountId.Value, normalized, cancellationToken);
+        if (!ok)
+        {
+            return new JsonResult(new { ok = false, error = error ?? "Doğrulama kodu gönderilemedi." })
+            {
+                StatusCode = StatusCodes.Status400BadRequest
+            };
+        }
+
+        await LoadDraftAsync(cancellationToken);
+        Draft.Phone = normalized;
+        await PersistDraftAsync(cancellationToken);
+
+        return new JsonResult(new
+        {
+            ok = true,
+            message = "Kod WhatsApp’a gönderildi.",
+            maskedPhone = AccountService.MaskPhone(normalized),
+            devCode
+        });
+    }
+
+    [EnableRateLimiting("phone-otp")]
+    public async Task<IActionResult> OnPostVerifyPhoneOtpAsync(
+        string? phone,
+        string? otpCode,
+        CancellationToken cancellationToken)
+    {
+        var accountId = GetAccountId();
+        if (accountId is null)
+        {
+            return Challenge();
+        }
+
+        await LoadAccountPhoneAsync(cancellationToken);
+        if (!RequirePhoneVerification)
+        {
+            return new JsonResult(new { ok = true, alreadyVerified = true, reload = true });
+        }
+
+        var normalized = AccountService.NormalizePhone(phone)
+                         ?? AccountService.NormalizePhone(AccountPhone);
+        if (normalized is null)
+        {
+            await LoadDraftAsync(cancellationToken);
+            normalized = AccountService.NormalizePhone(Draft.Phone);
+        }
+
+        if (normalized is null)
+        {
+            return new JsonResult(new { ok = false, error = "Geçerli bir telefon numarası gir." })
+            {
+                StatusCode = StatusCodes.Status400BadRequest
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(otpCode))
+        {
+            return new JsonResult(new { ok = false, error = "Doğrulama kodunu gir." })
+            {
+                StatusCode = StatusCodes.Status400BadRequest
+            };
+        }
+
+        var (ok, error) = await phoneOtp.VerifyAsync(accountId.Value, normalized, otpCode, cancellationToken);
+        if (!ok)
+        {
+            return new JsonResult(new { ok = false, error = error ?? "Doğrulama başarısız." })
+            {
+                StatusCode = StatusCodes.Status400BadRequest
+            };
+        }
+
+        await LoadDraftAsync(cancellationToken);
+        Draft.Phone = normalized;
+        Draft.PhoneVerified = true;
+        await PersistDraftAsync(cancellationToken);
+        await RefreshAuthCookieAsync(accountId.Value, cancellationToken);
+
+        return new JsonResult(new { ok = true, reload = true });
     }
 
     public async Task<IActionResult> OnPostCascadeAsync(
@@ -69,65 +206,50 @@ public sealed class IndexModel(
         string? groupName,
         CancellationToken cancellationToken)
     {
-        await LoadAccountPhoneAsync(cancellationToken);
-        Draft = WizardDraftStore.Get(HttpContext.Session);
+        if (await RejectIfPhoneGateAsync(cancellationToken) is { } gated)
+        {
+            return gated;
+        }
+
+        await LoadDraftAsync(cancellationToken);
 
         var categories = await catalog.GetAllCategoriesAsync(cancellationToken);
         var category = categories.FirstOrDefault(c => c.Id == categoryId);
         if (category is null)
         {
-            FormError = "Kategori seçimi geçersiz.";
-            Step = 1;
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
+            return await FailAsync(1, "Kategori seçimi geçersiz.", cancellationToken);
         }
 
         var brands = await catalog.GetBrandsByCategoryAsync(categoryId, cancellationToken);
         var brand = brands.FirstOrDefault(b => b.Id == brandId);
         if (brand is null)
         {
-            FormError = "Marka seçimi geçersiz — cascader’da markayı seç.";
-            Step = 1;
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
+            return await FailAsync(1, "Marka seçimi geçersiz — cascader’da markayı seç.", cancellationToken);
         }
 
         string resolvedModelName = modelName?.Trim() ?? "";
         int? resolvedModelId = modelId is > 0 ? modelId : null;
+        EquipmentModelOptionDto? catalogModel = null;
         if (resolvedModelId is not null)
         {
             var models = await catalog.GetModelsByBrandCategoryAsync(brandId, categoryId, cancellationToken);
-            var model = models.FirstOrDefault(m => m.Id == resolvedModelId);
-            if (model is null)
+            catalogModel = models.FirstOrDefault(m => m.Id == resolvedModelId);
+            if (catalogModel is null)
             {
-                FormError = "Model seçimi geçersiz.";
-                Step = 1;
-                await LoadLookupsAsync(cancellationToken);
-                SetMeta();
-                return Page();
+                return await FailAsync(1, "Model seçimi geçersiz.", cancellationToken);
             }
 
-            resolvedModelName = model.Name;
+            resolvedModelName = catalogModel.Name;
         }
 
         if (string.IsNullOrWhiteSpace(resolvedModelName))
         {
-            FormError = "Model seçimi zorunlu.";
-            Step = 1;
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
+            return await FailAsync(1, "Model seçimi zorunlu.", cancellationToken);
         }
 
         if (modelYear is < 1950 or > 2100)
         {
-            FormError = "Model yılı geçersiz.";
-            Step = 1;
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
+            return await FailAsync(1, "Model yılı geçersiz.", cancellationToken);
         }
 
         var categoryChanged = Draft.CategoryId != categoryId;
@@ -151,95 +273,120 @@ public sealed class IndexModel(
         Draft.ModelId = resolvedModelId;
         Draft.ModelName = resolvedModelName;
         Draft.ModelYear = modelYear;
+
+        if (catalogModel is not null)
+        {
+            var attrs = await catalog.GetCategoryAttributesAsync(category.Id, cancellationToken);
+            CatalogModelDefaults.Apply(Draft, catalogModel, category.CapacityMetric, attrs);
+        }
+        else
+        {
+            CatalogModelDefaults.ClearCatalogLocks(Draft);
+        }
+
         Draft.Step = 2;
-        WizardDraftStore.Save(HttpContext.Session, Draft);
+        await PersistDraftAsync(cancellationToken);
         return RedirectToPage(new { adim = 2 });
     }
 
     public async Task<IActionResult> OnPostMachineAsync(
-        int brandId,
-        int? modelId,
-        string? modelName,
         string? condition,
-        int modelYear,
-        int hours,
+        int? hours,
+        bool hoursUnknown,
         decimal tons,
         int? capacityKg,
-        int horsepower,
+        int? horsepower,
+        bool horsepowerUnknown,
+        string? serialNo,
         string? title,
         string? description,
         [FromForm] Dictionary<string, string>? specs,
         int[]? attachmentIds,
         CancellationToken cancellationToken)
     {
-        await LoadAccountPhoneAsync(cancellationToken);
-        Draft = WizardDraftStore.Get(HttpContext.Session);
+        if (await RejectIfPhoneGateAsync(cancellationToken) is { } gated)
+        {
+            return gated;
+        }
+
+        await LoadDraftAsync(cancellationToken);
         if (!Draft.HasCategory)
         {
             return RedirectToPage(new { adim = 1 });
         }
 
-        var brands = await catalog.GetBrandsByCategoryAsync(Draft.CategoryId, cancellationToken);
-        var brand = brands.FirstOrDefault(b => b.Id == brandId);
-        if (brand is null)
+        if (string.IsNullOrWhiteSpace(condition) || !EquipmentCondition.Known.Contains(condition))
         {
-            FormError = "Marka seçimi geçersiz.";
-            Step = 2;
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
-        }
-
-        string resolvedModelName = modelName?.Trim() ?? "";
-        int? resolvedModelId = modelId is > 0 ? modelId : null;
-        if (resolvedModelId is not null)
-        {
-            var models = await catalog.GetModelsByBrandCategoryAsync(
-                brandId, Draft.CategoryId, cancellationToken);
-            var model = models.FirstOrDefault(m => m.Id == resolvedModelId);
-            if (model is null)
-            {
-                FormError = "Model seçimi geçersiz.";
-                Step = 2;
-                await LoadLookupsAsync(cancellationToken);
-                SetMeta();
-                return Page();
-            }
-
-            resolvedModelName = model.Name;
+            return await FailAsync(2, "Durum seçimi geçersiz.", cancellationToken);
         }
 
         var categoryAttrs = await catalog.GetCategoryAttributesAsync(Draft.CategoryId, cancellationToken);
-        var (specsOk, specsError, specsJson, storedRaw) = SpecsJsonBuilder.TryBuild(specs, categoryAttrs);
-        if (!specsOk)
+        // Catalog-sourced keys stay authoritative; form may only fill gaps / non-catalog attrs.
+        var catalogLockedKeys = CatalogModelDefaults.LockedSpecKeys(Draft);
+        var formSpecs = specs is null
+            ? null
+            : specs
+                .Where(kv => !catalogLockedKeys.Contains(kv.Key))
+                .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
+
+        var mergedForBuild = new Dictionary<string, string>(Draft.Specs, StringComparer.Ordinal);
+        if (formSpecs is not null)
         {
-            FormError = specsError ?? "Özellikler geçersiz.";
-            Step = 2;
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
+            foreach (var (k, v) in formSpecs)
+            {
+                if (!string.IsNullOrWhiteSpace(v))
+                {
+                    mergedForBuild[k] = v;
+                }
+            }
         }
 
-        var allAttachments = await catalog.GetAttachmentsAsync(cancellationToken);
-        var allowedAttachmentIds = allAttachments.Select(a => a.Id).ToHashSet();
+        var (specsOk, specsError, specsJson, storedRaw) = SpecsJsonBuilder.TryBuild(mergedForBuild, categoryAttrs);
+        if (!specsOk)
+        {
+            return await FailAsync(2, specsError ?? "Özellikler geçersiz.", cancellationToken);
+        }
+
+        var allowedAttachments = await catalog.GetAttachmentsByCategoryAsync(Draft.CategoryId, cancellationToken);
+        var allowedIds = allowedAttachments.Select(a => a.Id).ToHashSet();
         var selectedAttachments = (attachmentIds ?? [])
-            .Where(id => allowedAttachmentIds.Contains(id))
+            .Where(id => allowedIds.Contains(id))
             .Distinct()
             .Take(20)
             .ToList();
 
-        Draft.BrandId = brand.Id;
-        Draft.BrandName = brand.Name;
-        Draft.ModelId = resolvedModelId;
-        Draft.ModelName = resolvedModelName;
-        Draft.Condition = EquipmentCondition.Known.Contains(condition ?? "")
-            ? condition!
-            : EquipmentCondition.Used;
-        Draft.ModelYear = modelYear;
-        Draft.Hours = hours;
-        Draft.Tons = tons;
-        Draft.CapacityKg = Draft.CapacityMetric == "capacity_kg" ? capacityKg : null;
-        Draft.Horsepower = horsepower;
+        Draft.Condition = condition;
+        Draft.HoursUnknown = hoursUnknown;
+        Draft.Hours = hoursUnknown ? null : hours;
+
+        if (!Draft.TonsFromCatalog)
+        {
+            Draft.Tons = tons;
+        }
+
+        if (Draft.CapacityMetric == "capacity_kg")
+        {
+            if (!Draft.CapacityKgFromCatalog)
+            {
+                Draft.CapacityKg = capacityKg;
+            }
+        }
+        else
+        {
+            Draft.CapacityKg = Draft.CapacityKgFromCatalog ? Draft.CapacityKg : null;
+        }
+
+        if (!Draft.HorsepowerFromCatalog)
+        {
+            Draft.HorsepowerUnknown = horsepowerUnknown;
+            Draft.Horsepower = horsepowerUnknown ? null : horsepower;
+        }
+        else
+        {
+            Draft.HorsepowerUnknown = false;
+        }
+
+        Draft.SerialNo = string.IsNullOrWhiteSpace(serialNo) ? null : serialNo.Trim();
         Draft.Title = string.IsNullOrWhiteSpace(title) ? Draft.SuggestedTitle() : title.Trim();
         Draft.Description = description?.Trim() ?? "";
         Draft.Specs = storedRaw;
@@ -248,24 +395,16 @@ public sealed class IndexModel(
 
         if (!Draft.HasMachine)
         {
-            FormError = "Makine bilgilerini kontrol et — zorunlu alanlar eksik.";
-            Step = 2;
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
+            return await FailAsync(2, "Makine bilgilerini kontrol et — zorunlu alanlar eksik.", cancellationToken);
         }
 
         if (Draft.CapacityMetric == "capacity_kg" && Draft.CapacityKg is not > 0)
         {
-            FormError = "Kapasite (kg) zorunlu.";
-            Step = 2;
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
+            return await FailAsync(2, "Kapasite (kg) zorunlu.", cancellationToken);
         }
 
         Draft.Step = 3;
-        WizardDraftStore.Save(HttpContext.Session, Draft);
+        await PersistDraftAsync(cancellationToken);
         return RedirectToPage(new { adim = 3 });
     }
 
@@ -273,15 +412,21 @@ public sealed class IndexModel(
         string? primaryIntent,
         string[]? intents,
         decimal price,
+        decimal? rentPrice,
         string? priceUnit,
         bool includesOperator,
+        string? sellerType,
         int cityId,
         int districtId,
-        string? phone,
+        int? neighborhoodId,
         CancellationToken cancellationToken)
     {
-        await LoadAccountPhoneAsync(cancellationToken);
-        Draft = WizardDraftStore.Get(HttpContext.Session);
+        if (await RejectIfPhoneGateAsync(cancellationToken) is { } gated)
+        {
+            return gated;
+        }
+
+        await LoadDraftAsync(cancellationToken);
         if (!Draft.HasMachine)
         {
             return RedirectToPage(new { adim = Draft.HasCategory ? 2 : 1 });
@@ -294,90 +439,78 @@ public sealed class IndexModel(
 
         if (selectedIntents.Count == 0)
         {
-            FormError = "En az bir ilan tipi seç (Satılık ve/veya Kiralık).";
-            Step = 3;
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
+            return await FailAsync(3, "En az bir ilan tipi seç (Satılık ve/veya Kiralık).", cancellationToken);
         }
 
         if (primaryIntent is not (ListingIntent.Satilik or ListingIntent.Kiralik)
             || !selectedIntents.Contains(primaryIntent))
         {
-            FormError = "Birincil tip, işaretlediğin tiplerden biri olmalı.";
-            Step = 3;
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
+            return await FailAsync(3, "Birincil tip, işaretlediğin tiplerden biri olmalı.", cancellationToken);
+        }
+
+        if (string.IsNullOrWhiteSpace(sellerType) || !SellerType.Known.Contains(sellerType))
+        {
+            return await FailAsync(3, "Satıcı tipi seç (Sahibi / Bayi).", cancellationToken);
         }
 
         var cities = await catalog.GetAllCitiesAsync(cancellationToken);
         var city = cities.FirstOrDefault(c => c.Id == cityId);
         DistrictOptionDto? district = null;
+        NeighborhoodOptionDto? neighborhood = null;
         if (city is not null)
         {
             var districts = await catalog.GetDistrictsByCityAsync(cityId, cancellationToken);
             district = districts.FirstOrDefault(d => d.Id == districtId);
+            if (district is not null && neighborhoodId is > 0)
+            {
+                var neighborhoods = await catalog.GetNeighborhoodsByDistrictAsync(districtId, cancellationToken);
+                neighborhood = neighborhoods.FirstOrDefault(n => n.Id == neighborhoodId);
+            }
         }
 
         Draft.PrimaryIntent = primaryIntent;
         Draft.Intents = selectedIntents;
         Draft.Price = price;
+        Draft.RentPrice = selectedIntents.Contains(ListingIntent.Satilik)
+                          && selectedIntents.Contains(ListingIntent.Kiralik)
+            ? rentPrice
+            : null;
         Draft.PriceUnit = string.IsNullOrWhiteSpace(priceUnit) ? null : priceUnit.Trim();
         Draft.IncludesOperator = includesOperator && selectedIntents.Contains(ListingIntent.Kiralik);
+        Draft.SellerType = sellerType;
         Draft.CityId = city?.Id ?? 0;
         Draft.CityName = city?.Name;
         Draft.DistrictId = district?.Id ?? 0;
         Draft.DistrictName = district?.Name;
-
-        if (RequirePhone)
-        {
-            var normalized = AccountService.NormalizePhone(phone);
-            if (normalized is null)
-            {
-                FormError = "Geçerli bir telefon numarası gir (10–15 rakam).";
-                Draft.Phone = phone?.Trim() ?? "";
-                Step = 3;
-                await LoadLookupsAsync(cancellationToken);
-                SetMeta();
-                return Page();
-            }
-
-            Draft.Phone = normalized;
-        }
-        else
-        {
-            Draft.Phone = AccountService.NormalizePhone(AccountPhone) ?? Draft.Phone;
-        }
+        Draft.NeighborhoodId = neighborhood?.Id;
+        Draft.NeighborhoodName = neighborhood?.Name;
+        Draft.Phone = AccountService.NormalizePhone(AccountPhone) ?? Draft.Phone;
+        Draft.PhoneVerified = true;
 
         if (city is null || district is null)
         {
-            FormError = "İl ve ilçe seçimi zorunlu.";
-            Step = 3;
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
+            return await FailAsync(3, "İl ve ilçe seçimi zorunlu.", cancellationToken);
         }
 
-        if (!Draft.HasSaleInfo(RequirePhone))
+        if (!Draft.HasSaleInfo(RequirePhoneVerification))
         {
-            FormError = "Satış bilgilerini kontrol et.";
-            Step = 3;
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
+            return await FailAsync(3, "Satış bilgilerini kontrol et.", cancellationToken);
         }
 
         Draft.Step = 4;
-        WizardDraftStore.Save(HttpContext.Session, Draft);
+        await PersistDraftAsync(cancellationToken);
         return RedirectToPage(new { adim = 4 });
     }
 
     public async Task<IActionResult> OnPostImagesAsync(string[]? imageUrls, CancellationToken cancellationToken)
     {
-        await LoadAccountPhoneAsync(cancellationToken);
-        Draft = WizardDraftStore.Get(HttpContext.Session);
-        if (!Draft.HasSaleInfo(RequirePhone))
+        if (await RejectIfPhoneGateAsync(cancellationToken) is { } gated)
+        {
+            return gated;
+        }
+
+        await LoadDraftAsync(cancellationToken);
+        if (!Draft.HasSaleInfo(RequirePhoneVerification))
         {
             return RedirectToPage(new { adim = 3 });
         }
@@ -387,56 +520,103 @@ public sealed class IndexModel(
             .Select(u => u.Trim())
             .ToList();
 
-        if (submitted.Count > 8)
+        if (submitted.Count > ListingImageUrl.MaxCount)
         {
-            FormError = "En fazla 8 görsel ekleyebilirsin.";
-            Step = 4;
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
+            return await FailAsync(4, $"En fazla {ListingImageUrl.MaxCount} görsel ekleyebilirsin.", cancellationToken);
         }
 
         Draft.ImageUrls = submitted
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Take(8)
+            .Take(ListingImageUrl.MaxCount)
             .ToList();
 
         if (Draft.ImageUrls.Count == 0)
         {
-            FormError = "En az 1 görsel URL gir.";
-            Step = 4;
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
+            return await FailAsync(4, "En az 1 görsel yükle veya URL gir.", cancellationToken);
         }
 
-        if (Draft.ImageUrls.Any(u => !Uri.TryCreate(u, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps))
+        if (Draft.ImageUrls.Any(u => !ListingImageUrl.IsAllowed(u)))
         {
-            FormError = "Görseller https:// ile başlamalı (karma içerik engeli).";
-            Step = 4;
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
+            return await FailAsync(4, "Görseller yüklenen dosya veya https:// URL olmalı.", cancellationToken);
         }
 
         Draft.Step = 5;
-        WizardDraftStore.Save(HttpContext.Session, Draft);
+        await PersistDraftAsync(cancellationToken);
         return RedirectToPage(new { adim = 5 });
     }
 
-    [EnableRateLimiting("listing-publish")]
-    public async Task<IActionResult> OnPostPublishAsync(CancellationToken cancellationToken)
+    public async Task<IActionResult> OnPostUploadAsync(IFormFile? file, CancellationToken cancellationToken)
     {
-        await LoadAccountPhoneAsync(cancellationToken);
-        Draft = WizardDraftStore.Get(HttpContext.Session);
+        if (await RejectIfPhoneGateAsync(cancellationToken) is { } gated)
+        {
+            return gated;
+        }
+
+        await LoadDraftAsync(cancellationToken);
+        var accountId = GetAccountId();
+        if (accountId is null)
+        {
+            return Challenge();
+        }
+
+        if (!Draft.HasSaleInfo(RequirePhoneVerification))
+        {
+            return RedirectToPage(new { adim = 3 });
+        }
+
+        if (file is null || file.Length == 0)
+        {
+            return await FailAsync(4, "Dosya seçilmedi.", cancellationToken);
+        }
+
+        if (file.Length > ListingImageUrl.MaxUploadBytes)
+        {
+            return await FailAsync(4, "Görsel en fazla 5 MB olabilir.", cancellationToken);
+        }
+
+        if (!ListingImageUrl.IsAllowedContentType(file.ContentType))
+        {
+            return await FailAsync(4, "Yalnızca JPEG, PNG, WebP veya GIF yükleyebilirsin.", cancellationToken);
+        }
+
+        if (Draft.ImageUrls.Count >= ListingImageUrl.MaxCount)
+        {
+            return await FailAsync(4, $"En fazla {ListingImageUrl.MaxCount} görsel ekleyebilirsin.", cancellationToken);
+        }
+
+        await using var stream = file.OpenReadStream();
+        var url = await imageStorage.SaveAsync(accountId.Value, stream, file.ContentType, cancellationToken);
+        Draft.ImageUrls.Add(url);
+        Draft.Step = 4;
+        await PersistDraftAsync(cancellationToken);
+        return RedirectToPage(new { adim = 4 });
+    }
+
+    [EnableRateLimiting("listing-publish")]
+    public async Task<IActionResult> OnPostPublishAsync(string? publishToken, CancellationToken cancellationToken)
+    {
+        if (await RejectIfPhoneGateAsync(cancellationToken) is { } gated)
+        {
+            return gated;
+        }
+
+        await LoadDraftAsync(cancellationToken);
         Step = 5;
 
-        if (!Draft.HasCategory || !Draft.HasMachine || !Draft.HasSaleInfo(RequirePhone) || !Draft.HasImages)
+        var expected = HttpContext.Session.GetString("ilan-ver-publish-token");
+        if (string.IsNullOrWhiteSpace(publishToken)
+            || string.IsNullOrWhiteSpace(expected)
+            || !CryptographicOperationsEquals(expected, publishToken))
         {
-            FormError = "İlan henüz yayınlanmaya hazır değil. Adımları tamamla.";
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
+            PublishToken = EnsurePublishToken();
+            return await FailAsync(5, "Yayın isteği geçersiz veya tekrarlandı. Tekrar dene.", cancellationToken);
+        }
+
+        HttpContext.Session.Remove("ilan-ver-publish-token");
+
+        if (!Draft.HasCategory || !Draft.HasMachine || !Draft.HasSaleInfo(RequirePhoneVerification) || !Draft.HasImages)
+        {
+            return await FailAsync(5, "İlan henüz yayınlanmaya hazır değil. Adımları tamamla.", cancellationToken);
         }
 
         var accountId = GetAccountId();
@@ -451,36 +631,31 @@ public sealed class IndexModel(
             return Challenge();
         }
 
-        var phone = RequirePhone
-            ? AccountService.NormalizePhone(Draft.Phone)
-            : AccountService.NormalizePhone(account.Phone ?? Draft.Phone);
-
-        if (phone is null)
+        var phone = AccountService.NormalizePhone(account.Phone ?? Draft.Phone);
+        if (phone is null || (!account.PhoneConfirmed && !Draft.PhoneVerified))
         {
-            FormError = "Geçerli bir telefon numarası gerekli. Satış adımına dönüp düzelt.";
-            await LoadLookupsAsync(cancellationToken);
-            SetMeta();
-            return Page();
+            return await FailAsync(5, "Telefon doğrulanmadan yayınlanamaz. Satış adımına dön.", cancellationToken);
         }
 
-        if (RequirePhone || string.IsNullOrWhiteSpace(account.Phone))
+        if (string.IsNullOrWhiteSpace(account.Phone) || !account.PhoneConfirmed)
         {
             var (ok, error, updated) = await accounts.UpdatePhoneAsync(accountId.Value, phone, cancellationToken);
             if (!ok || updated is null)
             {
-                FormError = error ?? "Telefon güncellenemedi.";
-                await LoadLookupsAsync(cancellationToken);
-                SetMeta();
-                return Page();
+                return await FailAsync(5, error ?? "Telefon güncellenemedi.", cancellationToken);
             }
 
-            var existing = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            var props = existing.Properties ?? new AuthenticationProperties();
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                AuthCookie.CreatePrincipal(updated),
-                props);
-            account = updated;
+            await RefreshAuthCookieAsync(accountId.Value, cancellationToken);
+            account = await accounts.GetByIdAsync(accountId.Value, cancellationToken) ?? updated;
+        }
+
+        var hasSale = Draft.Intents.Contains(ListingIntent.Satilik);
+        var hasRent = Draft.Intents.Contains(ListingIntent.Kiralik);
+        var price = Draft.Price;
+        decimal? rentPrice = null;
+        if (hasSale && hasRent)
+        {
+            rentPrice = Draft.RentPrice;
         }
 
         var command = new CreatePublishedListingCommand
@@ -488,21 +663,25 @@ public sealed class IndexModel(
             AccountId = account.Id,
             SellerDisplayName = account.DisplayName,
             Phone = phone,
+            SellerType = Draft.SellerType,
             CategoryId = Draft.CategoryId,
             BrandId = Draft.BrandId,
             ModelId = Draft.ModelId,
             ModelName = Draft.ModelName,
+            SerialNo = Draft.SerialNo,
             CityId = Draft.CityId,
             DistrictId = Draft.DistrictId,
+            NeighborhoodId = Draft.NeighborhoodId,
             PrimaryIntent = Draft.PrimaryIntent,
             Intents = Draft.Intents.ToArray(),
             Condition = Draft.Condition,
             ModelYear = Draft.ModelYear,
-            Hours = Draft.Hours,
+            Hours = Draft.HoursUnknown ? null : Draft.Hours,
             Tons = Draft.Tons,
             CapacityKg = Draft.CapacityKg,
-            Horsepower = Draft.Horsepower,
-            Price = Draft.Price,
+            Horsepower = Draft.HorsepowerUnknown ? null : Draft.Horsepower,
+            Price = price,
+            RentPrice = rentPrice,
             PriceUnit = Draft.PriceUnit,
             IncludesOperator = Draft.IncludesOperator,
             Title = Draft.Title,
@@ -515,14 +694,16 @@ public sealed class IndexModel(
         try
         {
             var adNo = await listingCommands.CreatePublishedAsync(command, cancellationToken);
-            WizardDraftStore.Clear(HttpContext.Session);
+            await WizardDraftStore.ClearAllAsync(HttpContext.Session, wizardDrafts, accountId, cancellationToken);
             return Redirect(ListingRoutes.Detail(adNo));
         }
         catch (ValidationException ex)
         {
-            FormError = ex.Errors.FirstOrDefault()?.ErrorMessage ?? "İlan doğrulanamadı.";
+            FormErrors = ex.Errors.Select(e => e.ErrorMessage).Distinct().ToArray();
+            FormError = FormErrors.FirstOrDefault() ?? "İlan doğrulanamadı.";
             logger.LogWarning(ex, "Listing publish validation failed");
             await LoadLookupsAsync(cancellationToken);
+            PublishToken = EnsurePublishToken();
             SetMeta();
             return Page();
         }
@@ -531,6 +712,7 @@ public sealed class IndexModel(
             FormError = "İlan yayınlanırken bir hata oluştu. Lütfen tekrar dene.";
             logger.LogError(ex, "Listing publish failed for account {AccountId}", account.Id);
             await LoadLookupsAsync(cancellationToken);
+            PublishToken = EnsurePublishToken();
             SetMeta();
             return Page();
         }
@@ -555,45 +737,121 @@ public sealed class IndexModel(
 
     public bool HasAttachment(int id) => Draft.AttachmentIds.Contains(id);
 
+    private async Task<IActionResult?> RejectIfPhoneGateAsync(CancellationToken cancellationToken)
+    {
+        await LoadAccountPhoneAsync(cancellationToken);
+        if (!RequirePhoneVerification)
+        {
+            return null;
+        }
+
+        await LoadDraftAsync(cancellationToken);
+        FormError = "İlan vermek için önce telefonunu doğrula.";
+        FormErrors = [FormError];
+        Step = Math.Clamp(Draft.Step is >= 1 and <= 5 ? Draft.Step : 1, 1, 5);
+        await LoadLookupsAsync(cancellationToken);
+        PublishToken = EnsurePublishToken();
+        SetMeta();
+        return Page();
+    }
+
+    private async Task<IActionResult> FailAsync(int step, string message, CancellationToken cancellationToken)
+    {
+        FormError = message;
+        FormErrors = [message];
+        Step = step;
+        await LoadLookupsAsync(cancellationToken);
+        PublishToken = EnsurePublishToken();
+        SetMeta();
+        return Page();
+    }
+
+    private async Task PersistDraftAsync(CancellationToken cancellationToken)
+        => await WizardDraftStore.PersistAsync(
+            HttpContext.Session,
+            wizardDrafts,
+            GetAccountId(),
+            Draft,
+            cancellationToken);
+
     private async Task LoadAccountPhoneAsync(CancellationToken cancellationToken)
     {
         var id = GetAccountId();
         if (id is null)
         {
-            RequirePhone = true;
+            RequirePhoneVerification = true;
+            AccountPhoneConfirmed = false;
             return;
         }
 
         var account = await accounts.GetByIdAsync(id.Value, cancellationToken);
         AccountPhone = account?.Phone;
-        RequirePhone = string.IsNullOrWhiteSpace(AccountPhone);
+        AccountPhoneConfirmed = account?.PhoneConfirmed == true;
+        RequirePhoneVerification = !AccountPhoneConfirmed;
+    }
+
+    private void SyncPhoneFromAccount()
+    {
+        if (!AccountPhoneConfirmed)
+        {
+            return;
+        }
+
+        Draft.PhoneVerified = true;
+        var normalized = AccountService.NormalizePhone(AccountPhone);
+        if (normalized is not null)
+        {
+            Draft.Phone = normalized;
+        }
+    }
+
+    private async Task RefreshAuthCookieAsync(long accountId, CancellationToken cancellationToken)
+    {
+        var updated = await accounts.GetByIdAsync(accountId, cancellationToken);
+        if (updated is null)
+        {
+            return;
+        }
+
+        var existing = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        var props = existing.Properties ?? new AuthenticationProperties();
+        await HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            AuthCookie.CreatePrincipal(updated),
+            props);
     }
 
     private async Task LoadLookupsAsync(CancellationToken cancellationToken)
     {
-        CategoryGroups = await catalog.GetCategoryGroupsAsync(cancellationToken);
-        Cities = await catalog.GetAllCitiesAsync(cancellationToken);
-        Attachments = await catalog.GetAttachmentsAsync(cancellationToken);
-
-        if (Draft.CategoryId > 0)
+        if (Step == 1)
         {
-            Brands = await catalog.GetBrandsByCategoryAsync(Draft.CategoryId, cancellationToken);
-            Attributes = await catalog.GetCategoryAttributesAsync(Draft.CategoryId, cancellationToken);
-
-            if (Draft.BrandId > 0)
-            {
-                Models = await catalog.GetModelsByBrandCategoryAsync(
-                    Draft.BrandId, Draft.CategoryId, cancellationToken);
-            }
+            CategoryGroups = await catalog.GetCategoryGroupsAsync(cancellationToken);
+            return;
         }
 
-        if (Draft.CityId > 0)
+        if (Step == 2 && Draft.CategoryId > 0)
         {
-            Districts = await catalog.GetDistrictsByCityAsync(Draft.CityId, cancellationToken);
+            Attributes = await catalog.GetCategoryAttributesAsync(Draft.CategoryId, cancellationToken);
+            Attachments = await catalog.GetAttachmentsByCategoryAsync(Draft.CategoryId, cancellationToken);
+            return;
+        }
+
+        if (Step == 3)
+        {
+            Cities = await catalog.GetAllCitiesAsync(cancellationToken);
+            if (Draft.CityId > 0)
+            {
+                Districts = await catalog.GetDistrictsByCityAsync(Draft.CityId, cancellationToken);
+            }
+
+            if (Draft.DistrictId > 0)
+            {
+                Neighborhoods = await catalog.GetNeighborhoodsByDistrictAsync(Draft.DistrictId, cancellationToken);
+            }
         }
     }
 
-    private static int ResolveStep(int? adim, WizardDraft draft)
+    private static int ResolveStep(int? adim, WizardDraft draft, bool requirePhoneVerification)
     {
         var requested = adim is >= 1 and <= 5 ? adim.Value : Math.Clamp(draft.Step, 1, 5);
 
@@ -607,7 +865,7 @@ public sealed class IndexModel(
             return 2;
         }
 
-        if (requested >= 4 && (draft.Price <= 0 || draft.CityId <= 0 || draft.DistrictId <= 0))
+        if (requested >= 4 && !draft.HasSaleInfo(requirePhoneVerification))
         {
             return 3;
         }
@@ -618,6 +876,27 @@ public sealed class IndexModel(
         }
 
         return requested;
+    }
+
+    private string EnsurePublishToken()
+    {
+        var existing = HttpContext.Session.GetString("ilan-ver-publish-token");
+        if (!string.IsNullOrWhiteSpace(existing))
+        {
+            return existing;
+        }
+
+        var token = WebEncoders.Base64UrlEncode(Guid.NewGuid().ToByteArray());
+        HttpContext.Session.SetString("ilan-ver-publish-token", token);
+        return token;
+    }
+
+    private static bool CryptographicOperationsEquals(string a, string b)
+    {
+        var ba = System.Text.Encoding.UTF8.GetBytes(a);
+        var bb = System.Text.Encoding.UTF8.GetBytes(b);
+        return ba.Length == bb.Length
+               && System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(ba, bb);
     }
 
     private long? GetAccountId()

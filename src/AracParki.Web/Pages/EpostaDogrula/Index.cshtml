@@ -1,4 +1,6 @@
 @page "/eposta-dogrula"
+@using AracParki.Web.Infrastructure
+@using System.Security.Claims
 @model AracParki.Web.Pages.EpostaDogrula.IndexModel
 
 <main class="auth-page" id="main">
@@ -20,45 +22,50 @@
         <a class="btn btn-machine btn-block auth-submit" href="/">Anasayfaya git</a>
         <p class="auth-switch"><a href="/ilanlar">İlanlara göz at</a></p>
       }
+      else if (Model.PendingConfirm)
+      {
+        <h1 class="auth-title" id="auth-title">E-postanı onayla</h1>
+        <p class="auth-lead">Hesabını etkinleştirmek için aşağıdaki butona tıkla.</p>
+        <form method="post" asp-page-handler="Confirm" class="auth-form">
+          <input type="hidden" name="Token" value="@Model.Token" />
+          <button class="btn btn-machine btn-block auth-submit" type="submit">Hesabımı onayla</button>
+        </form>
+      }
       else if (Model.ResendSubmitted)
       {
         <h1 class="auth-title" id="auth-title">E-postanı kontrol et</h1>
         <p class="auth-lead">
-          Bu adresle onaylanmamış bir hesap varsa yeni doğrulama bağlantısı gönderdik.
-          Spam klasörünü de kontrol et.
+          Onay bağlantısını hesabına bağlı adrese gönderdik.
+          Spam klasörünü de kontrol et. Eski maillerdeki bağlantılar geçersiz olabilir.
         </p>
-        <a class="btn btn-machine btn-block auth-submit" href="/giris">Girişe dön</a>
+        <a class="btn btn-machine btn-block auth-submit" href="/">Anasayfaya dön</a>
       }
-      else if (!string.IsNullOrEmpty(Model.Token) && !string.IsNullOrEmpty(Model.FormError))
+      else if (!string.IsNullOrEmpty(Model.FormError))
       {
         <h1 class="auth-title" id="auth-title">Bağlantı geçersiz</h1>
-        <p class="auth-lead">@Model.FormError Yeni bir doğrulama maili isteyebilirsin.</p>
-        <form method="post" class="auth-form" novalidate>
-          <div class="auth-field">
-            <label asp-for="Input.Email"></label>
-            <input asp-for="Input.Email" type="email" autocomplete="email" inputmode="email" autofocus />
-            <span asp-validation-for="Input.Email" class="auth-error"></span>
-          </div>
-          <button class="btn btn-machine btn-block auth-submit" type="submit">Yeni bağlantı gönder</button>
-        </form>
-      }
-      else
-      {
-        <h1 class="auth-title" id="auth-title">E-posta doğrulama</h1>
-        <p class="auth-lead">Onay maili gelmediyse e-posta adresini yaz — yeni bağlantı gönderelim.</p>
-        @if (!string.IsNullOrEmpty(Model.FormError))
+        <p class="auth-lead">@Model.FormError</p>
+        @if (User.Identity?.IsAuthenticated == true && !AuthCookie.IsEmailConfirmed(User))
         {
-          <div class="auth-alert" role="alert">@Model.FormError</div>
+          <form method="post" asp-page-handler="Resend" class="auth-form">
+            <button class="btn btn-machine btn-block auth-submit" type="submit">Yeni onay maili gönder</button>
+          </form>
         }
-        <form method="post" class="auth-form" novalidate>
-          <div class="auth-field">
-            <label asp-for="Input.Email"></label>
-            <input asp-for="Input.Email" type="email" autocomplete="email" inputmode="email" autofocus />
-            <span asp-validation-for="Input.Email" class="auth-error"></span>
-          </div>
-          <button class="btn btn-machine btn-block auth-submit" type="submit">Doğrulama gönder</button>
+        else
+        {
+          <a class="btn btn-machine btn-block auth-submit" href="/giris">Giriş yap</a>
+        }
+      }
+      else if (User.Identity?.IsAuthenticated == true && !AuthCookie.IsEmailConfirmed(User))
+      {
+        <h1 class="auth-title" id="auth-title">E-postanı onayla</h1>
+        <p class="auth-lead">
+          <strong>@User.FindFirst(ClaimTypes.Email)?.Value</strong>
+          adresine onay maili gönderebilirsin — tekrar yazmana gerek yok.
+        </p>
+        <form method="post" asp-page-handler="Resend" class="auth-form">
+          <button class="btn btn-machine btn-block auth-submit" type="submit">Onay maili gönder</button>
         </form>
-        <p class="auth-switch"><a href="/giris">Girişe dön</a></p>
+        <p class="auth-switch"><a href="/">Şimdilik geç</a></p>
       }
     </section>
   </div>

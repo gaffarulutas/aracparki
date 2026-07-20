@@ -14,9 +14,7 @@ public sealed class ListingRepository(IDbConnectionFactory connectionFactory, IS
     public async Task<ListingSearchResult> SearchAsync(ListingSearchQuery query, CancellationToken cancellationToken)
     {
         var parameters = BuildFilter(query);
-        var useKeyset = query.Sort == ListingSort.Newest
-            && query.CursorListedAt is not null
-            && query.CursorId is not null;
+        var useKeyset = query is { Sort: ListingSort.Newest, CursorListedAt: not null, CursorId: not null };
 
         parameters.Add("Take", query.PageSize);
         parameters.Add("Skip", useKeyset ? 0 : (query.Page - 1) * query.PageSize);
@@ -130,7 +128,9 @@ public sealed class ListingRepository(IDbConnectionFactory connectionFactory, IS
             Horsepower = row.Horsepower,
             City = row.City,
             District = row.District,
+            Neighborhood = row.Neighborhood,
             Price = row.Price,
+            RentPrice = row.RentPrice,
             PriceUnit = row.PriceUnit,
             IncludesOperator = row.IncludesOperator,
             SpecsJson = row.SpecsJson,
@@ -219,13 +219,15 @@ public sealed class ListingRepository(IDbConnectionFactory connectionFactory, IS
         public required string[] Intents { get; init; }
         public required string Condition { get; init; }
         public int ModelYear { get; init; }
-        public int Hours { get; init; }
+        public int? Hours { get; init; }
         public decimal Tons { get; init; }
         public int? CapacityKg { get; init; }
-        public int Horsepower { get; init; }
+        public int? Horsepower { get; init; }
         public required string City { get; init; }
         public required string District { get; init; }
+        public string? Neighborhood { get; init; }
         public decimal Price { get; init; }
+        public decimal? RentPrice { get; init; }
         public string? PriceUnit { get; init; }
         public bool IncludesOperator { get; init; }
         public required string SpecsJson { get; init; }

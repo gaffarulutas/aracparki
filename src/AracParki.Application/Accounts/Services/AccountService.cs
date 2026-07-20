@@ -89,11 +89,6 @@ public sealed class AccountService(
             return (false, "E-posta veya şifre hatalı.", null);
         }
 
-        if (!account.EmailConfirmed)
-        {
-            return (false, "email_unconfirmed", account);
-        }
-
         if (result == PasswordVerificationResult.SuccessRehashNeeded)
         {
             var newHash = _hasher.HashPassword(email, password);
@@ -150,6 +145,44 @@ public sealed class AccountService(
         }
 
         return (false, "Geçersiz veya süresi dolmuş bağlantı.", null, false);
+    }
+
+    /// <summary>
+    /// Inspects a verification token without consuming it (safe for email-link prefetch).
+    /// </summary>
+    public async Task<(bool Pending, bool AlreadyConfirmed, AccountDto? Account, string? Error)> PeekEmailVerificationAsync(
+        string rawToken,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(rawToken))
+        {
+            return (false, false, null, "Geçersiz veya süresi dolmuş bağlantı.");
+        }
+
+        var hash = HashToken(rawToken.Trim());
+        var existing = await store.FindAccountByVerificationTokenHashAsync(hash, cancellationToken);
+        if (existing is null)
+        {
+            return (false, false, null, "Geçersiz veya süresi dolmuş bağlantı.");
+        }
+
+        var account = await store.FindByIdAsync(existing.Value.AccountId, cancellationToken);
+        if (account is null)
+        {
+            return (false, false, null, "Geçersiz veya süresi dolmuş bağlantı.");
+        }
+
+        if (existing.Value.EmailConfirmed)
+        {
+            return (false, true, account, null);
+        }
+
+        if (existing.Value.TokenUsable)
+        {
+            return (true, false, account, null);
+        }
+
+        return (false, false, null, "Geçersiz veya süresi dolmuş bağlantı.");
     }
 
     /// <summary>Anti-enumeration: always succeeds from the caller's perspective.</summary>
@@ -269,6 +302,35 @@ public sealed class AccountService(
         }
 
         return digits;
+    }
+
+    /// <summary>
+    /// Display-safe phone: keep first digit + last 2 of the local 10-digit form (e.g. 5•• ••• •• 34).
+    /// </summary>
+    public static string MaskPhone(string? phone)
+    {
+        var digits = new string((phone ?? string.Empty).Where(char.IsDigit).ToArray());
+        if (digits.Length >= 12 && digits.StartsWith("90", StringComparison.Ordinal))
+        {
+            digits = digits[2..];
+        }
+
+        if (digits.Length > 10)
+        {
+            digits = digits[^10..];
+        }
+
+        if (digits.Length < 4)
+        {
+            return "••••";
+        }
+
+        if (digits.Length == 10)
+        {
+            return string.Concat(digits.AsSpan(0, 1), "•• ••• •• ", digits.AsSpan(8, 2));
+        }
+
+        return string.Concat("••••", digits.AsSpan(digits.Length - 4));
     }
 
     private async Task SendVerificationSafeAsync(

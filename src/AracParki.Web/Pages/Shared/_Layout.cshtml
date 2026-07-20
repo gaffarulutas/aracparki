@@ -111,6 +111,7 @@
     <link rel="stylesheet" href="~/css/pages/detail.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/pages/auth.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/pages/ilan-ver.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tw-modals.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/pages/legal.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/pages/account.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/responsive.css" asp-append-version="true" />
@@ -129,10 +130,14 @@
 <body data-page="@pageKey" x-data="siteChrome">
     <a class="skip-link" href="#main">İçeriğe geç</a>
 
-    @if (!isAuth)
-    {
-        <partial name="Shared/_Header" model="pageKey" />
-    }
+    <div class="site-chrome">
+        @if (!isAuth)
+        {
+            <partial name="Shared/_Header" model="pageKey" />
+        }
+
+        <partial name="Shared/_EmailVerifyBanner" />
+    </div>
 
     @RenderBody()
 
@@ -146,6 +151,7 @@
 
     <script src="~/lib/htmx/htmx.min.js" asp-append-version="true" defer></script>
     <script src="~/js/site.js" asp-append-version="true" defer></script>
+    <script src="~/lib/alpine/focus.min.js" asp-append-version="true" defer></script>
     <script src="~/lib/alpine/alpine.min.js" asp-append-version="true" defer></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

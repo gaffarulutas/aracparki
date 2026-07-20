@@ -8,10 +8,12 @@ public sealed class AccountDto
     public required string FirstName { get; init; }
     public required string LastName { get; init; }
     public string? Phone { get; init; }
+    public DateTimeOffset? PhoneConfirmedAt { get; init; }
     public DateTimeOffset? EmailConfirmedAt { get; init; }
     public required string SecurityStamp { get; init; }
 
     public bool EmailConfirmed => EmailConfirmedAt.HasValue;
+    public bool PhoneConfirmed => PhoneConfirmedAt.HasValue;
 
     public string DisplayName => string.Join(' ', new[] { FirstName, LastName }
         .Where(static part => !string.IsNullOrWhiteSpace(part)));

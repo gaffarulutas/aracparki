@@ -1,0 +1,127 @@
+@*
+  Phone gate dialog — WAI APG structure:
+  header = title + short purpose (aria-labelledby / aria-describedby)
+  body   = only the active controls + field help
+  footer = secondary dismiss + primary action
+*@
+@model AracParki.Web.Pages.IlanVer.IndexModel
+@{
+    var phone = Model.AccountPhone ?? Model.Draft.Phone ?? "";
+}
+<div class="ap-phone-gate"
+     x-data="phoneVerifyModal"
+     data-phone="@phone"
+     data-send-url="@Url.Page("/IlanVer/Index", "SendPhoneOtp")"
+     data-verify-url="@Url.Page("/IlanVer/Index", "VerifyPhoneOtp")"
+     data-step="phone"
+     :data-step="step"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="phone-verify-title"
+     aria-describedby="phone-verify-desc"
+     x-trap.noscroll.inert="trapOpen"
+     @@keydown.escape.prevent.stop>
+  <div class="ap-phone-gate__backdrop" aria-hidden="true"></div>
+
+  <div class="ap-phone-gate__dialog" @@click.stop>
+    @* —— HEADER: name the task + one-line purpose —— *@
+    <header class="ap-phone-gate__header">
+      <h2 id="phone-verify-title" class="ap-phone-gate__title">Telefonunu doğrula</h2>
+      <p id="phone-verify-desc" class="ap-phone-gate__lead" x-text="headerDesc">
+        İlan yayımlamak için cep numaranı WhatsApp ile doğrula.
+      </p>
+    </header>
+
+    <form class="ap-phone-gate__form" @@submit.prevent="onSubmit">
+      @Html.AntiForgeryToken()
+
+      @* —— BODY: controls only —— *@
+      <div class="ap-phone-gate__body">
+        <div class="ap-phone-gate__panel" data-panel="phone">
+          <label class="ap-phone-gate__label" for="phone-verify-input">Cep telefonu</label>
+          <div class="ap-phone-gate__phone-row">
+            <span class="ap-phone-gate__prefix" aria-hidden="true">+90</span>
+            <input id="phone-verify-input"
+                   class="ap-phone-gate__input"
+                   type="tel"
+                   name="phone"
+                   inputmode="tel"
+                   autocomplete="tel"
+                   maxlength="13"
+                   required
+                   placeholder="5xx xxx xx xx"
+                   aria-describedby="phone-verify-hint"
+                   :value="phone"
+                   @@input="onPhoneInput"
+                   :disabled="busy" />
+          </div>
+          <p id="phone-verify-hint" class="ap-phone-gate__hint">
+            10 haneli Türkiye numarası. Başında 0 kullanabilirsin.
+          </p>
+        </div>
+
+        <div class="ap-phone-gate__panel" data-panel="otp">
+          <label class="ap-phone-gate__label" for="phone-otp-input">WhatsApp kodu</label>
+          <input id="phone-otp-input"
+                 class="ap-phone-gate__input ap-phone-gate__input--otp"
+                 type="text"
+                 name="otpCode"
+                 inputmode="numeric"
+                 autocomplete="one-time-code"
+                 maxlength="6"
+                 pattern="[0-9]{6}"
+                 placeholder="••••••"
+                 aria-describedby="phone-otp-hint"
+                 :value="otp"
+                 @@input="onOtpInput"
+                 :disabled="busy" />
+          <p id="phone-otp-hint" class="ap-phone-gate__hint">
+            Kod yaklaşık 10 dakika geçerli. Yanlış numara ise “Numarayı değiştir”.
+          </p>
+          <div class="ap-phone-gate__secondary-actions">
+            <button type="button"
+                    class="ap-phone-gate__text-btn"
+                    @@click="resend"
+                    :disabled="resendDisabled">
+              <span x-text="resendLabel">Tekrar gönder</span>
+            </button>
+            <span class="ap-phone-gate__dot" aria-hidden="true">·</span>
+            <button type="button"
+                    class="ap-phone-gate__text-btn"
+                    @@click="editPhone"
+                    :disabled="busy">
+              Numarayı değiştir
+            </button>
+          </div>
+          <p class="ap-phone-gate__dev" x-show="devCode" x-cloak>
+            Geliştirme kodu: <strong x-text="devCode"></strong>
+          </p>
+        </div>
+
+        <div class="ap-phone-gate__alert ap-phone-gate__alert--error"
+             role="alert"
+             x-show="error"
+             x-text="error"
+             x-cloak></div>
+        <div class="ap-phone-gate__alert ap-phone-gate__alert--ok"
+             role="status"
+             x-show="showInfo"
+             x-text="info"
+             x-cloak></div>
+      </div>
+
+      @* —— FOOTER: dismiss + primary —— *@
+      <footer class="ap-phone-gate__footer">
+        <a class="ap-phone-gate__cancel" href="/" title="Doğrulamadan çık, ana sayfaya dön">
+          Vazgeç
+        </a>
+        <button type="submit"
+                class="btn btn-machine ap-phone-gate__submit"
+                :disabled="submitDisabled"
+                :aria-busy="busyAria">
+          <span class="ap-phone-gate__submit-label" x-text="ctaLabel">WhatsApp’a kod gönder</span>
+        </button>
+      </footer>
+    </form>
+  </div>
+</div>

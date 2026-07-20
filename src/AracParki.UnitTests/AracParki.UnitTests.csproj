@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AracParki.Application\AracParki.Application.csproj" />
     <ProjectReference Include="..\AracParki.Domain\AracParki.Domain.csproj" />
+    <ProjectReference Include="..\AracParki.Web\AracParki.Web.csproj" />
   </ItemGroup>
 
 </Project>

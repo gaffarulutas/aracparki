@@ -3,6 +3,7 @@ using AracParki.Application;
 using AracParki.Application.Catalog.Services;
 using AracParki.Application.Listings.Services;
 using AracParki.Infrastructure;
+using AracParki.Infrastructure.Persistence;
 using AracParki.Web.Infrastructure;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -95,6 +96,17 @@ try
                     Window = TimeSpan.FromHours(1),
                     QueueLimit = 0
                 }));
+        options.AddPolicy("phone-otp", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 8,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
     });
 
     var pg = builder.Configuration.GetConnectionString("PostgreSQL")
@@ -105,6 +117,8 @@ try
 
     var app = builder.Build();
     Lucide.Configure(app.Environment);
+
+    await app.Services.GetRequiredService<DatabaseMigrator>().MigrateAsync();
 
     app.UseForwardedHeaders();
 

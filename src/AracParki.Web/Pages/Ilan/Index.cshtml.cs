@@ -41,7 +41,7 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
         ViewData["OgTitle"] = $"{Listing.Title} | Araç Parkı";
         ViewData["OgType"] = "product";
         ViewData["Description"] =
-            $"{Listing.Title} — {Listing.ModelYear}, {Listing.Hours} saat, {Listing.City}. İş makinesi ilanı.";
+            $"{Listing.Title} — {Listing.ModelYear}{(Listing.Hours is null ? "" : $", {Listing.Hours} saat")}, {Listing.City}. İş makinesi ilanı.";
         ViewData["SearchQuery"] = string.Empty;
         ViewData["CanonicalIncludeQuery"] = false;
 

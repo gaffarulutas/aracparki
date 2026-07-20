@@ -1,4 +1,3 @@
-using AracParki.Application.Catalog;
 using AracParki.Application.Catalog.Dtos;
 
 namespace AracParki.Application.Catalog.Services;
@@ -39,6 +38,12 @@ public sealed class CatalogService(ICatalogQuery catalogQuery)
         return catalogQuery.GetModelsByBrandCategoryAsync(brandId, categoryId, cancellationToken);
     }
 
+    public Task<EquipmentModelOptionDto?> GetModelByIdAsync(int modelId, CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(modelId);
+        return catalogQuery.GetModelByIdAsync(modelId, cancellationToken);
+    }
+
     public Task<IReadOnlyList<CategoryAttributeDto>> GetCategoryAttributesAsync(int categoryId, CancellationToken cancellationToken)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(categoryId);
@@ -47,6 +52,14 @@ public sealed class CatalogService(ICatalogQuery catalogQuery)
 
     public Task<IReadOnlyList<AttachmentOptionDto>> GetAttachmentsAsync(CancellationToken cancellationToken)
         => catalogQuery.GetAttachmentsAsync(cancellationToken);
+
+    public Task<IReadOnlyList<AttachmentOptionDto>> GetAttachmentsByCategoryAsync(
+        int categoryId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(categoryId);
+        return catalogQuery.GetAttachmentsByCategoryAsync(categoryId, cancellationToken);
+    }
 
     public Task<IReadOnlyList<FacetCountDto>> GetBrandFacetsAsync(int? categoryId, CancellationToken cancellationToken)
         => catalogQuery.GetBrandFacetsAsync(categoryId, cancellationToken);

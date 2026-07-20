@@ -16,6 +16,7 @@ public interface IAccountStore
     Task UpdatePasswordHashAsync(long accountId, string passwordHash, CancellationToken cancellationToken);
 
     Task UpdatePhoneAsync(long accountId, string phone, CancellationToken cancellationToken);
+    Task ConfirmPhoneAsync(long accountId, CancellationToken cancellationToken);
 
     /// <summary>Invalidates prior unused reset tokens, then inserts the new hash.</summary>
     Task SaveResetTokenAsync(long accountId, string tokenHash, DateTimeOffset expiresAt, CancellationToken cancellationToken);
@@ -42,8 +43,8 @@ public interface IAccountStore
     /// </summary>
     Task<long?> TryConfirmEmailWithTokenAsync(string tokenHash, CancellationToken cancellationToken);
 
-    /// <summary>Looks up any verification token row (used or not) and its account confirmation state.</summary>
-    Task<(long AccountId, bool EmailConfirmed)?> FindAccountByVerificationTokenHashAsync(
+    /// <summary>Looks up any verification token row (used or not) and its account / usability state.</summary>
+    Task<(long AccountId, bool EmailConfirmed, bool TokenUsable)?> FindAccountByVerificationTokenHashAsync(
         string tokenHash,
         CancellationToken cancellationToken);
 }

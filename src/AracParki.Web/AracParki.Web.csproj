@@ -19,4 +19,8 @@
     <UserSecretsId>aracparki-web-dev</UserSecretsId>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Content Include="..\..\database\**\*.sql" Link="database\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

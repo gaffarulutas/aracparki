@@ -97,14 +97,6 @@
     align-items: center;
   }
 
-  @supports (animation-timeline: scroll()) {
-    @media (prefers-reduced-motion: no-preference) {
-      .site-header:has(.cat-bar) .cat-bar-actions .header-cta {
-        animation-name: ap-cta-compact-sm;
-      }
-    }
-  }
-
   .partner-banner {
     padding: 12px 14px;
     gap: 10px;
@@ -216,7 +208,7 @@
 
   .account-aside {
     position: sticky;
-    top: 88px;
+    top: calc(env(safe-area-inset-top, 0px) + var(--header-h) + 72px);
   }
 
   .filter-box select,
@@ -231,7 +223,7 @@
 
   .sticky-box {
     position: sticky;
-    top: 88px;
+    top: calc(env(safe-area-inset-top, 0px) + var(--header-h) + 72px);
   }
 }
 

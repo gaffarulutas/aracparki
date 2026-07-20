@@ -1,0 +1,63 @@
+using AracParki.Application.Catalog.Dtos;
+using AracParki.Web.Pages.IlanVer;
+
+namespace AracParki.UnitTests;
+
+/// <summary>
+/// CatalogModelDefaults lives in the Web project; this assembly references Web for these tests.
+/// </summary>
+public sealed class CatalogModelDefaultsTests
+{
+    [Fact]
+    public void Apply_sets_horsepower_and_locks_from_catalog()
+    {
+        var draft = new WizardDraft();
+        var model = new EquipmentModelOptionDto
+        {
+            Id = 1,
+            Name = "320D",
+            Slug = "320d",
+            Horsepower = 138,
+            TypicalWeightMinT = 20.3m,
+            TypicalWeightMaxT = 21.6m,
+            DefaultSpecsJson = "{}"
+        };
+
+        CatalogModelDefaults.Apply(draft, model, "weight", []);
+
+        Assert.True(draft.HorsepowerFromCatalog);
+        Assert.Equal(138, draft.Horsepower);
+        Assert.True(draft.TonsFromCatalog);
+        Assert.Equal(20.95m, draft.Tons);
+        Assert.Equal("138", draft.Specs["engine_power_hp"]);
+    }
+
+    [Fact]
+    public void Apply_maps_payload_t_to_capacity_kg_attributes()
+    {
+        var draft = new WizardDraft();
+        var model = new EquipmentModelOptionDto
+        {
+            Id = 20,
+            Name = "MT1840",
+            Slug = "mt1840",
+            CapacityKg = 4000,
+            CapacityT = 4.0m,
+            DefaultSpecsJson = """{"payload_t": 4.0, "lift_height_m": 17.55}"""
+        };
+        var attrs = new List<CategoryAttributeDto>
+        {
+            new() { Id = 1, Key = "lift_capacity_kg", Label = "Kapasite", DataType = "number", Unit = "kg" },
+            new() { Id = 2, Key = "lift_height_m", Label = "Kaldırma", DataType = "number", Unit = "m" }
+        };
+
+        CatalogModelDefaults.Apply(draft, model, "capacity_kg", attrs);
+
+        Assert.True(draft.CapacityKgFromCatalog);
+        Assert.Equal(4000, draft.CapacityKg);
+        Assert.Equal("4000", draft.Specs["lift_capacity_kg"]);
+        Assert.Equal("17.55", draft.Specs["lift_height_m"]);
+        Assert.Contains("lift_capacity_kg", CatalogModelDefaults.LockedSpecKeys(draft));
+        Assert.Contains("lift_height_m", CatalogModelDefaults.LockedSpecKeys(draft));
+    }
+}

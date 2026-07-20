@@ -16,15 +16,7 @@
 
       @if (!string.IsNullOrEmpty(Model.FormError))
       {
-        <div class="auth-alert" role="alert">
-          @Model.FormError
-          @if (Model.NeedsEmailConfirm)
-          {
-            <span class="auth-alert-actions">
-              <a href="/eposta-dogrula">Doğrulama maili gönder</a>
-            </span>
-          }
-        </div>
+        <div class="auth-alert" role="alert">@Model.FormError</div>
       }
 
       <form method="post" class="auth-form" novalidate>

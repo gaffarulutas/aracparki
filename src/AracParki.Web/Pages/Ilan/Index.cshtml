@@ -41,7 +41,7 @@
             <tr><th scope="row">Tip</th><td><span class="@badgeClass">@badgeText</span></td></tr>
             <tr><th scope="row">Durum</th><td><span class="@EquipmentCondition.BadgeClass(listing.Condition)">@EquipmentCondition.Label(listing.Condition)</span></td></tr>
             <tr><th scope="row">Model Yılı</th><td>@listing.ModelYear</td></tr>
-            <tr><th scope="row">Çalışma Saati</th><td>@Formatters.Hours(listing.Hours)</td></tr>
+            <tr><th scope="row">Çalışma Saati</th><td>@(listing.Hours is null ? "Belirtilmedi" : Formatters.Hours(listing.Hours.Value))</td></tr>
             @if (listing.CapacityMetric == "capacity_kg" && listing.CapacityKg is not null)
             {
               <tr><th scope="row">Kaldırma Kapasitesi</th><td>@listing.CapacityKg.Value.ToString("N0") kg</td></tr>
@@ -54,15 +54,15 @@
             {
               <tr><th scope="row">Operasyon Ağırlığı</th><td>@Formatters.Tons(listing.Tons)</td></tr>
             }
-            @if (listing.Horsepower > 0)
+            @if (listing.Horsepower is > 0)
             {
-              <tr><th scope="row">Motor Gücü</th><td>@Formatters.Horsepower(listing.Horsepower)</td></tr>
+              <tr><th scope="row">Motor Gücü</th><td>@Formatters.Horsepower(listing.Horsepower.Value)</td></tr>
             }
             @if (listing.IncludesOperator)
             {
               <tr><th scope="row">Operatör</th><td>Dahil</td></tr>
             }
-            <tr><th scope="row">Konum</th><td>@listing.City / @listing.District</td></tr>
+            <tr><th scope="row">Konum</th><td>@listing.City / @listing.District@(string.IsNullOrWhiteSpace(listing.Neighborhood) ? null : $" / {listing.Neighborhood}")</td></tr>
             @foreach (var row in Model.SpecRows)
             {
               <tr><th scope="row">@row.Label</th><td>@row.Value</td></tr>
@@ -84,9 +84,13 @@
     <aside class="detail-right" aria-label="Fiyat ve iletişim">
       <div class="detail-card detail-buybox sticky-box" id="buybox">
         <div class="detail-price">
-          @Formatters.Price(listing.Price, listing.PriceUnit)
+          @Formatters.Price(listing.Price, listing.Intents.Contains(ListingIntent.Kiralik) && !listing.Intents.Contains(ListingIntent.Satilik) ? listing.PriceUnit : null)
+          @if (listing.RentPrice is > 0 && listing.Intents.Contains(ListingIntent.Kiralik) && listing.Intents.Contains(ListingIntent.Satilik))
+          {
+            <div class="detail-price-secondary">Kira: @Formatters.Price(listing.RentPrice.Value, listing.PriceUnit)</div>
+          }
         </div>
-        <div class="detail-loc">@listing.City / @listing.District</div>
+        <div class="detail-loc">@listing.City / @listing.District@(string.IsNullOrWhiteSpace(listing.Neighborhood) ? null : $" / {listing.Neighborhood}")</div>
 
         <div class="detail-actions">
           <button type="button" class="btn btn-machine btn-block"

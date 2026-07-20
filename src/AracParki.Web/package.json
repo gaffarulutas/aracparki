@@ -1,0 +1,12 @@
+{
+  "name": "aracparki-web",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./Styles/tw-modals.css -o ./wwwroot/css/tw-modals.css --minify",
+    "watch:css": "tailwindcss -i ./Styles/tw-modals.css -o ./wwwroot/css/tw-modals.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.11",
+    "tailwindcss": "^4.1.11"
+  }
+}

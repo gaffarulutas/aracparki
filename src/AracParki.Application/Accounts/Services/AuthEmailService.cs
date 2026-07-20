@@ -119,7 +119,6 @@ public sealed class AuthEmailService(IEmailSender email, IOptions<AppSettings> a
                       <a href="{{safeUrl}}" style="display:inline-block;padding:12px 18px;background:#ffe600;color:#0c0c0c;text-decoration:none;font-weight:700;border-radius:4px;">{{safeLabel}}</a>
                     </p>
                     <p style="margin:0;font-size:12px;line-height:1.45;color:#777;">{{safeFoot}}</p>
-                    <p style="margin:16px 0 0;font-size:11px;line-height:1.4;color:#999;word-break:break-all;">{{safeUrl}}</p>
                   </td>
                 </tr>
               </table>

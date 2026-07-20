@@ -17,13 +17,15 @@ public sealed class ListingDetailDto
     public required string[] Intents { get; init; }
     public required string Condition { get; init; }
     public int ModelYear { get; init; }
-    public int Hours { get; init; }
+    public int? Hours { get; init; }
     public decimal Tons { get; init; }
     public int? CapacityKg { get; init; }
-    public int Horsepower { get; init; }
+    public int? Horsepower { get; init; }
     public required string City { get; init; }
     public required string District { get; init; }
+    public string? Neighborhood { get; init; }
     public decimal Price { get; init; }
+    public decimal? RentPrice { get; init; }
     public string? PriceUnit { get; init; }
     public bool IncludesOperator { get; init; }
     public required string SpecsJson { get; init; }

@@ -20,7 +20,10 @@
         <span>@Model.City / @Model.District</span>
       </div>
       <div class="listing-specs">
-        <span>@Formatters.Hours(Model.Hours)</span>
+        @if (Model.Hours is not null)
+        {
+          <span>@Formatters.Hours(Model.Hours.Value)</span>
+        }
         @if (Model.CapacityKg is > 0)
         {
           <span>@Model.CapacityKg.Value.ToString("N0") kg</span>
@@ -29,9 +32,9 @@
         {
           <span>@Formatters.Tons(Model.Tons)</span>
         }
-        @if (Model.Horsepower > 0)
+        @if (Model.Horsepower is > 0)
         {
-          <span>@Formatters.Horsepower(Model.Horsepower)</span>
+          <span>@Formatters.Horsepower(Model.Horsepower.Value)</span>
         }
         <span class="@EquipmentCondition.BadgeClass(Model.Condition)">@EquipmentCondition.Label(Model.Condition)</span>
       </div>

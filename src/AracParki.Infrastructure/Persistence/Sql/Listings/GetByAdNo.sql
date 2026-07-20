@@ -20,7 +20,9 @@ SELECT
     l.horsepower,
     city.name AS City,
     d.name AS District,
+    n.name AS Neighborhood,
     l.price,
+    l.rent_price AS RentPrice,
     l.price_unit AS PriceUnit,
     l.includes_operator AS IncludesOperator,
     l.specs::text AS SpecsJson,
@@ -34,6 +36,7 @@ JOIN categories c ON c.id = l.category_id
 JOIN brands b ON b.id = l.brand_id
 JOIN cities city ON city.id = l.city_id
 JOIN districts d ON d.id = l.district_id
+LEFT JOIN neighborhoods n ON n.id = l.neighborhood_id
 JOIN sellers s ON s.id = l.seller_id
 WHERE l.status = 'published'
   AND l.ad_no = @AdNo

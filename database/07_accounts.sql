@@ -1,5 +1,5 @@
 -- Accounts + auth tokens + ownership links (runs after marketplace seed)
--- Fresh installs only need this file; there is no separate migrations/ folder.
+-- Fresh installs are applied by the app startup migrator (schema_migrations).
 
 CREATE TABLE IF NOT EXISTS accounts (
     id                  BIGSERIAL PRIMARY KEY,
@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     first_name          TEXT NOT NULL,
     last_name           TEXT NOT NULL,
     phone               TEXT NULL,
+    phone_confirmed_at  TIMESTAMPTZ NULL,
     email_confirmed_at  TIMESTAMPTZ NULL,
     security_stamp      TEXT NOT NULL DEFAULT gen_random_uuid()::text,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -45,6 +46,26 @@ CREATE TABLE IF NOT EXISTS email_verification_tokens (
 
 CREATE INDEX IF NOT EXISTS ix_email_verification_account
     ON email_verification_tokens (account_id, expires_at DESC);
+
+CREATE TABLE IF NOT EXISTS listing_wizard_drafts (
+    account_id  BIGINT PRIMARY KEY REFERENCES accounts (id) ON DELETE CASCADE,
+    payload     JSONB NOT NULL DEFAULT '{}'::jsonb,
+    step        INT NOT NULL DEFAULT 1 CHECK (step BETWEEN 1 AND 5),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS phone_otp_tokens (
+    id           BIGSERIAL PRIMARY KEY,
+    account_id   BIGINT NOT NULL REFERENCES accounts (id) ON DELETE CASCADE,
+    phone        TEXT NOT NULL,
+    code_hash    TEXT NOT NULL,
+    expires_at   TIMESTAMPTZ NOT NULL,
+    consumed_at  TIMESTAMPTZ NULL,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS ix_phone_otp_account
+    ON phone_otp_tokens (account_id, expires_at DESC);
 
 -- Demo sellers stay unlinked (account_id NULL); real sellers bind here.
 ALTER TABLE sellers

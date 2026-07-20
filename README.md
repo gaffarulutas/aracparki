@@ -10,7 +10,7 @@ src/
   AracParki.Application/       Services, DTOs, validators
   AracParki.Domain/            Constants / entities
   AracParki.Infrastructure/    Dapper, SQL files, Postgres, SMTP
-database/                      Schema + seed (SQL) — docker init only
+database/                      Schema + seed (SQL) — applied on app startup
 ```
 
 ## Sıfırdan çalıştırma
@@ -18,11 +18,11 @@ database/                      Schema + seed (SQL) — docker init only
 Repo kökünden (`aracparki.com/`):
 
 ```bash
-# Postgres verisini sil + şemayı/seed’i baştan yükle (ilk açılış ~1–2 dk)
+# Postgres volume’u silip temiz başlat
 docker compose down -v
 docker compose up -d
 
-# Hazır olunca (kökten):
+# Uygulama açılışında database/*.sql otomatik uygulanır (ilk seferde neighborhoods ~1–2 dk)
 ./watch.sh
 
 # veya:
@@ -36,19 +36,21 @@ Yapılandırma: `src/AracParki.Web/appsettings.json` (+ `appsettings.Development
 - Uygulama: https://localhost:7133 (HTTP: http://localhost:5245)  
 - Health: https://localhost:7133/health  
 
-`docker compose down -v` volume’u siler; bir sonraki `up` `database/01`…`07` dosyalarını boş volume’a uygular. Ayrı migration klasörü yoktur — şema dosyaları kanonik kaynaktır.
+Şema/seed dosyaları `database/01`…`07` — uygulama her başlangıçta `schema_migrations` tablosuna bakıp yeni veya içeriği değişmiş script’leri uygular. `Database:MigrateOnStartup` ile kapatılabilir.
 
-## Database (init sırası)
+## Database (uygulama sırası)
 
 | File | Purpose |
 |------|---------|
-| `01_schema.sql` | Tablolar, index’ler, trigger’lar |
+| `01_schema.sql` | Tablolar, index’ler, trigger’lar (final şema) |
 | `02_cities.sql` | 81 cities |
 | `03_districts.sql` | 973 districts |
 | `04_neighborhoods.sql` | ~73.5k neighborhoods |
-| `05_equipment_catalog.sql` | Groups, brands, models, attributes |
+| `05_equipment_catalog.sql` | Groups, brands, models, attributes, attachments, OEM specs |
 | `06_demo.sql` | Sellers + demo listings |
-| `07_accounts.sql` | Accounts, tokens, seller link, saved_searches |
+| `07_accounts.sql` | Accounts, OTP/drafts, tokens, seller link, saved_searches |
+
+OEM model metriklerini (HP, kapasite) yeniden üretmek için: `python3 scripts/generate_model_specs.py` (`05` içindeki `OEM_MODEL_SPECS` bloğunu günceller).
 
 ## Auth & e-posta
 

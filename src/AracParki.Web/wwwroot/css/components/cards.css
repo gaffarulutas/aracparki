@@ -278,9 +278,15 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.proof-item-copy {
   display: grid;
-  gap: 4px;
-  justify-items: start;
+  gap: 2px;
+  min-width: 0;
 }
 
 .proof-item strong {

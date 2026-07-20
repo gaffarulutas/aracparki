@@ -11,10 +11,10 @@ public sealed class ListingCardDto
     public required string PrimaryIntent { get; init; }
     public required string Condition { get; init; }
     public int ModelYear { get; init; }
-    public int Hours { get; init; }
+    public int? Hours { get; init; }
     public decimal Tons { get; init; }
     public int? CapacityKg { get; init; }
-    public int Horsepower { get; init; }
+    public int? Horsepower { get; init; }
     public required string City { get; init; }
     public required string District { get; init; }
     public decimal Price { get; init; }

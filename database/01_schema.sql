@@ -47,6 +47,10 @@ CREATE TABLE IF NOT EXISTS equipment_models (
     slug                  TEXT NOT NULL,
     typical_weight_min_t  NUMERIC(8, 2) NULL,
     typical_weight_max_t  NUMERIC(8, 2) NULL,
+    horsepower            INT NULL CHECK (horsepower IS NULL OR horsepower >= 0),
+    capacity_kg           INT NULL CHECK (capacity_kg IS NULL OR capacity_kg >= 0),
+    capacity_t            NUMERIC(10, 2) NULL CHECK (capacity_t IS NULL OR capacity_t >= 0),
+    default_specs         JSONB NOT NULL DEFAULT '{}'::jsonb,
     UNIQUE (brand_id, category_id, slug)
 );
 
@@ -71,6 +75,12 @@ CREATE TABLE IF NOT EXISTS attachments (
     id    SERIAL PRIMARY KEY,
     name  TEXT NOT NULL UNIQUE,
     slug  TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS category_attachments (
+    category_id    INT NOT NULL REFERENCES categories (id) ON DELETE CASCADE,
+    attachment_id  INT NOT NULL REFERENCES attachments (id) ON DELETE CASCADE,
+    PRIMARY KEY (category_id, attachment_id)
 );
 
 -- ---------------------------------------------------------------------------
@@ -140,6 +150,7 @@ CREATE TABLE IF NOT EXISTS listings (
     serial_no         TEXT NULL,
     city_id           INT NOT NULL REFERENCES cities (id),
     district_id       INT NOT NULL REFERENCES districts (id),
+    neighborhood_id   INT NULL REFERENCES neighborhoods (id),
     seller_id         BIGINT NOT NULL REFERENCES sellers (id),
     -- URL/SEO locale: satilik | kiralik (labels stay Turkish in UI)
     primary_intent    TEXT NOT NULL CHECK (primary_intent IN ('satilik', 'kiralik')),
@@ -149,11 +160,12 @@ CREATE TABLE IF NOT EXISTS listings (
                       CHECK (condition IN ('new', 'used')),
     model_year        INT NOT NULL
                       CHECK (model_year >= 1950 AND model_year <= 2100),
-    hours             INT NOT NULL CHECK (hours >= 0),
+    hours             INT NULL CHECK (hours IS NULL OR hours >= 0),
     tons              NUMERIC(8, 2) NOT NULL CHECK (tons > 0),
     capacity_kg       INT NULL,
-    horsepower        INT NOT NULL CHECK (horsepower >= 0),
+    horsepower        INT NULL CHECK (horsepower IS NULL OR horsepower >= 0),
     price             NUMERIC(14, 2) NOT NULL CHECK (price > 0),
+    rent_price        NUMERIC(14, 2) NULL CHECK (rent_price IS NULL OR rent_price > 0),
     price_unit        TEXT NULL
                       CHECK (price_unit IS NULL OR price_unit IN ('day', 'week', 'month', 'hour')),
     includes_operator BOOLEAN NOT NULL DEFAULT FALSE,
@@ -203,6 +215,9 @@ CREATE INDEX IF NOT EXISTS ix_listings_city_status
 CREATE INDEX IF NOT EXISTS ix_listings_seller ON listings (seller_id);
 CREATE INDEX IF NOT EXISTS ix_listings_model ON listings (model_id) WHERE model_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_listings_district ON listings (district_id);
+CREATE INDEX IF NOT EXISTS ix_listings_neighborhood
+    ON listings (neighborhood_id)
+    WHERE neighborhood_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS ix_listings_intents_gin
     ON listings USING GIN (intents);
@@ -234,6 +249,9 @@ CREATE INDEX IF NOT EXISTS ix_equipment_models_brand_cat
 
 CREATE INDEX IF NOT EXISTS ix_category_attributes_cat
     ON category_attributes (category_id, sort_order);
+
+CREATE INDEX IF NOT EXISTS ix_category_attachments_attachment
+    ON category_attachments (attachment_id);
 
 CREATE INDEX IF NOT EXISTS ix_districts_city ON districts (city_id);
 CREATE INDEX IF NOT EXISTS ix_districts_name ON districts (city_id, name);

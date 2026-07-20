@@ -1,0 +1,54 @@
+@using AracParki.Web.Infrastructure
+@using System.Security.Claims
+@{
+    var show = User.Identity?.IsAuthenticated == true && !AuthCookie.IsEmailConfirmed(User);
+    var email = User.FindFirst(ClaimTypes.Email)?.Value;
+    var feedback = TempData["VerifyEmailFeedback"] as string;
+    var notice = TempData.Peek("AuthNotice") as string;
+    var justSent = feedback == "ok";
+    var justFailed = feedback == "error";
+    var returnUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+}
+@if (show)
+{
+  <div class="verify-banner@(justSent ? " is-success" : justFailed ? " is-error" : null)"
+       role="status"
+       aria-live="polite"
+       data-verify-banner
+       @(justSent ? "data-verify-sent" : null)>
+    <div class="verify-banner-inner">
+      <p class="verify-banner-text" data-verify-banner-text>
+        @if (justSent || justFailed)
+        {
+          @(notice ?? (justSent
+            ? "Doğrulama e-postasını gönderdik. Gelen kutunu ve spam klasörünü kontrol et."
+            : "Doğrulama e-postası gönderilemedi. Biraz sonra tekrar dene."))
+        }
+        else if (string.IsNullOrEmpty(email))
+        {
+          <span>E-posta adresiniz henüz doğrulanmadı. Hesabınızı güvence altına almak için doğrulama bağlantısını gönderin.</span>
+        }
+        else
+        {
+          <span>E-posta adresiniz henüz doğrulanmadı (@email). Hesabınızı güvence altına almak için doğrulama bağlantısını gönderin.</span>
+        }
+      </p>
+      <form method="post"
+            action="/eposta-dogrula?handler=Resend"
+            class="verify-banner-actions"
+            data-verify-resend-form>
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="returnUrl" value="@returnUrl" />
+        <button type="submit"
+                class="verify-banner-btn"
+                data-verify-resend-btn
+                data-label-idle="Doğrulama e-postası gönder"
+                data-label-loading="Gönderiliyor…"
+                data-label-cooldown="Tekrar gönder ({s}s)"
+                @(justSent ? "disabled" : null)>
+          @(justSent ? "Tekrar gönder (60s)" : "Doğrulama e-postası gönder")
+        </button>
+      </form>
+    </div>
+  </div>
+}

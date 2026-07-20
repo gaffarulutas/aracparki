@@ -9,6 +9,7 @@ namespace AracParki.Web.Infrastructure;
 public static class AuthCookie
 {
     public const string SecurityStampClaimType = "sstamp";
+    public const string EmailConfirmedClaimType = "email_confirmed";
 
     public static ClaimsPrincipal CreatePrincipal(AccountDto account)
     {
@@ -17,7 +18,8 @@ public static class AuthCookie
             new(ClaimTypes.NameIdentifier, account.Id.ToString()),
             new(ClaimTypes.Email, account.Email),
             new(ClaimTypes.Name, account.DisplayName),
-            new(SecurityStampClaimType, account.SecurityStamp)
+            new(SecurityStampClaimType, account.SecurityStamp),
+            new(EmailConfirmedClaimType, account.EmailConfirmed ? "1" : "0")
         };
 
         if (!string.IsNullOrWhiteSpace(account.Phone))
@@ -28,6 +30,9 @@ public static class AuthCookie
         return new ClaimsPrincipal(
             new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
     }
+
+    public static bool IsEmailConfirmed(ClaimsPrincipal user)
+        => user.FindFirstValue(EmailConfirmedClaimType) == "1";
 
     public static void ConfigureSecurityStampValidation(CookieAuthenticationOptions options)
     {
@@ -57,6 +62,15 @@ public static class AuthCookie
         {
             context.RejectPrincipal();
             await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return;
+        }
+
+        // Keep soft-gate banner in sync after confirmation without forcing re-login.
+        var claim = principal.FindFirst(EmailConfirmedClaimType)?.Value == "1";
+        if (claim != account.EmailConfirmed)
+        {
+            context.ReplacePrincipal(CreatePrincipal(account));
+            context.ShouldRenew = true;
         }
     }
 }

@@ -975,6 +975,10 @@ INSERT INTO districts (id, city_id, name, identity_no) VALUES
 (2103, 52, 'Altınordu', 2103),
 (2105, 8, 'Kemalpaşa', 2105),
 (2106, 68, 'Sultanhanı', 2106),
-(2107, 30, 'Derecik', 2107);
+(2107, 30, 'Derecik', 2107)
+ON CONFLICT (id) DO UPDATE SET
+  city_id = EXCLUDED.city_id,
+  name = EXCLUDED.name,
+  identity_no = EXCLUDED.identity_no;
 
 COMMIT;

@@ -1,18 +1,23 @@
-/* —— Header —— */
-.site-header {
+/* —— Site chrome (header + verify banner stick together) —— */
+.site-chrome {
   position: sticky;
   top: 0;
   z-index: 50;
   background: var(--raised);
-  border-bottom: 1px solid var(--line);
   padding-top: env(safe-area-inset-top);
+}
+
+/* —— Header —— */
+.site-header {
+  position: relative;
+  z-index: 2;
+  background: var(--raised);
+  border-bottom: 1px solid var(--line);
 }
 
 .header-top {
   position: relative;
   z-index: 2;
-  display: grid;
-  grid-template-rows: 1fr;
   border-bottom: 1px solid var(--line);
 }
 
@@ -34,122 +39,6 @@
 
 .header-top-inner:has(.account-menu-trigger[aria-expanded="true"]) {
   overflow: visible;
-}
-
-/* Compact header: scroll-driven (JS class toggle yok) */
-@supports (animation-timeline: scroll()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .site-header:has(.cat-bar) .header-top {
-      animation: ap-collapse-top linear both;
-      animation-timeline: scroll();
-      animation-range: 36px 100px;
-    }
-
-    .site-header:has(.cat-bar) .header-top-inner {
-      animation: ap-collapse-inner linear both;
-      animation-timeline: scroll();
-      animation-range: 36px 100px;
-    }
-
-    .site-header:has(.cat-bar) .cat-bar-brand {
-      animation: ap-reveal-brand linear both;
-      animation-timeline: scroll();
-      animation-range: 36px 100px;
-    }
-
-    .site-header:has(.cat-bar) .cat-bar-actions {
-      animation: ap-reveal-actions linear both;
-      animation-timeline: scroll();
-      animation-range: 36px 100px;
-    }
-
-    .site-header:has(.cat-bar) .cat-bar-brand .logo-arac,
-    .site-header:has(.cat-bar) .cat-bar-brand .logo-parki {
-      animation: ap-brand-pad linear both;
-      animation-timeline: scroll();
-      animation-range: 36px 100px;
-    }
-
-    .site-header:has(.cat-bar) .cat-bar-actions .header-cta {
-      animation: ap-cta-compact linear both;
-      animation-timeline: scroll();
-      animation-range: 36px 100px;
-    }
-
-    .site-header:has(.cat-bar) .cat-bar-actions .link-quiet {
-      animation: ap-reveal-quiet linear both;
-      animation-timeline: scroll();
-      animation-range: 36px 100px;
-    }
-  }
-}
-
-@keyframes ap-collapse-top {
-  to {
-    grid-template-rows: 0fr;
-    border-bottom-color: transparent;
-    visibility: hidden;
-  }
-}
-
-@keyframes ap-collapse-inner {
-  to {
-    min-height: 0;
-    padding-block: 0;
-  }
-}
-
-@keyframes ap-reveal-brand {
-  from {
-    display: none;
-    opacity: 0;
-  }
-  to {
-    display: inline-flex;
-    opacity: 1;
-    font-size: 14px;
-  }
-}
-
-@keyframes ap-reveal-actions {
-  from {
-    display: none;
-    opacity: 0;
-  }
-  to {
-    display: flex;
-    opacity: 1;
-    gap: 8px;
-  }
-}
-
-@keyframes ap-brand-pad {
-  to {
-    padding: 7px 9px;
-  }
-}
-
-@keyframes ap-cta-compact {
-  to {
-    min-height: 32px;
-    padding-inline: 10px;
-    font-size: 11px;
-  }
-}
-
-@keyframes ap-cta-compact-sm {
-  to {
-    min-height: 32px;
-    padding-inline: 8px;
-    font-size: 10px;
-  }
-}
-
-@keyframes ap-reveal-quiet {
-  to {
-    display: inline;
-    font-size: 12px;
-  }
 }
 
 .logo {
@@ -603,35 +492,6 @@
   background: var(--raised);
 }
 
-.cat-bar:has(.account-menu-trigger[aria-expanded="true"]) {
-  z-index: 40;
-}
-
-.cat-bar-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-width: 0;
-}
-
-.cat-bar-brand,
-.cat-bar-actions {
-  display: none;
-  flex: 0 0 auto;
-  align-items: center;
-}
-
-.cat-bar-actions {
-  position: relative;
-  z-index: 1;
-}
-
-.cat-bar-clip {
-  min-width: 0;
-  flex: 1 1 auto;
-  overflow: hidden;
-}
-
 .cat-bar-inner {
   display: flex;
   gap: 4px;
@@ -692,4 +552,110 @@
 .nav-mobile a:hover {
   color: var(--link);
 }
+
+/* Soft email verification banner — inside sticky .site-chrome */
+.verify-banner {
+  position: relative;
+  z-index: 1;
+  background: color-mix(in srgb, var(--machine) 72%, #fff);
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  transition: background-color 0.2s ease;
+}
+
+.verify-banner.is-success {
+  background: color-mix(in srgb, #1f7a4d 18%, #fff);
+  border-bottom-color: color-mix(in srgb, #1f7a4d 28%, transparent);
+}
+
+.verify-banner.is-error {
+  background: color-mix(in srgb, #b42318 14%, #fff);
+  border-bottom-color: color-mix(in srgb, #b42318 24%, transparent);
+}
+
+.verify-banner-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  max-width: var(--page-max, 1240px);
+  margin-inline: auto;
+  padding: 10px var(--space-2, 16px);
+}
+
+.verify-banner-text {
+  margin: 0;
+  flex: 1 1 220px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.verify-banner-actions {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.verify-banner-btn {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  border-radius: var(--radius, 6px);
+  background: var(--ink);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 12px;
+  cursor: pointer;
+  min-width: 12.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 0.15s ease, filter 0.15s ease;
+}
+
+.verify-banner-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.verify-banner-btn:disabled,
+.verify-banner-btn[aria-busy="true"] {
+  cursor: wait;
+  opacity: 0.72;
+  filter: none;
+}
+
+.verify-banner-btn.is-cooldown:disabled {
+  cursor: not-allowed;
+}
+
+.verify-banner-btn[aria-busy="true"]::before {
+  content: "";
+  width: 0.85em;
+  height: 0.85em;
+  border: 2px solid color-mix(in srgb, #fff 35%, transparent);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: verify-banner-spin 0.7s linear infinite;
+}
+
+@keyframes verify-banner-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 560px) {
+  .verify-banner-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .verify-banner-btn {
+    width: 100%;
+  }
+}
+
 

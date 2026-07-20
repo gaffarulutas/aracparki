@@ -1,0 +1,342 @@
+@import "tailwindcss";
+
+/* Only scan modal partial — utilities optional; layout is BEM below */
+@source "../Pages/Shared/**/*Modal*.cshtml";
+
+@layer base {
+  [x-cloak] {
+    display: none !important;
+  }
+}
+
+/* —— Phone verify dialog (header / body / footer) —— */
+.ap-phone-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  animation: ap-gate-fade 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (min-width: 640px) {
+  .ap-phone-gate {
+    align-items: center;
+    padding: 16px;
+  }
+}
+
+.ap-phone-gate__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 12, 12, 0.55);
+  backdrop-filter: blur(2px);
+  animation: ap-gate-fade 280ms ease-out both;
+}
+
+.ap-phone-gate__dialog {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 28rem;
+  max-height: min(92vh, 36rem);
+  overflow: hidden;
+  border: 1px solid var(--line, #e6e6e6);
+  border-radius: 16px 16px 0 0;
+  background: var(--raised, #fff);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  animation: ap-panel-up 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (min-width: 640px) {
+  .ap-phone-gate__dialog {
+    border-radius: var(--radius, 4px);
+    animation-name: ap-panel-scale;
+  }
+}
+
+.ap-phone-gate__header {
+  flex-shrink: 0;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--line, #e6e6e6);
+  background: var(--tint, #fffce6);
+}
+
+.ap-phone-gate__title {
+  margin: 0;
+  font-family: var(--font-display, "Archivo", sans-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ink, #0c0c0c);
+}
+
+.ap-phone-gate__lead {
+  margin: 8px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--muted, #5a5a5a);
+}
+
+.ap-phone-gate__form {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ap-phone-gate__body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  overflow-y: auto;
+  background: var(--raised, #fff);
+}
+
+/* Step panels — CSS driven via data-step (works before Alpine boots) */
+.ap-phone-gate__panel {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ap-phone-gate[data-step="phone"] .ap-phone-gate__panel[data-panel="phone"],
+.ap-phone-gate[data-step="otp"] .ap-phone-gate__panel[data-panel="otp"] {
+  display: flex;
+}
+
+.ap-phone-gate__label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ink, #0c0c0c);
+}
+
+.ap-phone-gate__phone-row {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--line, #e6e6e6);
+  border-radius: var(--radius, 4px);
+  background: var(--raised, #fff);
+}
+
+.ap-phone-gate__phone-row:focus-within {
+  border-color: var(--link, #0a4dcf);
+  box-shadow: 0 0 0 2px rgba(10, 77, 207, 0.2);
+}
+
+.ap-phone-gate__prefix {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 0 12px;
+  border-right: 1px solid var(--line, #e6e6e6);
+  background: var(--surface, #f4f4f2);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--muted, #5a5a5a);
+}
+
+.ap-phone-gate__input {
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--line, #e6e6e6);
+  border-radius: var(--radius, 4px);
+  background: var(--raised, #fff);
+  color: var(--ink, #0c0c0c);
+  font-size: 1rem;
+  outline: none;
+}
+
+.ap-phone-gate__phone-row .ap-phone-gate__input {
+  border: 0;
+  border-radius: 0;
+}
+
+.ap-phone-gate__input:focus {
+  border-color: var(--link, #0a4dcf);
+  box-shadow: 0 0 0 2px rgba(10, 77, 207, 0.2);
+}
+
+.ap-phone-gate__phone-row .ap-phone-gate__input:focus {
+  box-shadow: none;
+}
+
+.ap-phone-gate__input--otp {
+  text-align: center;
+  font-family: var(--font-display, "Archivo", sans-serif);
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: 0.35em;
+}
+
+.ap-phone-gate__hint {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--muted, #5a5a5a);
+}
+
+.ap-phone-gate__secondary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-top: 4px;
+}
+
+.ap-phone-gate__dot {
+  color: var(--muted-2, #7a7a7a);
+  user-select: none;
+}
+
+.ap-phone-gate__text-btn {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--link, #0a4dcf);
+  cursor: pointer;
+  text-underline-offset: 2px;
+}
+
+.ap-phone-gate__text-btn:hover {
+  text-decoration: underline;
+}
+
+.ap-phone-gate__text-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ap-phone-gate__dev {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius, 4px);
+  background: var(--surface, #f4f4f2);
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+  color: var(--ink, #0c0c0c);
+}
+
+.ap-phone-gate__alert {
+  padding: 10px 12px;
+  border-radius: var(--radius, 4px);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.ap-phone-gate__alert--error {
+  border: 1px solid rgba(198, 40, 40, 0.3);
+  background: rgba(198, 40, 40, 0.06);
+  color: var(--signal, #c62828);
+}
+
+.ap-phone-gate__alert--ok {
+  border: 1px solid rgba(27, 122, 61, 0.3);
+  background: rgba(27, 122, 61, 0.06);
+  color: var(--ok, #1b7a3d);
+}
+
+.ap-phone-gate__footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: stretch;
+  gap: 10px;
+  padding: 14px 20px 18px;
+  border-top: 1px solid var(--line, #e6e6e6);
+  background: var(--surface, #f4f4f2);
+}
+
+@media (min-width: 640px) {
+  .ap-phone-gate__footer {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+}
+
+.ap-phone-gate__cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: var(--radius, 4px);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--muted, #5a5a5a);
+  text-decoration: none;
+}
+
+.ap-phone-gate__cancel:hover {
+  background: var(--surface, #f4f4f2);
+  color: var(--ink, #0c0c0c);
+}
+
+/* Site .btn.btn-machine already sets yellow bg + dark ink — reinforce here */
+.ap-phone-gate__submit {
+  min-width: 10.5rem;
+  min-height: 44px;
+  color: var(--machine-ink, #0c0c0c) !important;
+}
+
+.ap-phone-gate__submit-label {
+  color: inherit;
+  font-weight: 700;
+}
+
+.ap-phone-gate__submit:disabled .ap-phone-gate__submit-label {
+  color: var(--machine-ink, #0c0c0c);
+}
+
+@keyframes ap-gate-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ap-panel-up {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ap-panel-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ap-phone-gate,
+  .ap-phone-gate__backdrop,
+  .ap-phone-gate__dialog {
+    animation: none;
+  }
+}

@@ -75,6 +75,10 @@ public sealed class EquipmentModelOptionDto
     public required string Slug { get; init; }
     public decimal? TypicalWeightMinT { get; init; }
     public decimal? TypicalWeightMaxT { get; init; }
+    public int? Horsepower { get; init; }
+    public int? CapacityKg { get; init; }
+    public decimal? CapacityT { get; init; }
+    public string? DefaultSpecsJson { get; init; }
 }
 
 public sealed class CategoryAttributeDto
