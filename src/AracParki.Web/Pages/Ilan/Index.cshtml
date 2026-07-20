@@ -75,11 +75,7 @@
     <aside class="detail-right" aria-label="Fiyat ve iletişim">
       <div class="detail-card detail-buybox sticky-box" id="buybox">
         <div class="detail-price">
-          @Formatters.Price(listing.Price, listing.Intents.Contains(ListingIntent.Kiralik) && !listing.Intents.Contains(ListingIntent.Satilik) ? listing.PriceUnit : null)
-          @if (listing.RentPrice is > 0 && listing.Intents.Contains(ListingIntent.Kiralik) && listing.Intents.Contains(ListingIntent.Satilik))
-          {
-            <div class="detail-price-secondary">Kira: @Formatters.Price(listing.RentPrice.Value, listing.PriceUnit)</div>
-          }
+          @Formatters.Price(listing.Price, listing.PrimaryIntent == ListingIntent.Kiralik ? listing.PriceUnit : null)
         </div>
         <div class="detail-loc">@listing.City / @listing.District@(string.IsNullOrWhiteSpace(listing.Neighborhood) ? null : $" / {listing.Neighborhood}")</div>
 

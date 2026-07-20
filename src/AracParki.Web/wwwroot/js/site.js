@@ -706,6 +706,11 @@
       brands: [],
       models: [],
       years: [],
+      intents: [
+        { id: "satilik", name: "Satılık" },
+        { id: "kiralik", name: "Kiralık" },
+      ],
+      intent: "",
       groupId: 0,
       groupName: "",
       categoryId: 0,
@@ -724,12 +729,23 @@
       },
       get pathText() {
         const parts = [];
+        if (this.intentLabel) parts.push(this.intentLabel);
         if (this.groupName) parts.push(this.groupName);
         if (this.categoryName) parts.push(this.categoryName);
         if (this.brandName) parts.push(this.brandName);
         if (this.modelName) parts.push(this.modelName);
         if (this.modelYear) parts.push(String(this.modelYear));
         return parts.join(" › ");
+      },
+      get intentLabel() {
+        const id = String(this.intent || "");
+        const hit = this.intents.find(function (t) {
+          return t.id === id;
+        });
+        return hit ? hit.name : "";
+      },
+      get hasIntent() {
+        return this.intent === "satilik" || this.intent === "kiralik";
       },
       get hasGroup() {
         return this.groupId > 0;
@@ -751,6 +767,7 @@
       },
       get canContinue() {
         return (
+          this.hasIntent &&
           this.categoryId > 0 &&
           this.brandId > 0 &&
           String(this.modelName || "").trim().length > 0 &&
@@ -762,6 +779,18 @@
       },
       get customModelClass() {
         return this.showCustomModel ? "is-selected" : "";
+      },
+      get intentsView() {
+        const selected = String(this.intent || "");
+        return this.intents.map(function (t) {
+          const on = t.id === selected;
+          return {
+            id: t.id,
+            name: t.name,
+            itemClass: on ? "is-selected" : "",
+            ariaSelected: on ? "true" : "false",
+          };
+        });
       },
       get groupsView() {
         const selected = this.groupId;
@@ -826,6 +855,12 @@
         });
       },
 
+      pickIntent(event) {
+        const id = String((event && event.currentTarget && event.currentTarget.getAttribute("data-id")) || "");
+        if (id !== "satilik" && id !== "kiralik") return;
+        this.intent = id;
+        this.scrollBoard();
+      },
       pickGroup(event) {
         const id = Number((event && event.currentTarget && event.currentTarget.getAttribute("data-id")) || 0);
         const g = this.groups.find(function (x) {
@@ -867,6 +902,8 @@
         }
         this.years = list;
 
+        const intentRaw = String(this.$el.dataset.intent || "").trim();
+        this.intent = intentRaw === "satilik" || intentRaw === "kiralik" ? intentRaw : "";
         this.groupId = Number(this.$el.dataset.groupId || 0);
         this.groupName = this.$el.dataset.groupName || "";
         this.categoryId = Number(this.$el.dataset.categoryId || 0);
@@ -887,6 +924,7 @@
         }
       },
       reset() {
+        this.intent = "";
         this.groupId = 0;
         this.groupName = "";
         this.categoryId = 0;
@@ -1022,70 +1060,170 @@
     }));
 
     Alpine.data("ilanVerSale", () => ({
-      cityId: 0,
-      districtId: 0,
-      neighborhoodId: 0,
-      primaryIntent: "satilik",
-      rent: false,
-      bothSaleRent: false,
-      sellerType: "",
-      districts: [],
-      neighborhoods: [],
+      districtsLoading: false,
+      neighborhoodsLoading: false,
+      locationStatus: "",
+      _districtAbort: null,
+      _neighborhoodAbort: null,
+      get hasLocationStatus() {
+        return !!this.locationStatus;
+      },
       init() {
-        this.cityId = Number(this.$el.dataset.cityId || 0);
-        this.districtId = Number(this.$el.dataset.districtId || 0);
-        this.neighborhoodId = Number(this.$el.dataset.neighborhoodId || 0);
-        this.primaryIntent = this.$el.dataset.primaryIntent || "satilik";
-        this.rent = this.$el.dataset.rent === "1";
-        this.bothSaleRent = this.$el.dataset.bothSaleRent === "1";
-        this.sellerType = this.$el.dataset.sellerType || "";
-        this.districts = parseJsonAttr(this.$el, "data-districts", []);
-        this.neighborhoods = parseJsonAttr(this.$el, "data-neighborhoods", []);
-      },
-      onIntentsChange() {
-        const form = this.$el;
-        const boxes = form.querySelectorAll('input[name="intents"]');
-        let hasSale = false;
-        let hasRent = false;
-        boxes.forEach((cb) => {
-          if (cb.value === "satilik" && cb.checked) hasSale = true;
-          if (cb.value === "kiralik" && cb.checked) hasRent = true;
+        const cityId = Number(this.$el.dataset.cityId || 0) || 0;
+        const districtId = Number(this.$el.dataset.districtId || 0) || 0;
+        const neighborhoodId = Number(this.$el.dataset.neighborhoodId || 0) || 0;
+        const districts = parseJsonAttr(this.$el, "data-districts", []);
+        const neighborhoods = parseJsonAttr(this.$el, "data-neighborhoods", []);
+
+        // disabled select alanları POST'a girmez; gönderimden hemen önce aç.
+        this.$el.addEventListener("submit", () => {
+          if (this.$refs.district) this.$refs.district.disabled = false;
+          if (this.$refs.neighborhood) this.$refs.neighborhood.disabled = false;
         });
-        this.rent = hasRent;
-        this.bothSaleRent = hasSale && hasRent;
+
+        this.$nextTick(() => {
+          if (this.$refs.city) {
+            this.$refs.city.value = cityId > 0 ? String(cityId) : "";
+            this.$refs.city.addEventListener("change", (e) => this.onCityChange(e));
+          }
+          if (this.$refs.district) {
+            this.$refs.district.addEventListener("change", (e) => this.onDistrictChange(e));
+          }
+
+          this.fillSelect(
+            this.$refs.district,
+            districts,
+            districtId,
+            cityId > 0 ? "İlçe seç" : "Önce il seç",
+            cityId <= 0
+          );
+          this.fillSelect(
+            this.$refs.neighborhood,
+            neighborhoods,
+            neighborhoodId,
+            districtId > 0 ? "Mahalle seç" : "Önce ilçe seç",
+            districtId <= 0
+          );
+        });
       },
-      async onCityChange() {
-        this.districtId = 0;
-        this.neighborhoodId = 0;
-        this.districts = [];
-        this.neighborhoods = [];
-        if (!this.cityId) return;
-        try {
-          const res = await fetch(`/api/locations/cities/${this.cityId}/districts`);
-          if (!res.ok) return;
-          const data = await res.json();
-          this.districts = (data || []).map((d) => ({
-            id: d.id ?? d.Id,
-            name: d.name ?? d.Name,
-          }));
-        } catch {
-          this.districts = [];
+      setBusy(select, busy) {
+        if (!select) return;
+        select.setAttribute("aria-busy", busy ? "true" : "false");
+        select.classList.toggle("is-loading", !!busy);
+      },
+      fillSelect(select, items, selectedId, placeholder, disabled) {
+        if (!select) return;
+        const list = Array.isArray(items) ? items : [];
+        const selected = Number(selectedId) || 0;
+        const wasDisabled = select.disabled;
+        select.innerHTML = "";
+
+        const empty = document.createElement("option");
+        empty.value = "";
+        empty.textContent = placeholder;
+        select.appendChild(empty);
+
+        for (const item of list) {
+          const id = Number(item.id ?? item.Id);
+          if (!id) continue;
+          const opt = document.createElement("option");
+          opt.value = String(id);
+          opt.textContent = String(
+            item.name ?? item.Name ?? item.displayName ?? item.DisplayName ?? id
+          );
+          if (id === selected) opt.selected = true;
+          select.appendChild(opt);
+        }
+
+        select.disabled = !!disabled;
+        this.setBusy(select, String(placeholder).includes("Yükleniyor"));
+
+        if (wasDisabled && !disabled && list.length > 0) {
+          this.$nextTick(() => select.focus({ preventScroll: true }));
         }
       },
-      async onDistrictChange() {
-        this.neighborhoodId = 0;
-        this.neighborhoods = [];
-        if (!this.districtId) return;
+      async onCityChange(event) {
+        const cityId = Number(event?.target?.value || 0) || 0;
+        this._districtAbort?.abort();
+        this._neighborhoodAbort?.abort();
+        this.locationStatus = "";
+        this.fillSelect(this.$refs.district, [], 0, cityId ? "Yükleniyor…" : "Önce il seç", true);
+        this.fillSelect(this.$refs.neighborhood, [], 0, "Önce ilçe seç", true);
+        if (!cityId) return;
+
+        this.districtsLoading = true;
+        this.locationStatus = "İlçeler yükleniyor…";
+        this._districtAbort = new AbortController();
         try {
-          const res = await fetch(`/api/locations/districts/${this.districtId}/neighborhoods`);
-          if (!res.ok) return;
+          const res = await fetch(`/api/locations/cities/${cityId}/districts`, {
+            headers: { Accept: "application/json" },
+            signal: this._districtAbort.signal,
+          });
+          if (!res.ok) throw new Error("districts");
           const data = await res.json();
-          this.neighborhoods = (data || []).map((n) => ({
-            id: n.id ?? n.Id,
+          const items = (Array.isArray(data) ? data : []).map((d) => ({
+            id: Number(d.id ?? d.Id),
+            name: d.name ?? d.Name,
+          }));
+          this.fillSelect(
+            this.$refs.district,
+            items,
+            0,
+            items.length ? "İlçe seç" : "İlçe bulunamadı",
+            items.length === 0
+          );
+          this.locationStatus = items.length ? "" : "Bu il için ilçe bulunamadı.";
+        } catch (err) {
+          if (err?.name === "AbortError") return;
+          this.fillSelect(this.$refs.district, [], 0, "İlçeler yüklenemedi", true);
+          this.locationStatus = "İlçeler yüklenemedi. Tekrar dene.";
+        } finally {
+          this.districtsLoading = false;
+          this.setBusy(this.$refs.district, false);
+        }
+      },
+      async onDistrictChange(event) {
+        const districtId = Number(event?.target?.value || 0) || 0;
+        this._neighborhoodAbort?.abort();
+        this.locationStatus = "";
+        this.fillSelect(
+          this.$refs.neighborhood,
+          [],
+          0,
+          districtId ? "Yükleniyor…" : "Önce ilçe seç",
+          true
+        );
+        if (!districtId) return;
+
+        this.neighborhoodsLoading = true;
+        this.locationStatus = "Mahalleler yükleniyor…";
+        this._neighborhoodAbort = new AbortController();
+        try {
+          const res = await fetch(`/api/locations/districts/${districtId}/neighborhoods`, {
+            headers: { Accept: "application/json" },
+            signal: this._neighborhoodAbort.signal,
+          });
+          if (!res.ok) throw new Error("neighborhoods");
+          const data = await res.json();
+          const items = (Array.isArray(data) ? data : []).map((n) => ({
+            id: Number(n.id ?? n.Id),
             name: n.displayName ?? n.DisplayName ?? n.name ?? n.Name,
           }));
-        } catch {
-          this.neighborhoods = [];
+          this.fillSelect(
+            this.$refs.neighborhood,
+            items,
+            0,
+            items.length ? "Mahalle seç" : "Mahalle bulunamadı",
+            false
+          );
+          this.locationStatus = "";
+        } catch (err) {
+          if (err?.name === "AbortError") return;
+          this.fillSelect(this.$refs.neighborhood, [], 0, "Mahalleler yüklenemedi", false);
+          this.locationStatus = "Mahalleler yüklenemedi; istersen boş bırakabilirsin.";
+        } finally {
+          this.neighborhoodsLoading = false;
+          this.setBusy(this.$refs.neighborhood, false);
         }
       },
     }));
@@ -1358,36 +1496,111 @@
       },
     }));
 
+    Alpine.data("ilanVerMachine", () => ({
+      hoursUnknown: false,
+      hpUnknown: false,
+      get hoursRequired() {
+        return !this.hoursUnknown;
+      },
+      get hpRequired() {
+        return !this.hpUnknown;
+      },
+      init() {
+        this.hoursUnknown = String(this.$el.dataset.hoursUnknown || "") === "true";
+        this.hpUnknown = String(this.$el.dataset.hpUnknown || "") === "true";
+        const invalid = this.$el.querySelector(".is-invalid, [aria-invalid='true']");
+        if (invalid && typeof invalid.scrollIntoView === "function") {
+          invalid.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      },
+    }));
+
+    // CSP Alpine: drag-drop photo upload → auto-submit Upload handler.
+    Alpine.data("ilanVerDropzone", () => ({
+      dragging: false,
+      get dropzoneClass() {
+        return this.dragging ? "is-dragging" : "";
+      },
+      onDragEnter() {
+        this.dragging = true;
+      },
+      onDragOver() {
+        this.dragging = true;
+      },
+      onDragLeave(event) {
+        const related = event && event.relatedTarget;
+        if (related && this.$el.contains(related)) return;
+        this.dragging = false;
+      },
+      onDrop(event) {
+        this.dragging = false;
+        const files = event && event.dataTransfer && event.dataTransfer.files;
+        const file = files && files[0];
+        const input = this.$refs.file;
+        if (!file || !input) return;
+        try {
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          input.files = dt.files;
+          this.$el.requestSubmit ? this.$el.requestSubmit() : this.$el.submit();
+        } catch {
+          /* Safari older: fall through to file picker */
+        }
+      },
+      onFileChange() {
+        const input = this.$refs.file;
+        if (input && input.files && input.files.length) {
+          this.$el.requestSubmit ? this.$el.requestSubmit() : this.$el.submit();
+        }
+      },
+    }));
+
+    // CSP Alpine: no method(args) / bracket access in markup — use item objects + getters.
     Alpine.data("ilanVerImages", () => ({
-      urls: [""],
+      items: [],
+      _nextId: 1,
       get canRemove() {
-        return this.urls.length > 1;
+        return this.items.length > 1;
       },
       get canAdd() {
-        return this.urls.length < 8;
+        return this.items.length < 8;
       },
       get hasAnyUrl() {
-        return this.urls.some((u) => !!String(u || "").trim());
+        return this.items.some((item) => !!String(item.value || "").trim());
+      },
+      createItem(value) {
+        const parent = this;
+        const id = this._nextId++;
+        return {
+          id,
+          value: String(value || ""),
+          get label() {
+            const index = parent.items.indexOf(this);
+            return index === 0 ? "Kapak görseli (URL)" : "Görsel " + (index + 1);
+          },
+          get inputId() {
+            return "img-" + this.id;
+          },
+          get hasPreview() {
+            return !!String(this.value || "").trim();
+          },
+          remove() {
+            parent.removeItem(this);
+          },
+        };
       },
       init() {
         const parsed = parseJsonAttr(this.$el, "data-urls", [""]);
-        this.urls = Array.isArray(parsed) && parsed.length ? parsed : [""];
+        const urls = Array.isArray(parsed) && parsed.length ? parsed : [""];
+        this.items = urls.map((url) => this.createItem(url));
       },
       add() {
-        if (this.urls.length < 8) this.urls.push("");
+        if (this.items.length < 8) this.items.push(this.createItem(""));
       },
-      removeAt(index) {
-        if (this.urls.length <= 1) return;
-        this.urls.splice(index, 1);
-      },
-      labelFor(index) {
-        return Number(index) === 0 ? "Kapak görseli (URL)" : "Görsel " + (Number(index) + 1);
-      },
-      inputId(index) {
-        return "img-" + index;
-      },
-      hasPreview(index) {
-        return !!String(this.urls[index] || "").trim();
+      removeItem(item) {
+        if (this.items.length <= 1) return;
+        const index = this.items.indexOf(item);
+        if (index >= 0) this.items.splice(index, 1);
       },
     }));
   });

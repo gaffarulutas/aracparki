@@ -57,7 +57,12 @@ public sealed class WizardDraft
 
     public bool HasCategory => CategoryId > 0;
 
+    public bool HasIntent => PrimaryIntent is ListingIntent.Satilik or ListingIntent.Kiralik
+                             && Intents.Count == 1
+                             && Intents[0] == PrimaryIntent;
+
     public bool HasMachine => HasCategory
+                              && HasIntent
                               && BrandId > 0
                               && !string.IsNullOrWhiteSpace(ModelName)
                               && ModelYear is >= 1950 and <= 2100
@@ -70,21 +75,15 @@ public sealed class WizardDraft
 
     public bool HasSaleInfo(bool requirePhoneVerification)
     {
-        var intentsOk = Intents.Count > 0
-                        && Intents.Contains(PrimaryIntent)
-                        && Intents.All(i => i is ListingIntent.Satilik or ListingIntent.Kiralik);
-        var hasSale = Intents.Contains(ListingIntent.Satilik);
-        var hasRent = Intents.Contains(ListingIntent.Kiralik);
-        var rentOk = !hasRent
+        var isRent = PrimaryIntent == ListingIntent.Kiralik;
+        var rentOk = !isRent
                      || (!string.IsNullOrWhiteSpace(PriceUnit)
                          && Domain.Listings.PriceUnit.Known.Contains(PriceUnit));
-        var dualPriceOk = !(hasSale && hasRent) || RentPrice is > 0;
         var sellerOk = Domain.Listings.SellerType.Known.Contains(SellerType);
         var phoneOk = !requirePhoneVerification
                       || (AccountService.NormalizePhone(Phone) is not null && PhoneVerified);
-        return intentsOk
+        return HasIntent
                && rentOk
-               && dualPriceOk
                && sellerOk
                && phoneOk
                && Price > 0

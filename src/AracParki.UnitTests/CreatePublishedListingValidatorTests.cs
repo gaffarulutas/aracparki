@@ -43,7 +43,7 @@ public sealed class CreatePublishedListingValidatorTests
     }
 
     [Fact]
-    public void Dual_intent_requires_rent_price()
+    public void Rejects_dual_intent()
     {
         var cmd = ValidCommand();
         cmd = new CreatePublishedListingCommand
@@ -73,7 +73,41 @@ public sealed class CreatePublishedListingValidatorTests
         };
 
         var result = _validator.TestValidate(cmd);
-        result.ShouldHaveValidationErrorFor(x => x.RentPrice);
+        result.ShouldHaveValidationErrorFor(x => x.Intents);
+    }
+
+    [Fact]
+    public void Rent_requires_price_unit()
+    {
+        var cmd = ValidCommand();
+        cmd = new CreatePublishedListingCommand
+        {
+            AccountId = cmd.AccountId,
+            SellerDisplayName = cmd.SellerDisplayName,
+            Phone = cmd.Phone,
+            SellerType = cmd.SellerType,
+            CategoryId = cmd.CategoryId,
+            BrandId = cmd.BrandId,
+            ModelName = cmd.ModelName,
+            CityId = cmd.CityId,
+            DistrictId = cmd.DistrictId,
+            PrimaryIntent = ListingIntent.Kiralik,
+            Intents = [ListingIntent.Kiralik],
+            Condition = cmd.Condition,
+            ModelYear = cmd.ModelYear,
+            Hours = cmd.Hours,
+            Tons = cmd.Tons,
+            Horsepower = cmd.Horsepower,
+            Price = cmd.Price,
+            PriceUnit = null,
+            Title = cmd.Title,
+            Description = cmd.Description,
+            SpecsJson = cmd.SpecsJson,
+            ImageUrls = cmd.ImageUrls
+        };
+
+        var result = _validator.TestValidate(cmd);
+        result.ShouldHaveValidationErrorFor(x => x.PriceUnit);
     }
 
     [Fact]

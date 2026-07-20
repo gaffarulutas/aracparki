@@ -18,11 +18,8 @@ public sealed class ListingCommandService(
 
     private static CreatePublishedListingCommand Normalize(CreatePublishedListingCommand command)
     {
-        var intents = command.Intents
-            .Where(i => !string.IsNullOrWhiteSpace(i))
-            .Select(i => i.Trim())
-            .Distinct(StringComparer.Ordinal)
-            .ToArray();
+        var primary = command.PrimaryIntent.Trim();
+        var intents = new[] { primary };
 
         var images = command.ImageUrls
             .Where(u => !string.IsNullOrWhiteSpace(u))
@@ -37,30 +34,10 @@ public sealed class ListingCommandService(
             .Take(20)
             .ToArray();
 
-        var hasSale = intents.Contains(ListingIntent.Satilik, StringComparer.Ordinal);
-        var hasRent = intents.Contains(ListingIntent.Kiralik, StringComparer.Ordinal);
-
-        var priceUnit = string.IsNullOrWhiteSpace(command.PriceUnit) ? null : command.PriceUnit.Trim();
-        if (!hasRent)
-        {
-            priceUnit = null;
-        }
-
-        decimal price = command.Price;
-        decimal? rentPrice = command.RentPrice is > 0 ? command.RentPrice : null;
-        if (hasSale && hasRent)
-        {
-            rentPrice ??= command.RentPrice;
-        }
-        else if (hasRent && !hasSale)
-        {
-            // Tek tip kiralık: price alanı kira bedeli; rent_price boş kalır.
-            rentPrice = null;
-        }
-        else
-        {
-            rentPrice = null;
-        }
+        var isRent = primary == ListingIntent.Kiralik;
+        var priceUnit = isRent && !string.IsNullOrWhiteSpace(command.PriceUnit)
+            ? command.PriceUnit.Trim()
+            : null;
 
         return new CreatePublishedListingCommand
         {
@@ -76,7 +53,7 @@ public sealed class ListingCommandService(
             CityId = command.CityId,
             DistrictId = command.DistrictId,
             NeighborhoodId = command.NeighborhoodId is > 0 ? command.NeighborhoodId : null,
-            PrimaryIntent = command.PrimaryIntent.Trim(),
+            PrimaryIntent = primary,
             Intents = intents,
             Condition = command.Condition.Trim(),
             ModelYear = command.ModelYear,
@@ -84,10 +61,10 @@ public sealed class ListingCommandService(
             Tons = command.Tons,
             CapacityKg = command.CapacityKg is > 0 ? command.CapacityKg : null,
             Horsepower = command.Horsepower is >= 0 ? command.Horsepower : null,
-            Price = price,
-            RentPrice = rentPrice,
+            Price = command.Price,
+            RentPrice = null,
             PriceUnit = priceUnit,
-            IncludesOperator = command.IncludesOperator && hasRent,
+            IncludesOperator = command.IncludesOperator && isRent,
             Title = command.Title.Trim(),
             Description = command.Description.Trim(),
             SpecsJson = string.IsNullOrWhiteSpace(command.SpecsJson) ? "{}" : command.SpecsJson.Trim(),

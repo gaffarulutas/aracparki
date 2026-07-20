@@ -34,14 +34,14 @@ public sealed class CreatePublishedListingValidator : AbstractValidator<CreatePu
 
         RuleFor(x => x.PrimaryIntent)
             .Must(i => i is ListingIntent.Satilik or ListingIntent.Kiralik)
-            .WithMessage("Birincil ilan tipi geçersiz.");
+            .WithMessage("İlan tipi geçersiz.");
 
         RuleFor(x => x.Intents)
-            .NotEmpty().WithMessage("En az bir ilan tipi seç.")
-            .Must(intents => intents.All(i => i is ListingIntent.Satilik or ListingIntent.Kiralik))
-            .WithMessage("İlan tipi geçersiz.")
-            .Must((cmd, intents) => intents.Contains(cmd.PrimaryIntent))
-            .WithMessage("Birincil tip, seçilen tiplerden biri olmalı.");
+            .Must(intents => intents.Length == 1
+                             && intents[0] is ListingIntent.Satilik or ListingIntent.Kiralik)
+            .WithMessage("Tek bir ilan tipi seç (Satılık veya Kiralık).")
+            .Must((cmd, intents) => intents.Length == 1 && intents[0] == cmd.PrimaryIntent)
+            .WithMessage("İlan tipi tutarsız.");
 
         RuleFor(x => x.Condition).Must(EquipmentCondition.Known.Contains)
             .WithMessage("Durum geçersiz.");
@@ -56,20 +56,21 @@ public sealed class CreatePublishedListingValidator : AbstractValidator<CreatePu
             .WithMessage("Kapasite (kg) geçersiz.");
 
         RuleFor(x => x.Price).GreaterThan(0).WithMessage("Fiyat 0'dan büyük olmalı.");
-        RuleFor(x => x.RentPrice).GreaterThan(0).When(x => x.RentPrice.HasValue)
-            .WithMessage("Kira bedeli geçersiz.");
         RuleFor(x => x.RentPrice)
-            .NotNull()
-            .When(x => x.Intents.Contains(ListingIntent.Satilik) && x.Intents.Contains(ListingIntent.Kiralik))
-            .WithMessage("Satılık + kiralık ilanlarda kira bedeli zorunlu.");
+            .Null()
+            .WithMessage("Kira bedeli artık kullanılmıyor; tek fiyat alanını kullan.");
         RuleFor(x => x.PriceUnit)
             .Must(u => u is null || PriceUnit.Known.Contains(u))
             .WithMessage("Fiyat birimi geçersiz.");
         RuleFor(x => x.PriceUnit)
             .NotEmpty()
             .Must(PriceUnit.Known.Contains!)
-            .When(x => x.Intents.Contains(ListingIntent.Kiralik))
+            .When(x => x.PrimaryIntent == ListingIntent.Kiralik)
             .WithMessage("Kiralık ilanlarda fiyat birimi zorunlu.");
+        RuleFor(x => x.PriceUnit)
+            .Empty()
+            .When(x => x.PrimaryIntent == ListingIntent.Satilik)
+            .WithMessage("Satılık ilanlarda fiyat birimi olmamalı.");
 
         RuleFor(x => x.SpecsJson)
             .Must(BeJsonObject)

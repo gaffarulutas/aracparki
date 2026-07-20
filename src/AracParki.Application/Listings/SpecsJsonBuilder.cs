@@ -134,11 +134,25 @@ public static class SpecsJsonBuilder
             var byKey = attributes.ToDictionary(a => a.Key, StringComparer.Ordinal);
             var rows = new List<SpecDisplayRow>();
 
+            // Prefer catalog order (sort_order) so display matches the form / filters.
+            foreach (var attr in attributes)
+            {
+                if (!doc.RootElement.TryGetProperty(attr.Key, out var value))
+                {
+                    continue;
+                }
+
+                rows.Add(new SpecDisplayRow(attr.Label, FormatValue(value, attr.Unit)));
+            }
+
             foreach (var prop in doc.RootElement.EnumerateObject())
             {
-                var label = byKey.TryGetValue(prop.Name, out var attr) ? attr.Label : prop.Name;
-                var unit = byKey.TryGetValue(prop.Name, out var a) ? a.Unit : null;
-                rows.Add(new SpecDisplayRow(label, FormatValue(prop.Value, unit)));
+                if (byKey.ContainsKey(prop.Name))
+                {
+                    continue;
+                }
+
+                rows.Add(new SpecDisplayRow(prop.Name, FormatValue(prop.Value, null)));
             }
 
             return rows;
@@ -162,7 +176,7 @@ public static class SpecsJsonBuilder
             {
                 "true" => "Evet",
                 "false" => "Hayır",
-                var s => s ?? ""
+                var s => SpecOptionLabels.For(s)
             },
             _ => value.ToString()
         };

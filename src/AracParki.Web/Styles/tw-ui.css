@@ -1,12 +1,183 @@
-@import "tailwindcss";
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
 
-/* Only scan modal partial — utilities optional; layout is BEM below */
+/* Scan UI that uses Tailwind utilities / @apply components */
 @source "../Pages/Shared/**/*Modal*.cshtml";
 @source "../Pages/Ilanlar/**/*.cshtml";
+@source "../Pages/IlanVer/**/*.cshtml";
+
+/* Map site design tokens → Tailwind theme (v4 @theme) */
+@theme {
+  --color-ap-ink: var(--ink);
+  --color-ap-ink-soft: var(--ink-soft);
+  --color-ap-muted: var(--muted);
+  --color-ap-muted-2: var(--muted-2);
+  --color-ap-line: var(--line);
+  --color-ap-line-strong: var(--line-strong);
+  --color-ap-surface: var(--surface);
+  --color-ap-surface-2: var(--surface-2);
+  --color-ap-raised: var(--raised);
+  --color-ap-machine: var(--machine);
+  --color-ap-machine-hot: var(--machine-hot);
+  --color-ap-machine-deep: var(--machine-deep);
+  --color-ap-machine-ink: var(--machine-ink);
+  --color-ap-link: var(--link);
+  --color-ap-link-hover: var(--link-hover);
+  --color-ap-signal: var(--signal, #c62828);
+  --color-ap-ok: var(--ok, #1b7a3d);
+  --color-ap-tint: var(--tint, #fffce6);
+
+  --radius-ap: var(--radius, 4px);
+  --font-ap-display: var(--font-display, "Archivo", sans-serif);
+  --shadow-ap: var(--shadow);
+  --shadow-ap-md: var(--shadow-md);
+  --ease-ap: var(--ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
 
 @layer base {
   [x-cloak] {
     display: none !important;
+  }
+}
+
+/* Reusable form / wizard primitives — utility composition via @apply */
+@layer components {
+  .ap-stack {
+    @apply grid gap-3.5;
+  }
+
+  .ap-fieldset {
+    @apply m-0 grid gap-3 rounded-ap border border-ap-line bg-ap-raised p-3.5;
+  }
+
+  .ap-fieldset legend {
+    @apply px-1 text-[13px] font-bold text-ap-ink;
+  }
+
+  .ap-field {
+    @apply grid gap-1.5;
+  }
+
+  .ap-field--end {
+    @apply content-end pb-1;
+  }
+
+  .ap-label {
+    @apply text-[13px] font-bold text-ap-ink;
+  }
+
+  .ap-optional {
+    @apply ml-1.5 text-xs font-medium text-ap-muted;
+  }
+
+  .ap-input {
+    @apply box-border h-11 w-full min-w-0 rounded-ap border border-ap-line bg-ap-surface px-3 text-[15px] text-ap-ink outline-none transition-[border-color,box-shadow] duration-150;
+    transition-timing-function: var(--ease-ap);
+  }
+
+  .ap-input:hover:not(:disabled):not(:focus) {
+    @apply border-ap-line-strong;
+  }
+
+  .ap-input:focus {
+    @apply border-ap-link;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--link) 25%, transparent);
+  }
+
+  .ap-input:disabled,
+  .ap-input.is-loading {
+    @apply cursor-not-allowed bg-ap-surface-2 text-ap-muted opacity-85;
+  }
+
+  .ap-hint {
+    @apply m-0 text-[13px] leading-snug text-ap-muted;
+  }
+
+  .ap-choice-row {
+    @apply flex flex-wrap gap-3.5;
+  }
+
+  .ap-choice {
+    @apply inline-flex cursor-pointer items-center gap-2 text-sm font-semibold text-ap-ink;
+  }
+
+  .ap-choice input {
+    @apply h-auto w-auto accent-ap-machine-deep;
+  }
+
+  /* Tile radio / checkbox — selectable chips for specs & similar choices */
+  .ap-tile-group {
+    @apply grid gap-2;
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  }
+
+  .ap-tile-group--compact {
+    grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  }
+
+  .ap-tile-group--bool {
+    @apply grid-cols-2 sm:max-w-md sm:grid-cols-3;
+  }
+
+  .ap-tile-group--2 {
+    @apply max-w-md grid-cols-2;
+  }
+
+  .ap-tile {
+    @apply relative m-0 block cursor-pointer;
+  }
+
+  .ap-tile input {
+    @apply absolute inset-0 z-10 m-0 h-full w-full cursor-pointer opacity-0;
+  }
+
+  .ap-tile-face {
+    @apply relative flex min-h-11 items-center justify-center gap-2 rounded-ap border border-ap-line bg-ap-surface px-3 py-2.5 text-center text-[13px] font-semibold leading-snug text-ap-ink transition-[border-color,background-color,box-shadow,color] duration-150;
+    transition-timing-function: var(--ease-ap);
+  }
+
+  .ap-tile:hover .ap-tile-face {
+    @apply border-ap-line-strong bg-ap-raised;
+  }
+
+  .ap-tile input:checked + .ap-tile-face {
+    @apply border-ap-machine-deep text-ap-machine-ink;
+    background: color-mix(in srgb, var(--machine) 42%, var(--raised));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--machine-deep) 55%, transparent);
+  }
+
+  .ap-tile input:focus-visible + .ap-tile-face {
+    @apply border-ap-link;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--link) 28%, transparent);
+  }
+
+  .ap-tile input:disabled + .ap-tile-face {
+    @apply cursor-not-allowed opacity-70;
+  }
+
+  .ap-tile-mark {
+    @apply flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-ap-line-strong bg-ap-raised text-[10px] leading-none text-transparent;
+  }
+
+  .ap-tile input[type="checkbox"] + .ap-tile-face .ap-tile-mark {
+    @apply rounded-ap;
+  }
+
+  .ap-tile input:checked + .ap-tile-face .ap-tile-mark {
+    @apply border-ap-machine-ink bg-ap-machine-ink text-ap-machine;
+  }
+
+  .ap-tile input:checked + .ap-tile-face .ap-tile-mark::after {
+    content: "✓";
+    font-weight: 700;
+  }
+
+  .ap-grid-2 {
+    @apply grid grid-cols-1 gap-3 sm:grid-cols-2;
+  }
+
+  .ap-actions {
+    @apply mt-2 flex items-center justify-between gap-3;
   }
 }
 
@@ -100,7 +271,6 @@
   background: var(--raised, #fff);
 }
 
-/* Step panels — CSS driven via data-step (works before Alpine boots) */
 .ap-phone-gate__panel {
   display: none;
   flex-direction: column;
@@ -287,7 +457,6 @@
   color: var(--ink, #0c0c0c);
 }
 
-/* Site .btn.btn-machine already sets yellow bg + dark ink — reinforce here */
 .ap-phone-gate__submit {
   min-width: 10.5rem;
   min-height: 44px;

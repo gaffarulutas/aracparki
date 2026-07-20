@@ -29,7 +29,7 @@ docker compose up -d
 # dotnet run --project src/AracParki.Web
 ```
 
-`./watch.sh` 7133/5245 portlarını boşaltır, sonra `dotnet watch` (HTTPS) başlatır.
+`./watch.sh` 7133/5245 portlarını boşaltır, Tailwind CSS (`npm run watch:css`) ve `dotnet watch` (HTTPS) başlatır. Çıkışta CSS watch da durur.
 
 Yapılandırma: `src/AracParki.Web/appsettings.json` (+ `appsettings.Development.json`).
 

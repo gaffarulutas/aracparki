@@ -33,10 +33,10 @@ public sealed class IndexModel(
     private static readonly string[] StepTitles =
     [
         "Kategori seçimi",
-        "Makine",
-        "Satış bilgisi",
-        "Görseller",
-        "Önizleme"
+        "Araç bilgileri",
+        "Fiyat ve konum",
+        "Fotoğraflar",
+        "Yayına hazır"
     ];
 
     private static readonly JsonSerializerOptions AttrJsonOptions = new()
@@ -49,6 +49,20 @@ public sealed class IndexModel(
     public string StepTitle => StepTitles[Math.Clamp(Step, 1, 5) - 1];
     public string? FormError { get; private set; }
     public IReadOnlyList<string> FormErrors { get; private set; } = [];
+    /// <summary>Field key → message for inline validation (WCAG 3.3.1).</summary>
+    public IReadOnlyDictionary<string, string> FieldErrors { get; private set; }
+        = new Dictionary<string, string>(StringComparer.Ordinal);
+
+    public bool HasFieldError(string key) => FieldErrors.ContainsKey(key);
+
+    public string? FieldError(string key)
+        => FieldErrors.TryGetValue(key, out var msg) ? msg : null;
+
+    public string FieldInvalidClass(string key)
+        => HasFieldError(key) ? "is-invalid" : "";
+
+    public string? AriaInvalid(string key)
+        => HasFieldError(key) ? "true" : null;
     public bool RequirePhoneVerification { get; private set; }
     public bool ShowPhoneGate => RequirePhoneVerification;
     public string? AccountPhone { get; private set; }
@@ -197,6 +211,7 @@ public sealed class IndexModel(
     }
 
     public async Task<IActionResult> OnPostCascadeAsync(
+        string? intent,
         int categoryId,
         int brandId,
         int? modelId,
@@ -212,6 +227,11 @@ public sealed class IndexModel(
         }
 
         await LoadDraftAsync(cancellationToken);
+
+        if (intent is not (ListingIntent.Satilik or ListingIntent.Kiralik))
+        {
+            return await FailAsync(1, "İlan tipi seç (Satılık veya Kiralık).", cancellationToken);
+        }
 
         var categories = await catalog.GetAllCategoriesAsync(cancellationToken);
         var category = categories.FirstOrDefault(c => c.Id == categoryId);
@@ -263,6 +283,19 @@ public sealed class IndexModel(
             Draft.Description = "";
         }
 
+        var intentChanged = Draft.PrimaryIntent != intent;
+        Draft.PrimaryIntent = intent;
+        Draft.Intents = [intent];
+        if (intentChanged)
+        {
+            Draft.RentPrice = null;
+            if (intent == ListingIntent.Satilik)
+            {
+                Draft.PriceUnit = null;
+                Draft.IncludesOperator = false;
+            }
+        }
+
         Draft.GroupId = groupId is > 0 ? groupId.Value : category.GroupId ?? 0;
         Draft.GroupName = string.IsNullOrWhiteSpace(groupName) ? null : groupName.Trim();
         Draft.CategoryId = category.Id;
@@ -310,7 +343,7 @@ public sealed class IndexModel(
         }
 
         await LoadDraftAsync(cancellationToken);
-        if (!Draft.HasCategory)
+        if (!Draft.HasCategory || !Draft.HasIntent)
         {
             return RedirectToPage(new { adim = 1 });
         }
@@ -344,7 +377,25 @@ public sealed class IndexModel(
         var (specsOk, specsError, specsJson, storedRaw) = SpecsJsonBuilder.TryBuild(mergedForBuild, categoryAttrs);
         if (!specsOk)
         {
-            return await FailAsync(2, specsError ?? "Özellikler geçersiz.", cancellationToken);
+            var specGaps = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var attr in categoryAttrs.Where(a => a.IsRequired))
+            {
+                if (!mergedForBuild.TryGetValue(attr.Key, out var raw) || string.IsNullOrWhiteSpace(raw))
+                {
+                    specGaps["spec:" + attr.Key] = $"{attr.Label} zorunlu.";
+                }
+            }
+
+            if (specGaps.Count == 0 && !string.IsNullOrWhiteSpace(specsError))
+            {
+                specGaps["specs"] = specsError!;
+            }
+
+            return await FailAsync(
+                2,
+                specsError ?? "Özellikler geçersiz.",
+                cancellationToken,
+                specGaps);
         }
 
         var allowedAttachments = await catalog.GetAttachmentsByCategoryAsync(Draft.CategoryId, cancellationToken);
@@ -395,12 +446,26 @@ public sealed class IndexModel(
 
         if (!Draft.HasMachine)
         {
-            return await FailAsync(2, "Makine bilgilerini kontrol et — zorunlu alanlar eksik.", cancellationToken);
+            var gaps = CollectMachineFieldErrors(Draft);
+            return await FailAsync(
+                2,
+                gaps.Count > 0
+                    ? "Zorunlu alanları tamamla — eksikler aşağıda işaretlendi."
+                    : "Makine bilgilerini kontrol et — zorunlu alanlar eksik.",
+                cancellationToken,
+                gaps);
         }
 
         if (Draft.CapacityMetric == "capacity_kg" && Draft.CapacityKg is not > 0)
         {
-            return await FailAsync(2, "Kapasite (kg) zorunlu.", cancellationToken);
+            return await FailAsync(
+                2,
+                "Kapasite (kg) zorunlu.",
+                cancellationToken,
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["capacityKg"] = "Kapasite (kg) gir."
+                });
         }
 
         Draft.Step = 3;
@@ -409,10 +474,7 @@ public sealed class IndexModel(
     }
 
     public async Task<IActionResult> OnPostSaleAsync(
-        string? primaryIntent,
-        string[]? intents,
         decimal price,
-        decimal? rentPrice,
         string? priceUnit,
         bool includesOperator,
         string? sellerType,
@@ -427,25 +489,9 @@ public sealed class IndexModel(
         }
 
         await LoadDraftAsync(cancellationToken);
-        if (!Draft.HasMachine)
+        if (!Draft.HasMachine || !Draft.HasIntent)
         {
-            return RedirectToPage(new { adim = Draft.HasCategory ? 2 : 1 });
-        }
-
-        var selectedIntents = (intents ?? [])
-            .Where(i => i is ListingIntent.Satilik or ListingIntent.Kiralik)
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
-
-        if (selectedIntents.Count == 0)
-        {
-            return await FailAsync(3, "En az bir ilan tipi seç (Satılık ve/veya Kiralık).", cancellationToken);
-        }
-
-        if (primaryIntent is not (ListingIntent.Satilik or ListingIntent.Kiralik)
-            || !selectedIntents.Contains(primaryIntent))
-        {
-            return await FailAsync(3, "Birincil tip, işaretlediğin tiplerden biri olmalı.", cancellationToken);
+            return RedirectToPage(new { adim = Draft.HasCategory && Draft.HasIntent ? 2 : 1 });
         }
 
         if (string.IsNullOrWhiteSpace(sellerType) || !SellerType.Known.Contains(sellerType))
@@ -468,22 +514,19 @@ public sealed class IndexModel(
             }
         }
 
-        Draft.PrimaryIntent = primaryIntent;
-        Draft.Intents = selectedIntents;
+        var isRent = Draft.PrimaryIntent == ListingIntent.Kiralik;
+        Draft.Intents = [Draft.PrimaryIntent];
         Draft.Price = price;
-        Draft.RentPrice = selectedIntents.Contains(ListingIntent.Satilik)
-                          && selectedIntents.Contains(ListingIntent.Kiralik)
-            ? rentPrice
-            : null;
-        Draft.PriceUnit = string.IsNullOrWhiteSpace(priceUnit) ? null : priceUnit.Trim();
-        Draft.IncludesOperator = includesOperator && selectedIntents.Contains(ListingIntent.Kiralik);
+        Draft.RentPrice = null;
+        Draft.PriceUnit = isRent && !string.IsNullOrWhiteSpace(priceUnit) ? priceUnit.Trim() : null;
+        Draft.IncludesOperator = includesOperator && isRent;
         Draft.SellerType = sellerType;
         Draft.CityId = city?.Id ?? 0;
         Draft.CityName = city?.Name;
         Draft.DistrictId = district?.Id ?? 0;
         Draft.DistrictName = district?.Name;
         Draft.NeighborhoodId = neighborhood?.Id;
-        Draft.NeighborhoodName = neighborhood?.Name;
+        Draft.NeighborhoodName = neighborhood?.DisplayName ?? neighborhood?.Name;
         Draft.Phone = AccountService.NormalizePhone(AccountPhone) ?? Draft.Phone;
         Draft.PhoneVerified = true;
 
@@ -494,7 +537,14 @@ public sealed class IndexModel(
 
         if (!Draft.HasSaleInfo(RequirePhoneVerification))
         {
-            return await FailAsync(3, "Satış bilgilerini kontrol et.", cancellationToken);
+            var gaps = CollectSaleFieldErrors(Draft, RequirePhoneVerification);
+            return await FailAsync(
+                3,
+                gaps.Count > 0
+                    ? "Zorunlu alanları tamamla — eksikler aşağıda işaretlendi."
+                    : "Satış bilgilerini kontrol et.",
+                cancellationToken,
+                gaps);
         }
 
         Draft.Step = 4;
@@ -649,15 +699,6 @@ public sealed class IndexModel(
             account = await accounts.GetByIdAsync(accountId.Value, cancellationToken) ?? updated;
         }
 
-        var hasSale = Draft.Intents.Contains(ListingIntent.Satilik);
-        var hasRent = Draft.Intents.Contains(ListingIntent.Kiralik);
-        var price = Draft.Price;
-        decimal? rentPrice = null;
-        if (hasSale && hasRent)
-        {
-            rentPrice = Draft.RentPrice;
-        }
-
         var command = new CreatePublishedListingCommand
         {
             AccountId = account.Id,
@@ -673,15 +714,15 @@ public sealed class IndexModel(
             DistrictId = Draft.DistrictId,
             NeighborhoodId = Draft.NeighborhoodId,
             PrimaryIntent = Draft.PrimaryIntent,
-            Intents = Draft.Intents.ToArray(),
+            Intents = [Draft.PrimaryIntent],
             Condition = Draft.Condition,
             ModelYear = Draft.ModelYear,
             Hours = Draft.HoursUnknown ? null : Draft.Hours,
             Tons = Draft.Tons,
             CapacityKg = Draft.CapacityKg,
             Horsepower = Draft.HorsepowerUnknown ? null : Draft.Horsepower,
-            Price = price,
-            RentPrice = rentPrice,
+            Price = Draft.Price,
+            RentPrice = null,
             PriceUnit = Draft.PriceUnit,
             IncludesOperator = Draft.IncludesOperator,
             Title = Draft.Title,
@@ -755,15 +796,112 @@ public sealed class IndexModel(
         return Page();
     }
 
-    private async Task<IActionResult> FailAsync(int step, string message, CancellationToken cancellationToken)
+    private async Task<IActionResult> FailAsync(
+        int step,
+        string message,
+        CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, string>? fieldErrors = null)
     {
         FormError = message;
-        FormErrors = [message];
+        FieldErrors = fieldErrors is { Count: > 0 }
+            ? new Dictionary<string, string>(fieldErrors, StringComparer.Ordinal)
+            : new Dictionary<string, string>(StringComparer.Ordinal);
+        FormErrors = FieldErrors.Count > 0
+            ? FieldErrors.Values.Distinct().ToArray()
+            : [message];
         Step = step;
         await LoadLookupsAsync(cancellationToken);
         PublishToken = EnsurePublishToken();
         SetMeta();
         return Page();
+    }
+
+    /// <summary>
+    /// Maps HasMachine gaps to field keys for inline errors (Deque / WCAG 3.3.1).
+    /// </summary>
+    private static Dictionary<string, string> CollectMachineFieldErrors(WizardDraft draft)
+    {
+        var gaps = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        if (string.IsNullOrWhiteSpace(draft.Condition) || !EquipmentCondition.Known.Contains(draft.Condition))
+        {
+            gaps["condition"] = "Durum seç (İkinci el / Sıfır).";
+        }
+
+        if (!draft.HoursUnknown && draft.Hours is null)
+        {
+            gaps["hours"] = "Çalışma saati gir veya “Bilmiyorum” seç.";
+        }
+
+        if (!draft.HorsepowerFromCatalog && !draft.HorsepowerUnknown && draft.Horsepower is null)
+        {
+            gaps["horsepower"] = "Beygir (HP) gir veya “Bilmiyorum” seç.";
+        }
+
+        if (!draft.TonsFromCatalog && draft.Tons <= 0)
+        {
+            gaps["tons"] = draft.CapacityMetric == "capacity_t"
+                ? "Kapasite (ton) gir."
+                : "Tonaj gir.";
+        }
+
+        if (draft.CapacityMetric == "capacity_kg" && draft.CapacityKg is not > 0)
+        {
+            gaps["capacityKg"] = "Kapasite (kg) gir.";
+        }
+
+        if (string.IsNullOrWhiteSpace(draft.Title))
+        {
+            gaps["title"] = "İlan başlığı zorunlu.";
+        }
+
+        if (string.IsNullOrWhiteSpace(draft.Description))
+        {
+            gaps["description"] = "Açıklama zorunlu.";
+        }
+
+        return gaps;
+    }
+
+    private static Dictionary<string, string> CollectSaleFieldErrors(WizardDraft draft, bool requirePhone)
+    {
+        var gaps = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        if (draft.Price <= 0)
+        {
+            gaps["price"] = draft.PrimaryIntent == ListingIntent.Kiralik
+                ? "Kira bedeli gir."
+                : "Satış fiyatı gir.";
+        }
+
+        if (draft.PrimaryIntent == ListingIntent.Kiralik
+            && (string.IsNullOrWhiteSpace(draft.PriceUnit) || !PriceUnit.Known.Contains(draft.PriceUnit)))
+        {
+            gaps["priceUnit"] = "Kira birimi seç.";
+        }
+
+        if (string.IsNullOrWhiteSpace(draft.SellerType) || !SellerType.Known.Contains(draft.SellerType))
+        {
+            gaps["sellerType"] = "Satıcı tipi seç.";
+        }
+
+        if (draft.CityId <= 0)
+        {
+            gaps["cityId"] = "İl seç.";
+        }
+
+        if (draft.DistrictId <= 0)
+        {
+            gaps["districtId"] = "İlçe seç.";
+        }
+
+        if (requirePhone
+            && (AccountService.NormalizePhone(draft.Phone) is null || !draft.PhoneVerified))
+        {
+            gaps["phone"] = "Telefon doğrulaması gerekli.";
+        }
+
+        return gaps;
     }
 
     private async Task PersistDraftAsync(CancellationToken cancellationToken)
@@ -855,7 +993,7 @@ public sealed class IndexModel(
     {
         var requested = adim is >= 1 and <= 5 ? adim.Value : Math.Clamp(draft.Step, 1, 5);
 
-        if (requested >= 2 && !draft.HasCategory)
+        if (requested >= 2 && (!draft.HasCategory || !draft.HasIntent))
         {
             return 1;
         }

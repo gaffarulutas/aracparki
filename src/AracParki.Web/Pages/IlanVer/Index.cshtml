@@ -4,7 +4,7 @@
     var draft = Model.Draft;
     var step = Model.Step;
     var imageUrlsJson = Model.AttrJson(
-        draft.ImageUrls.Count > 0 ? draft.ImageUrls : new List<string> { "" });
+        draft.ImageUrls.Count > 0 ? draft.ImageUrls : [""]);
     var neighborhoodsJson = Model.AttrJson(
         Model.Neighborhoods.Select(n => new { id = n.Id, name = n.DisplayName }));
     var initialDistrictsJson = Model.AttrJson(
@@ -15,34 +15,66 @@
     @await Html.PartialAsync("Shared/_PhoneVerifyModal", Model)
 }
 <main id="main" class="container wizard-page">
-  <div class="wizard-shell">
-    <header class="wizard-header">
-      <p class="wizard-kicker">Ücretsiz ilan ver</p>
-      <h1 class="wizard-title">@Model.StepTitle</h1>
-      <ol class="wizard-steps" aria-label="İlan adımları">
-        @for (var i = 1; i <= 5; i++)
+  <header class="wizard-hero">
+    <div class="wizard-hero-copy">
+      <p class="wizard-kicker">Ücretsiz ilan</p>
+      <h1 class="wizard-title">Makine ilanı oluştur</h1>
+      <p class="wizard-subtitle">Birkaç adımda profesyonel bir ilan hazırla. Taslağın otomatik kaydedilir.</p>
+    </div>
+    <ol class="wizard-stepper" aria-label="İlan adımları">
+      @{
+        var stepMeta = new (string Short, string Full)[]
         {
-          var label = i switch
-          {
-            1 => "Kategori",
-            2 => "Makine",
-            3 => "Satış",
-            4 => "Görseller",
-            _ => "Önizleme"
-          };
-          <li class="wizard-step @(i == step ? "is-current" : i < step ? "is-done" : null)">
-            <span class="wizard-step-num" aria-hidden="true">@i</span>
-            <span class="wizard-step-label">@label</span>
-          </li>
-        }
-      </ol>
-    </header>
+          ("Kategori", "Tip ve kategori"),
+          ("Araç", "Teknik bilgiler"),
+          ("Fiyat", "Fiyat ve konum"),
+          ("Foto", "Fotoğraflar"),
+          ("Yayın", "Kontrol ve yayın")
+        };
+      }
+      @for (var i = 1; i <= 5; i++)
+      {
+        var state = i == step ? "is-current" : i < step ? "is-done" : "is-todo";
+        <li class="wizard-stepper-item @state">
+          <span class="wizard-stepper-index" aria-hidden="true">
+            @if (i < step)
+            {
+              <ap-icon name="check" size="14" />
+            }
+            else
+            {
+              @i
+            }
+          </span>
+          <span class="wizard-stepper-text">
+            <span class="wizard-stepper-label">@stepMeta[i - 1].Short</span>
+            <span class="wizard-stepper-desc">@stepMeta[i - 1].Full</span>
+          </span>
+        </li>
+      }
+    </ol>
+  </header>
 
-    @if (!string.IsNullOrWhiteSpace(Model.FormError))
-    {
-      <div class="wizard-alert" role="alert">
-        @Model.FormError
-        @if (Model.FormErrors.Count > 1)
+  @if (!string.IsNullOrWhiteSpace(Model.FormError))
+  {
+    <div class="wizard-alert" role="alert">
+      <ap-icon name="circle-alert" size="18" aria-hidden="true" />
+      <div>
+        <strong>Devam etmek için düzeltmen gereken yerler var</strong>
+        <p>@Model.FormError</p>
+        @if (Model.FieldErrors.Count > 0)
+        {
+          <ul class="wizard-alert-list">
+            @foreach (var (key, msg) in Model.FieldErrors)
+            {
+              var anchor = key.StartsWith("spec:", StringComparison.Ordinal)
+                ? "field-" + key["spec:".Length..]
+                : "field-" + key;
+              <li><a href="#@anchor">@msg</a></li>
+            }
+          </ul>
+        }
+        else if (Model.FormErrors.Count > 1)
         {
           <ul class="wizard-alert-list">
             @foreach (var err in Model.FormErrors)
@@ -52,14 +84,19 @@
           </ul>
         }
       </div>
-    }
+    </div>
+  }
 
-    <section class="wizard-card @(step == 1 ? "wizard-card--cascade" : null)">
+  <section class="wizard-card @(step == 1 ? "wizard-card--cascade" : null)" aria-labelledby="wizard-step-heading">
+      <div class="wizard-card-head">
+        <p class="wizard-card-step">Adım @step / 5</p>
+        <h2 class="wizard-card-title" id="wizard-step-heading">@Model.StepTitle</h2>
+      </div>
 
       @* ── Step 1: Cascade ─────────────────────────────────────────── *@
       @if (step == 1)
       {
-        <p class="wizard-lead">Grup → kategori → marka → model → yıl yolunu seç.</p>
+        <p class="wizard-lead">İlan tipi → grup → kategori → marka → model → yıl yolunu izle.</p>
         <form method="post" asp-page-handler="Cascade" class="wizard-cascade"
               id="wizard-form"
               x-data="ilanVerCascader"
@@ -72,6 +109,7 @@
                       capacityMetric = c.CapacityMetric
                   })
               }))'
+              data-intent="@draft.PrimaryIntent"
               data-group-id="@draft.GroupId"
               data-category-id="@draft.CategoryId"
               data-brand-id="@draft.BrandId"
@@ -82,6 +120,7 @@
               data-category-name="@draft.CategoryName"
               data-brand-name="@draft.BrandName">
           @Html.AntiForgeryToken()
+          <input type="hidden" name="intent" :value="intent" />
           <input type="hidden" name="groupId" :value="groupId" />
           <input type="hidden" name="groupName" :value="groupName" />
           <input type="hidden" name="categoryId" :value="categoryId" />
@@ -97,6 +136,26 @@
 
           <div class="cascade-board" role="group" aria-label="Kategori seçici">
             <div class="cascade-col">
+              <p class="cascade-col-title">İlan tipi</p>
+              <ul class="cascade-list" role="listbox" aria-label="İlan tipi">
+                <template x-for="t in intentsView" :key="t.id">
+                  <li>
+                    <button type="button"
+                            class="cascade-item"
+                            :class="t.itemClass"
+                            role="option"
+                            :aria-selected="t.ariaSelected"
+                            :data-id="t.id"
+                            @@click="pickIntent">
+                      <span x-text="t.name"></span>
+                      <span class="cascade-chevron" aria-hidden="true">›</span>
+                    </button>
+                  </li>
+                </template>
+              </ul>
+            </div>
+
+            <div class="cascade-col" x-show="hasIntent" x-cloak>
               <p class="cascade-col-title">Grup</p>
               <ul class="cascade-list" role="listbox" aria-label="Grup">
                 <template x-for="g in groupsView" :key="g.id">
@@ -217,9 +276,9 @@
           </div>
 
           <div class="wizard-actions cascade-actions">
-            <button class="btn btn-ghost" type="button" disabled>← Önceki</button>
+            <span class="wizard-actions-hint">İlan tipi ve kategoriyi seçerek başla</span>
             <button class="btn btn-machine" type="submit" :disabled="cannotContinue">
-              Devam Et →
+              Kaydet ve devam →
             </button>
           </div>
         </form>
@@ -230,6 +289,8 @@
       {
         <p class="wizard-lead">
           <strong>
+            @ListingIntent.Label(draft.PrimaryIntent)
+            ·
             @(string.Join(" › ", new[] { draft.GroupName, draft.CategoryName, draft.BrandName, draft.ModelName }
               .Where(s => !string.IsNullOrWhiteSpace(s))))
             @if (draft.ModelYear > 0)
@@ -237,43 +298,85 @@
               <span> · @draft.ModelYear</span>
             }
           </strong>
-          — makine detaylarını tamamla.
+          — araç ve teknik detayları tamamla.
           <a class="wizard-inline-link" href="/ilan-ver?adim=1">Kategoriyi değiştir</a>
         </p>
         <form method="post" asp-page-handler="Machine" class="wizard-form" id="wizard-form"
-              x-data="{ hoursUnknown: @(draft.HoursUnknown ? "true" : "false"), hpUnknown: @(draft.HorsepowerUnknown ? "true" : "false") }">
+              x-data="ilanVerMachine"
+              data-hours-unknown="@(draft.HoursUnknown ? "true" : "false")"
+              data-hp-unknown="@(draft.HorsepowerUnknown ? "true" : "false")"
+              novalidate>
           @Html.AntiForgeryToken()
 
-          <div class="form-row">
-            <label for="condition">Durum</label>
-            <select id="condition" name="condition" required>
-              @if (draft.Condition == EquipmentCondition.Used)
-              {
-                <option value="@EquipmentCondition.Used" selected>İkinci el</option>
-                <option value="@EquipmentCondition.New">Sıfır</option>
-              }
-              else
-              {
-                <option value="@EquipmentCondition.Used">İkinci el</option>
-                <option value="@EquipmentCondition.New" selected>Sıfır</option>
-              }
-            </select>
+          <p class="wizard-req-legend" id="wizard-req-legend">
+            Zorunlu alanlar
+            <abbr class="field-req" title="Zorunlu">*</abbr>
+            ile işaretlidir. İsteğe bağlı alanlar ayrıca belirtilir.
+          </p>
+
+          <div class="ap-field @Model.FieldInvalidClass("condition")" id="field-condition">
+            <span class="ap-label" id="condition-label">
+              Durum <abbr class="field-req" title="Zorunlu">*</abbr>
+            </span>
+            <div class="ap-tile-group ap-tile-group--2"
+                 role="radiogroup"
+                 aria-labelledby="condition-label"
+                 aria-required="true"
+                 aria-invalid="@(Model.AriaInvalid("condition"))"
+                 aria-describedby="@(Model.HasFieldError("condition") ? "err-condition" : null)">
+              <label class="ap-tile">
+                <input type="radio" name="condition" value="@EquipmentCondition.Used" required
+                       @(draft.Condition == EquipmentCondition.Used ? "checked" : null) />
+                <span class="ap-tile-face">
+                  <span class="ap-tile-mark" aria-hidden="true"></span>
+                  <span>İkinci el</span>
+                </span>
+              </label>
+              <label class="ap-tile">
+                <input type="radio" name="condition" value="@EquipmentCondition.New" required
+                       @(draft.Condition == EquipmentCondition.New ? "checked" : null) />
+                <span class="ap-tile-face">
+                  <span class="ap-tile-mark" aria-hidden="true"></span>
+                  <span>Sıfır</span>
+                </span>
+              </label>
+            </div>
+            @if (Model.HasFieldError("condition"))
+            {
+              <p class="field-error" id="err-condition" role="alert">@Model.FieldError("condition")</p>
+            }
           </div>
 
           <div class="form-grid-2">
-            <div class="form-row">
-              <label for="hours">Çalışma saati</label>
+            <div class="form-row @Model.FieldInvalidClass("hours")" id="field-hours">
+              <label for="hours">
+                Çalışma saati <abbr class="field-req" title="Zorunlu">*</abbr>
+              </label>
               <input id="hours" name="hours" type="number" min="0"
-                     value="@(draft.Hours.HasValue ? draft.Hours.Value.ToString() : null)"
-                     :disabled="hoursUnknown" />
+                     value="@(draft.Hours is >= 0 ? draft.Hours.Value.ToString() : null)"
+                     :disabled="hoursUnknown"
+                     :required="hoursRequired"
+                     aria-invalid="@(Model.AriaInvalid("hours"))"
+                     aria-describedby="hint-hours@(Model.HasFieldError("hours") ? " err-hours" : "")" />
               <label class="wizard-check wizard-check--inline">
                 <input type="checkbox" name="hoursUnknown" value="true" x-model="hoursUnknown" />
                 Bilmiyorum
               </label>
+              <p class="field-hint" id="hint-hours">Saat bilmiyorsan “Bilmiyorum”u işaretle.</p>
+              @if (Model.HasFieldError("hours"))
+              {
+                <p class="field-error" id="err-hours" role="alert">@Model.FieldError("hours")</p>
+              }
             </div>
-            <div class="form-row">
-              <label for="horsepower">Beygir (HP)</label>
-              @if (draft.HorsepowerFromCatalog && draft.Horsepower is > 0)
+            <div class="form-row @Model.FieldInvalidClass("horsepower")" id="field-horsepower">
+              <label for="horsepower">
+                Beygir (HP)
+                @if (!draft.HorsepowerFromCatalog)
+                {
+                  <abbr class="field-req" title="Zorunlu">*</abbr>
+                }
+              </label>
+              @if (draft is { HorsepowerFromCatalog: true, Horsepower: > 0 })
               {
                 <input id="horsepower" type="number" value="@draft.Horsepower" readonly class="is-catalog" />
                 <input type="hidden" name="horsepower" value="@draft.Horsepower" />
@@ -282,20 +385,31 @@
               else
               {
                 <input id="horsepower" name="horsepower" type="number" min="0"
-                       value="@(draft.Horsepower.HasValue ? draft.Horsepower.Value.ToString() : null)"
-                       :disabled="hpUnknown" />
+                       value="@(draft.Horsepower is >= 0 ? draft.Horsepower.ToString() : null)"
+                       :disabled="hpUnknown"
+                       :required="hpRequired"
+                       aria-invalid="@(Model.AriaInvalid("horsepower"))"
+                       aria-describedby="hint-hp@(Model.HasFieldError("horsepower") ? " err-horsepower" : "")" />
                 <label class="wizard-check wizard-check--inline">
                   <input type="checkbox" name="horsepowerUnknown" value="true" x-model="hpUnknown" />
                   Bilmiyorum
                 </label>
+                <p class="field-hint" id="hint-hp">HP bilmiyorsan “Bilmiyorum”u işaretle.</p>
+                @if (Model.HasFieldError("horsepower"))
+                {
+                  <p class="field-error" id="err-horsepower" role="alert">@Model.FieldError("horsepower")</p>
+                }
               }
             </div>
           </div>
 
           <div class="form-grid-2">
-            <div class="form-row">
-              <label for="tons">@(draft.CapacityMetric == "capacity_t" ? "Kapasite (ton)" : "Tonaj (t)")</label>
-              @if (draft.TonsFromCatalog && draft.Tons > 0)
+            <div class="form-row @Model.FieldInvalidClass("tons")" id="field-tons">
+              <label for="tons">
+                @(draft.CapacityMetric == "capacity_t" ? "Kapasite (ton)" : "Tonaj (t)")
+                <abbr class="field-req" title="Zorunlu">*</abbr>
+              </label>
+              @if (draft is { TonsFromCatalog: true, Tons: > 0 })
               {
                 <input id="tons" type="number" value="@draft.Tons.ToString(System.Globalization.CultureInfo.InvariantCulture)" readonly class="is-catalog" />
                 <input type="hidden" name="tons" value="@draft.Tons.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
@@ -304,14 +418,22 @@
               else
               {
                 <input id="tons" name="tons" type="number" required min="0.01" step="0.01"
-                       value="@(draft.Tons > 0 ? draft.Tons.ToString(System.Globalization.CultureInfo.InvariantCulture) : null)" />
+                       value="@(draft.Tons > 0 ? draft.Tons.ToString(System.Globalization.CultureInfo.InvariantCulture) : null)"
+                       aria-invalid="@(Model.AriaInvalid("tons"))"
+                       aria-describedby="@(Model.HasFieldError("tons") ? "err-tons" : null)" />
+                @if (Model.HasFieldError("tons"))
+                {
+                  <p class="field-error" id="err-tons" role="alert">@Model.FieldError("tons")</p>
+                }
               }
             </div>
             @if (draft.CapacityMetric == "capacity_kg")
             {
-              <div class="form-row">
-                <label for="capacityKg">Kapasite (kg)</label>
-                @if (draft.CapacityKgFromCatalog && draft.CapacityKg is > 0)
+              <div class="form-row @Model.FieldInvalidClass("capacityKg")" id="field-capacityKg">
+                <label for="capacityKg">
+                  Kapasite (kg) <abbr class="field-req" title="Zorunlu">*</abbr>
+                </label>
+                @if (draft is { CapacityKgFromCatalog: true, CapacityKg: > 0 })
                 {
                   <input id="capacityKg" type="number" value="@draft.CapacityKg" readonly class="is-catalog" />
                   <input type="hidden" name="capacityKg" value="@draft.CapacityKg" />
@@ -320,7 +442,13 @@
                 else
                 {
                   <input id="capacityKg" name="capacityKg" type="number" required min="1"
-                         value="@(draft.CapacityKg is > 0 ? draft.CapacityKg.Value.ToString() : null)" />
+                         value="@(draft.CapacityKg is > 0 ? draft.CapacityKg.Value.ToString() : null)"
+                         aria-invalid="@(Model.AriaInvalid("capacityKg"))"
+                         aria-describedby="@(Model.HasFieldError("capacityKg") ? "err-capacityKg" : null)" />
+                  @if (Model.HasFieldError("capacityKg"))
+                  {
+                    <p class="field-error" id="err-capacityKg" role="alert">@Model.FieldError("capacityKg")</p>
+                  }
                 }
               </div>
             }
@@ -334,74 +462,133 @@
 
           @if (Model.Attributes.Count > 0)
           {
-            <fieldset class="wizard-fieldset">
-              <legend>Ek özellikler</legend>
-              <div class="form-grid-2">
+            <fieldset class="ap-fieldset">
+              <legend>Teknik özellikler</legend>
+              <div class="ap-stack">
                 @foreach (var attr in Model.Attributes)
-              {
-                if (draft.HorsepowerFromCatalog && attr.Key == "engine_power_hp")
                 {
-                  continue;
-                }
-                var key = $"specs[{attr.Key}]";
-                var val = draft.Specs.TryGetValue(attr.Key, out var s) ? s : "";
-                var opts = Model.EnumOptions(attr);
-                var fromCatalog = draft.CatalogLocked && !string.IsNullOrWhiteSpace(val)
-                                  && attr.Key is "lift_height_m" or "working_height_m" or "platform_height_m"
-                                      or "payload_t" or "max_lift_capacity_t" or "capacity_t"
-                                      or "capacity_kg" or "lift_capacity_kg" or "rated_operating_capacity_kg"
-                                      or "boom_length_m" or "vertical_reach_m" or "drum_volume_m3"
-                                      or "capacity_m3h" or "plant_capacity_m3h" or "engine_power_hp";
-                <div class="form-row">
-                  <label for="spec-@attr.Key">@attr.Label@(attr.Unit is not null ? $" ({attr.Unit})" : null)</label>
-                  @if (fromCatalog)
+                  if (draft.HorsepowerFromCatalog && attr.Key == "engine_power_hp")
                   {
-                    <input id="spec-@attr.Key" type="text" value="@val" readonly class="is-catalog" />
-                    <input type="hidden" name="@key" value="@val" />
-                    <p class="field-hint">Katalog değeri</p>
+                    continue;
                   }
-                  else if (opts.Count > 0)
+                  var key = $"specs[{attr.Key}]";
+                  var fieldId = $"spec-{attr.Key}";
+                  var labelId = $"spec-label-{attr.Key}";
+                  var val = draft.Specs.TryGetValue(attr.Key, out var s) ? s : "";
+                  var opts = Model.EnumOptions(attr);
+                  var fromCatalog = draft.CatalogLocked && !string.IsNullOrWhiteSpace(val)
+                                    && attr.Key is "lift_height_m" or "working_height_m" or "platform_height_m"
+                                        or "payload_t" or "max_lift_capacity_t" or "capacity_t"
+                                        or "capacity_kg" or "lift_capacity_kg" or "rated_operating_capacity_kg"
+                                        or "boom_length_m" or "vertical_reach_m" or "drum_volume_m3"
+                                        or "capacity_m3h" or "plant_capacity_m3h" or "engine_power_hp";
+                  var specErrKey = "spec:" + attr.Key;
+                  var fieldInvalid = Model.FieldInvalidClass(specErrKey);
+                  <div class="ap-field @fieldInvalid" id="field-@attr.Key">
+                    <span class="ap-label" id="@labelId">
+                      @attr.Label@(attr.Unit is not null ? $" ({attr.Unit})" : null)
+                      @if (attr.IsRequired)
+                      {
+                        <abbr class="field-req" title="Zorunlu">*</abbr>
+                      }
+                      else
+                      {
+                        <span class="field-optional">(isteğe bağlı)</span>
+                      }
+                    </span>
+                    @if (fromCatalog)
                     {
-                      <select id="spec-@attr.Key" name="@key">
-                        <option value="">—</option>
+                      var catalogDisplay = attr.DataType == "enum" ? SpecOptionLabels.For(val) : val;
+                      <input id="@fieldId" type="text" class="ap-input is-catalog" value="@catalogDisplay" readonly aria-labelledby="@labelId" />
+                      <input type="hidden" name="@key" value="@val" />
+                      <p class="ap-hint">Katalog değeri</p>
+                    }
+                    else if (opts.Count > 0)
+                    {
+                      <div class="ap-tile-group@(opts.Count > 6 ? " ap-tile-group--compact" : null)"
+                           role="radiogroup"
+                           aria-labelledby="@labelId"
+                           aria-required="@(attr.IsRequired ? "true" : null)"
+                           aria-invalid="@(Model.AriaInvalid(specErrKey))"
+                           aria-describedby="@(Model.HasFieldError(specErrKey) ? $"err-{attr.Key}" : null)">
+                        @if (!attr.IsRequired)
+                        {
+                          <label class="ap-tile">
+                            <input type="radio" name="@key" value=""
+                                   @(string.IsNullOrEmpty(val) ? "checked" : null) />
+                            <span class="ap-tile-face">
+                              <span class="ap-tile-mark" aria-hidden="true"></span>
+                              <span>Belirtilmedi</span>
+                            </span>
+                          </label>
+                        }
                         @foreach (var opt in opts)
                         {
-                          if (val == opt)
-                          {
-                            <option value="@opt" selected>@opt</option>
-                          }
-                          else
-                          {
-                            <option value="@opt">@opt</option>
-                          }
+                          var optLabel = SpecOptionLabels.For(opt);
+                          <label class="ap-tile">
+                            <input type="radio" name="@key" value="@opt"
+                                   @(attr.IsRequired ? "required" : null)
+                                   @(val == opt ? "checked" : null) />
+                            <span class="ap-tile-face">
+                              <span class="ap-tile-mark" aria-hidden="true"></span>
+                              <span>@optLabel</span>
+                            </span>
+                          </label>
                         }
-                      </select>
+                      </div>
                     }
                     else if (attr.DataType == "bool")
                     {
-                      <select id="spec-@attr.Key" name="@key">
-                        <option value="">—</option>
-                        @if (val is "true" or "1")
+                      var isTrue = val is "true" or "1";
+                      var isFalse = val is "false" or "0";
+                      <div class="ap-tile-group ap-tile-group--bool"
+                           role="radiogroup"
+                           aria-labelledby="@labelId"
+                           aria-required="@(attr.IsRequired ? "true" : null)"
+                           aria-invalid="@(Model.AriaInvalid(specErrKey))"
+                           aria-describedby="@(Model.HasFieldError(specErrKey) ? $"err-{attr.Key}" : null)">
+                        @if (!attr.IsRequired)
                         {
-                          <option value="true" selected>Evet</option>
-                          <option value="false">Hayır</option>
+                          <label class="ap-tile">
+                            <input type="radio" name="@key" value=""
+                                   @(!isTrue && !isFalse ? "checked" : null) />
+                            <span class="ap-tile-face">
+                              <span class="ap-tile-mark" aria-hidden="true"></span>
+                              <span>Belirtilmedi</span>
+                            </span>
+                          </label>
                         }
-                        else if (val is "false" or "0")
-                        {
-                          <option value="true">Evet</option>
-                          <option value="false" selected>Hayır</option>
-                        }
-                        else
-                        {
-                          <option value="true">Evet</option>
-                          <option value="false">Hayır</option>
-                        }
-                      </select>
+                        <label class="ap-tile">
+                          <input type="radio" name="@key" value="true"
+                                 @(attr.IsRequired ? "required" : null)
+                                 @(isTrue ? "checked" : null) />
+                          <span class="ap-tile-face">
+                            <span class="ap-tile-mark" aria-hidden="true"></span>
+                            <span>Evet</span>
+                          </span>
+                        </label>
+                        <label class="ap-tile">
+                          <input type="radio" name="@key" value="false"
+                                 @(isFalse ? "checked" : null) />
+                          <span class="ap-tile-face">
+                            <span class="ap-tile-mark" aria-hidden="true"></span>
+                            <span>Hayır</span>
+                          </span>
+                        </label>
+                      </div>
                     }
                     else
                     {
-                      <input id="spec-@attr.Key" name="@key" type="@(attr.DataType == "number" ? "number" : "text")"
-                             step="any" value="@val" />
+                      <input id="@fieldId" name="@key" class="ap-input @Model.FieldInvalidClass(specErrKey)"
+                             type="@(attr.DataType == "number" ? "number" : "text")"
+                             step="any" value="@val" aria-labelledby="@labelId"
+                             required="@(attr.IsRequired ? "required" : null)"
+                             aria-invalid="@(Model.AriaInvalid(specErrKey))"
+                             aria-describedby="@(Model.HasFieldError(specErrKey) ? $"err-{attr.Key}" : null)" />
+                    }
+                    @if (Model.HasFieldError(specErrKey))
+                    {
+                      <p class="field-error" id="err-@attr.Key" role="alert">@Model.FieldError(specErrKey)</p>
                     }
                   </div>
                 }
@@ -411,37 +598,56 @@
 
           @if (Model.Attachments.Count > 0)
           {
-            <fieldset class="wizard-fieldset">
-              <legend>Ekipmanlar</legend>
-              <div class="wizard-check-row">
+            <fieldset class="ap-fieldset">
+              <legend>Donanım ve ekipman</legend>
+              <div class="ap-tile-group" role="group" aria-label="Ekipmanlar">
                 @foreach (var att in Model.Attachments)
                 {
-                  <label class="wizard-check">
+                  <label class="ap-tile">
                     <input type="checkbox" name="attachmentIds" value="@att.Id"
                            @(Model.HasAttachment(att.Id) ? "checked" : null) />
-                    @att.Name
+                    <span class="ap-tile-face">
+                      <span class="ap-tile-mark" aria-hidden="true"></span>
+                      <span>@att.Name</span>
+                    </span>
                   </label>
                 }
               </div>
             </fieldset>
           }
 
-          <div class="form-row">
-            <label for="title">İlan başlığı</label>
+          <div class="form-row @Model.FieldInvalidClass("title")" id="field-title">
+            <label for="title">
+              İlan başlığı <abbr class="field-req" title="Zorunlu">*</abbr>
+            </label>
             <input id="title" name="title" type="text" required maxlength="200" value="@draft.Title"
-                   placeholder="@draft.SuggestedTitle()" />
-            <p class="field-hint">Öneri: @draft.SuggestedTitle()</p>
+                   placeholder="@draft.SuggestedTitle()"
+                   aria-invalid="@(Model.AriaInvalid("title"))"
+                   aria-describedby="hint-title@(Model.HasFieldError("title") ? " err-title" : "")" />
+            <p class="field-hint" id="hint-title">Öneri: @draft.SuggestedTitle()</p>
+            @if (Model.HasFieldError("title"))
+            {
+              <p class="field-error" id="err-title" role="alert">@Model.FieldError("title")</p>
+            }
           </div>
 
-          <div class="form-row">
-            <label for="description">Açıklama</label>
+          <div class="form-row @Model.FieldInvalidClass("description")" id="field-description">
+            <label for="description">
+              Açıklama <abbr class="field-req" title="Zorunlu">*</abbr>
+            </label>
             <textarea id="description" name="description" required rows="5" maxlength="8000"
-                      placeholder="Bakım geçmişi, ekipman, konum notları…">@draft.Description</textarea>
+                      placeholder="Bakım geçmişi, ekipman, konum notları…"
+                      aria-invalid="@(Model.AriaInvalid("description"))"
+                      aria-describedby="@(Model.HasFieldError("description") ? "err-description" : null)">@draft.Description</textarea>
+            @if (Model.HasFieldError("description"))
+            {
+              <p class="field-error" id="err-description" role="alert">@Model.FieldError("description")</p>
+            }
           </div>
 
           <div class="wizard-actions">
-            <a class="link-quiet" href="/ilan-ver?adim=1">← Geri</a>
-            <button class="btn btn-machine" type="submit">Devam</button>
+            <a class="btn btn-ghost" href="/ilan-ver?adim=1">← Geri</a>
+            <button class="btn btn-machine" type="submit">Kaydet ve devam</button>
           </div>
         </form>
       }
@@ -449,145 +655,221 @@
       @* ── Step 3: Sale ────────────────────────────────────────────── *@
       else if (step == 3)
       {
-        var hasSale = draft.Intents.Contains(ListingIntent.Satilik);
-        var hasRent = draft.Intents.Contains(ListingIntent.Kiralik);
-        var bothSaleRent = hasSale && hasRent;
+        var isRent = draft.PrimaryIntent == ListingIntent.Kiralik;
 
-        <p class="wizard-lead">Fiyat, konum ve iletişim bilgileri.</p>
-        <form method="post" asp-page-handler="Sale" class="wizard-form" id="wizard-form"
+        <p class="wizard-lead">
+          <strong>@ListingIntent.Label(draft.PrimaryIntent)</strong>
+          ilanı için fiyat ve konum bilgilerini gir.
+        </p>
+        <form method="post" asp-page-handler="Sale" class="ap-stack" id="wizard-form"
               x-data="ilanVerSale"
               data-city-id="@draft.CityId"
               data-district-id="@draft.DistrictId"
               data-neighborhood-id="@(draft.NeighborhoodId ?? 0)"
-              data-primary-intent="@draft.PrimaryIntent"
-              data-rent="@(hasRent ? "1" : "0")"
-              data-both-sale-rent="@(bothSaleRent ? "1" : "0")"
-              data-seller-type="@draft.SellerType"
-              data-districts='@initialDistrictsJson'
-              data-neighborhoods='@neighborhoodsJson'>
+              data-districts="@initialDistrictsJson"
+              data-neighborhoods="@neighborhoodsJson"
+              novalidate>
           @Html.AntiForgeryToken()
 
-          <fieldset class="wizard-fieldset">
-            <legend>İlan tipi</legend>
-            <div class="wizard-check-row">
-              <label class="wizard-check">
-                <input type="checkbox" name="intents" value="@ListingIntent.Satilik"
-                       @(hasSale ? "checked" : null)
-                       @@change="onIntentsChange()" />
-                Satılık
+          <p class="wizard-req-legend">
+            Zorunlu alanlar
+            <abbr class="field-req" title="Zorunlu">*</abbr>
+            ile işaretlidir.
+          </p>
+
+          <fieldset class="ap-fieldset">
+            <legend>Fiyat</legend>
+            <div class="ap-field @Model.FieldInvalidClass("price")" id="field-price">
+              <label class="ap-label" for="price">
+                @(isRent ? "Kira bedeli (₺)" : "Satış fiyatı (₺)")
+                <abbr class="field-req" title="Zorunlu">*</abbr>
               </label>
-              <label class="wizard-check">
-                <input type="checkbox" name="intents" value="@ListingIntent.Kiralik"
-                       @(hasRent ? "checked" : null)
-                       @@change="onIntentsChange()" />
-                Kiralık
-              </label>
+              <input class="ap-input @Model.FieldInvalidClass("price")" id="price" name="price" type="number" required min="1" step="1"
+                     inputmode="numeric" placeholder="Örn. 1250000"
+                     value="@(draft.Price > 0 ? draft.Price.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : null)"
+                     aria-invalid="@(Model.AriaInvalid("price"))"
+                     aria-describedby="@(Model.HasFieldError("price") ? "err-price" : null)" />
+              @if (Model.HasFieldError("price"))
+              {
+                <p class="field-error" id="err-price" role="alert">@Model.FieldError("price")</p>
+              }
             </div>
-            <div class="form-row">
-              <label for="primaryIntent">Birincil tip</label>
-              <select id="primaryIntent" name="primaryIntent" required x-model="primaryIntent">
-                <option value="@ListingIntent.Satilik">Satılık</option>
-                <option value="@ListingIntent.Kiralik">Kiralık</option>
-              </select>
-            </div>
+
+            @if (isRent)
+            {
+              <div class="ap-field @Model.FieldInvalidClass("priceUnit")" id="field-priceUnit">
+                <span class="ap-label" id="priceUnit-label">
+                  Kira birimi <abbr class="field-req" title="Zorunlu">*</abbr>
+                </span>
+                <div class="ap-tile-group" role="radiogroup" aria-labelledby="priceUnit-label"
+                     aria-required="true"
+                     aria-invalid="@(Model.AriaInvalid("priceUnit"))"
+                     aria-describedby="@(Model.HasFieldError("priceUnit") ? "err-priceUnit" : null)">
+                  @foreach (var unit in new[] { PriceUnit.Day, PriceUnit.Week, PriceUnit.Month, PriceUnit.Hour })
+                  {
+                    <label class="ap-tile">
+                      <input type="radio" name="priceUnit" value="@unit" required
+                             @(draft.PriceUnit == unit ? "checked" : null) />
+                      <span class="ap-tile-face">
+                        <span class="ap-tile-mark" aria-hidden="true"></span>
+                        <span>@PriceUnit.Label(unit)</span>
+                      </span>
+                    </label>
+                  }
+                </div>
+                @if (Model.HasFieldError("priceUnit"))
+                {
+                  <p class="field-error" id="err-priceUnit" role="alert">@Model.FieldError("priceUnit")</p>
+                }
+              </div>
+              <div class="ap-field">
+                <span class="ap-label" id="operator-label">Operatör <span class="field-optional">(isteğe bağlı)</span></span>
+                <div class="ap-tile-group ap-tile-group--bool" role="group" aria-labelledby="operator-label">
+                  <label class="ap-tile">
+                    <input type="checkbox" name="includesOperator" value="true"
+                           @(draft.IncludesOperator ? "checked" : null) />
+                    <span class="ap-tile-face">
+                      <span class="ap-tile-mark" aria-hidden="true"></span>
+                      <span>Operatör dahil</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+            }
           </fieldset>
 
-          <div class="form-grid-2">
-            <div class="form-row">
-              <label for="price">Fiyat (₺)</label>
-              <input id="price" name="price" type="number" required min="1" step="1"
-                     value="@(draft.Price > 0 ? draft.Price.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : null)" />
-            </div>
-            <div class="form-row" x-show="bothSaleRent" x-cloak>
-              <label for="rentPrice">Kira fiyatı (₺)</label>
-              <input id="rentPrice" name="rentPrice" type="number" min="1" step="1"
-                     value="@(draft.RentPrice.HasValue && draft.RentPrice > 0 ? draft.RentPrice.Value.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : null)" />
-            </div>
-          </div>
-
-          <div class="form-grid-2" x-show="rent" x-cloak>
-            <div class="form-row">
-              <label for="priceUnit">Kira birimi</label>
-              <select id="priceUnit" name="priceUnit">
-                <option value="">Seç</option>
-                @foreach (var unit in new[] { PriceUnit.Day, PriceUnit.Week, PriceUnit.Month, PriceUnit.Hour })
-                {
-                  if (draft.PriceUnit == unit)
-                  {
-                    <option value="@unit" selected>@PriceUnit.Label(unit)</option>
-                  }
-                  else
-                  {
-                    <option value="@unit">@PriceUnit.Label(unit)</option>
-                  }
-                }
-              </select>
-            </div>
-            <div class="form-row">
-              <label class="wizard-check">
-                <input type="checkbox" name="includesOperator" value="true"
-                       @(draft.IncludesOperator ? "checked" : null) />
-                Operatör dahil
+          <fieldset class="ap-fieldset @Model.FieldInvalidClass("sellerType")" id="field-sellerType">
+            <legend>
+              Satıcı <abbr class="field-req" title="Zorunlu">*</abbr>
+            </legend>
+            <div class="ap-tile-group ap-tile-group--2" role="radiogroup" aria-label="Satıcı tipi"
+                 aria-required="true"
+                 aria-invalid="@(Model.AriaInvalid("sellerType"))"
+                 aria-describedby="@(Model.HasFieldError("sellerType") ? "err-sellerType" : null)">
+              <label class="ap-tile">
+                <input type="radio" name="sellerType" value="@SellerType.Owner" required
+                       @(draft.SellerType == SellerType.Dealer ? null : "checked") />
+                <span class="ap-tile-face">
+                  <span class="ap-tile-mark" aria-hidden="true"></span>
+                  <span>Sahibi</span>
+                </span>
+              </label>
+              <label class="ap-tile">
+                <input type="radio" name="sellerType" value="@SellerType.Dealer" required
+                       @(draft.SellerType == SellerType.Dealer ? "checked" : null) />
+                <span class="ap-tile-face">
+                  <span class="ap-tile-mark" aria-hidden="true"></span>
+                  <span>Bayi</span>
+                </span>
               </label>
             </div>
-          </div>
+            @if (Model.HasFieldError("sellerType"))
+            {
+              <p class="field-error" id="err-sellerType" role="alert">@Model.FieldError("sellerType")</p>
+            }
+          </fieldset>
 
-          <div class="form-row">
-            <label for="sellerType">Satıcı tipi</label>
-            <select id="sellerType" name="sellerType" required x-model="sellerType">
-              <option value="">Seç</option>
-              <option value="@SellerType.Owner">Sahibi</option>
-              <option value="@SellerType.Dealer">Bayi</option>
-            </select>
-          </div>
-
-          <div class="form-grid-2">
-            <div class="form-row">
-              <label for="cityId">İl</label>
-              <select id="cityId" name="cityId" required x-model.number="cityId" @@change="onCityChange()">
-                <option value="">Seç</option>
-                @foreach (var c in Model.Cities)
+          <fieldset class="ap-fieldset">
+            <legend>Konum</legend>
+            <div class="ap-grid-2">
+              <div class="ap-field @Model.FieldInvalidClass("cityId")" id="field-cityId">
+                <label class="ap-label" for="cityId">
+                  İl <abbr class="field-req" title="Zorunlu">*</abbr>
+                </label>
+                <select class="ap-input @Model.FieldInvalidClass("cityId")"
+                        id="cityId"
+                        name="cityId"
+                        required
+                        autocomplete="address-level1"
+                        x-ref="city"
+                        aria-invalid="@(Model.AriaInvalid("cityId"))"
+                        aria-describedby="@(Model.HasFieldError("cityId") ? "err-cityId" : null)">
+                  <option value="">İl seç</option>
+                  @foreach (var c in Model.Cities)
+                  {
+                    if (draft.CityId == c.Id)
+                    {
+                      <option value="@c.Id" selected>@c.Name</option>
+                    }
+                    else
+                    {
+                      <option value="@c.Id">@c.Name</option>
+                    }
+                  }
+                </select>
+                @if (Model.HasFieldError("cityId"))
                 {
-                  if (draft.CityId == c.Id)
-                  {
-                    <option value="@c.Id" selected>@c.Name</option>
-                  }
-                  else
-                  {
-                    <option value="@c.Id">@c.Name</option>
-                  }
+                  <p class="field-error" id="err-cityId" role="alert">@Model.FieldError("cityId")</p>
                 }
+              </div>
+              <div class="ap-field @Model.FieldInvalidClass("districtId")" id="field-districtId">
+                <label class="ap-label" for="districtId">
+                  İlçe <abbr class="field-req" title="Zorunlu">*</abbr>
+                </label>
+                <select class="ap-input @Model.FieldInvalidClass("districtId")"
+                        id="districtId"
+                        name="districtId"
+                        required
+                        autocomplete="address-level2"
+                        x-ref="district"
+                        disabled
+                        aria-invalid="@(Model.AriaInvalid("districtId"))"
+                        aria-describedby="@(Model.HasFieldError("districtId") ? "err-districtId" : null)">
+                  <option value="">Önce il seç</option>
+                </select>
+                @if (Model.HasFieldError("districtId"))
+                {
+                  <p class="field-error" id="err-districtId" role="alert">@Model.FieldError("districtId")</p>
+                }
+              </div>
+            </div>
+
+            <div class="ap-field">
+              <label class="ap-label" for="neighborhoodId">
+                Mahalle
+                <span class="ap-optional">isteğe bağlı</span>
+              </label>
+              <select class="ap-input"
+                      id="neighborhoodId"
+                      name="neighborhoodId"
+                      autocomplete="address-level3"
+                      x-ref="neighborhood"
+                      disabled>
+                <option value="">Önce ilçe seç</option>
               </select>
             </div>
-            <div class="form-row">
-              <label for="districtId">İlçe</label>
-              <select id="districtId" name="districtId" required x-model.number="districtId" @@change="onDistrictChange()">
-                <option value="">Seç</option>
-                <template x-for="d in districts" :key="d.id">
-                  <option :value="d.id" x-text="d.name"></option>
-                </template>
-              </select>
-            </div>
-          </div>
 
-          <div class="form-row">
-            <label for="neighborhoodId">Mahalle <span class="field-optional">(isteğe bağlı)</span></label>
-            <select id="neighborhoodId" name="neighborhoodId" x-model.number="neighborhoodId">
-              <option value="">Seç</option>
-              <template x-for="n in neighborhoods" :key="n.id">
-                <option :value="n.id" x-text="n.name"></option>
-              </template>
-            </select>
-          </div>
+            <p class="ap-hint" x-show="hasLocationStatus" x-text="locationStatus" x-cloak role="status" aria-live="polite"></p>
+          </fieldset>
 
-          @if (!string.IsNullOrWhiteSpace(Model.AccountPhone))
-          {
-            <p class="wizard-muted">Kayıtlı telefon: <strong>@Model.AccountPhone</strong></p>
-          }
+          <fieldset class="ap-fieldset @(Model.HasFieldError("phone") ? "is-invalid" : null)" id="field-phone">
+            <legend>İletişim</legend>
+            @if (!string.IsNullOrWhiteSpace(Model.AccountPhone))
+            {
+              <div class="wizard-contact">
+                <div class="wizard-contact-icon" aria-hidden="true">
+                  <ap-icon name="phone" size="18" />
+                </div>
+                <div>
+                  <p class="wizard-contact-label">İlanda görünecek telefon</p>
+                  <p class="wizard-contact-value">@Model.AccountPhone</p>
+                  <p class="ap-hint">Alıcılar bu numaradan seni arayabilir. Değiştirmek için hesap ayarlarını kullan.</p>
+                </div>
+              </div>
+            }
+            else
+            {
+              <p class="ap-hint">Yayınlamadan önce telefon doğrulaması istenecek.</p>
+            }
+            @if (Model.HasFieldError("phone"))
+            {
+              <p class="field-error" id="err-phone" role="alert">@Model.FieldError("phone")</p>
+            }
+          </fieldset>
 
-          <div class="wizard-actions">
-            <a class="link-quiet" href="/ilan-ver?adim=2">← Geri</a>
-            <button class="btn btn-machine" type="submit">Devam</button>
+          <div class="ap-actions">
+            <a class="btn btn-ghost" href="/ilan-ver?adim=2">← Geri</a>
+            <button class="btn btn-machine" type="submit">Kaydet ve devam</button>
           </div>
         </form>
       }
@@ -595,57 +877,86 @@
       @* ── Step 4: Images ──────────────────────────────────────────── *@
       else if (step == 4)
       {
-        <p class="wizard-lead">Makine görsellerini ekle — dosya yükle veya URL gir. İlk görsel kapak olur.</p>
+        <p class="wizard-lead">Net, aydınlık fotoğraflar ilanı daha hızlı satar. İlk görsel kapak olur — en az 1 fotoğraf ekle.</p>
 
-        <form method="post" asp-page-handler="Upload" class="wizard-form" enctype="multipart/form-data">
+        <form method="post"
+              asp-page-handler="Upload"
+              class="wizard-dropzone"
+              enctype="multipart/form-data"
+              id="wizard-upload"
+              x-data="ilanVerDropzone"
+              :class="dropzoneClass"
+              @@dragenter.prevent="onDragEnter"
+              @@dragover.prevent="onDragOver"
+              @@dragleave.prevent="onDragLeave"
+              @@drop.prevent="onDrop">
           @Html.AntiForgeryToken()
-          <div class="form-row">
-            <label for="file-upload">Dosya yükle</label>
-            <input id="file-upload" name="file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
-          </div>
-          <button class="btn btn-ghost" type="submit">Yükle</button>
+          <input class="sr-only"
+                 id="file-upload"
+                 name="file"
+                 type="file"
+                 accept="image/jpeg,image/png,image/webp,image/gif"
+                 x-ref="file"
+                 @@change="onFileChange" />
+          <label for="file-upload" class="wizard-dropzone-face">
+            <span class="wizard-dropzone-icon" aria-hidden="true">
+              <ap-icon name="plus" size="28" />
+            </span>
+            <span class="wizard-dropzone-title">Fotoğraf sürükle-bırak veya seç</span>
+            <span class="wizard-dropzone-hint">JPG, PNG, WebP · maks. 8 MB · ilk görsel kapak</span>
+            <span class="btn btn-ghost btn-sm wizard-dropzone-btn">Dosya seç</span>
+          </label>
         </form>
 
-        <hr class="wizard-divider" />
+        @if (draft.ImageUrls.Count > 0)
+        {
+          <div class="wizard-gallery" aria-label="Yüklenen fotoğraflar">
+            @for (var i = 0; i < draft.ImageUrls.Count; i++)
+            {
+              var url = draft.ImageUrls[i];
+              <figure class="wizard-gallery-item @(i == 0 ? "is-cover" : null)">
+                <img src="@url" alt="" loading="lazy" width="240" height="180" />
+                @if (i == 0)
+                {
+                  <figcaption>Kapak</figcaption>
+                }
+                else
+                {
+                  <figcaption>@(i + 1)</figcaption>
+                }
+              </figure>
+            }
+          </div>
+        }
 
         <form method="post" asp-page-handler="Images" class="wizard-form" id="wizard-form"
               x-data="ilanVerImages" data-urls='@imageUrlsJson'>
           @Html.AntiForgeryToken()
-          <div class="wizard-image-list">
-            <template x-for="(url, index) in urls" :key="index">
-              <div class="form-row wizard-image-row">
-                <label :for="inputId(index)">
-                  <span x-text="labelFor(index)"></span>
-                </label>
-                <div class="wizard-image-input">
-                  <input type="url" name="imageUrls" :id="inputId(index)" x-model="urls[index]"
-                         placeholder="https://…" pattern="https://.*" />
-                  <button type="button" class="link-quiet" x-show="canRemove" @@click="removeAt(index)">Kaldır</button>
+          <details class="wizard-url-panel">
+            <summary>URL ile görsel ekle</summary>
+            <div class="wizard-image-list">
+              <template x-for="item in items" :key="item.id">
+                <div class="form-row wizard-image-row">
+                  <label :for="item.inputId">
+                    <span x-text="item.label"></span>
+                  </label>
+                  <div class="wizard-image-input">
+                    <input type="url" name="imageUrls" :id="item.inputId" x-model="item.value"
+                           placeholder="https://…" pattern="https://.*" />
+                    <button type="button" class="link-quiet" x-show="canRemove" @@click="item.remove">Kaldır</button>
+                  </div>
+                  <div class="wizard-image-preview" x-show="item.hasPreview">
+                    <img :src="item.value" alt="" loading="lazy" />
+                  </div>
                 </div>
-                <div class="wizard-image-preview" x-show="hasPreview(index)">
-                  <img :src="urls[index]" alt="" loading="lazy" />
-                </div>
-              </div>
-            </template>
-          </div>
-          <button type="button" class="btn btn-ghost" x-show="canAdd" @@click="add">+ Görsel ekle</button>
-
-          @if (draft.ImageUrls.Count > 0)
-          {
-            <div class="wizard-image-thumbs">
-              <p class="field-hint">Yüklü görseller:</p>
-              <div class="wizard-thumb-grid">
-                @foreach (var url in draft.ImageUrls)
-                {
-                  <img class="wizard-thumb" src="@url" alt="" loading="lazy" />
-                }
-              </div>
+              </template>
             </div>
-          }
+            <button type="button" class="btn btn-ghost btn-sm" x-show="canAdd" @@click="add">+ Görsel satırı ekle</button>
+          </details>
 
           <div class="wizard-actions">
-            <a class="link-quiet" href="/ilan-ver?adim=3">← Geri</a>
-            <button class="btn btn-machine" type="submit">Önizlemeye geç</button>
+            <a class="btn btn-ghost" href="/ilan-ver?adim=3">← Geri</a>
+            <button class="btn btn-machine" type="submit">Kaydet ve devam</button>
           </div>
         </form>
       }
@@ -653,7 +964,7 @@
       @* ── Step 5: Preview ─────────────────────────────────────────── *@
       else
       {
-        <p class="wizard-lead">Yayınlamadan önce özet. Düzenlemek için geri dön.</p>
+        <p class="wizard-lead">Son kontrol. Her şey doğruysa yayınla — taslağın zaten kayıtlı.</p>
         <article class="wizard-preview">
           @if (draft.ImageUrls.Count > 0)
           {
@@ -682,17 +993,7 @@
             <h2 class="wizard-preview-title">@draft.Title</h2>
             <p class="wizard-preview-price">
               @draft.Price.ToString("N0", new System.Globalization.CultureInfo("tr-TR")) ₺
-              @if (draft.RentPrice is > 0)
-              {
-                <span class="wizard-preview-rent">
-                  · Kira: @draft.RentPrice.Value.ToString("N0", new System.Globalization.CultureInfo("tr-TR")) ₺
-                  @if (!string.IsNullOrWhiteSpace(draft.PriceUnit))
-                  {
-                    <span>/ @PriceUnit.Label(draft.PriceUnit)</span>
-                  }
-                </span>
-              }
-              else if (!string.IsNullOrWhiteSpace(draft.PriceUnit))
+              @if (!string.IsNullOrWhiteSpace(draft.PriceUnit))
               {
                 <span>/ @PriceUnit.Label(draft.PriceUnit)</span>
               }
@@ -739,23 +1040,25 @@
           </div>
         </article>
 
-        <form method="post" asp-page-handler="Publish" class="wizard-actions wizard-actions-end">
-          @Html.AntiForgeryToken()
-          <input type="hidden" name="publishToken" value="@Model.PublishToken" />
-          <a class="link-quiet" href="/ilan-ver?adim=4">← Düzenle</a>
-          <button class="btn btn-cta btn-lg" type="submit">Yayınla</button>
-        </form>
-        <p class="wizard-warn">Taslak hesabına kaydedilir (oturum + veritabanı). Sayfadan çıksan da geri dönebilirsin.</p>
+        <div class="wizard-publish-bar">
+          <a class="btn btn-ghost btn-lg" href="/">Taslağı sakla</a>
+          <form method="post" asp-page-handler="Publish" class="wizard-publish-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="publishToken" value="@Model.PublishToken" />
+            <a class="link-quiet" href="/ilan-ver?adim=4">← Fotoğrafları düzenle</a>
+            <button class="btn btn-cta btn-lg" type="submit">Yayınla</button>
+          </form>
+        </div>
+        <p class="wizard-warn">Taslak hesabına kaydedilir. Sayfadan çıksan da kaldığın yerden devam edebilirsin.</p>
       }
     </section>
-  </div>
 
   @if (step is >= 2 and <= 4 && !Model.ShowPhoneGate)
   {
     <div class="wizard-sticky">
       <div class="container wizard-sticky-inner">
         <span>Adım @step / 5 · @Model.StepTitle</span>
-        <button class="btn btn-machine" type="submit" form="wizard-form">Devam</button>
+        <button class="btn btn-machine" type="submit" form="wizard-form">Kaydet ve devam</button>
       </div>
     </div>
   }

@@ -813,9 +813,9 @@ INSERT INTO category_attributes (category_id, key, label, data_type, unit, is_fi
  (1, 'engine_power_hp', 'Motor gücü', 'number', 'HP', true, false, 6, NULL),
  (1, 'digging_depth_m', 'Kazma derinliği', 'number', 'm', true, false, 7, NULL),
  (1, 'quick_coupler', 'Hızlı kova bağlantısı', 'bool', NULL, true, false, 8, NULL),
- (1, 'long_reach', 'Uzun erişim (LR)', 'bool', NULL, true, false, 9, NULL),
+ (1, 'long_reach', 'Uzun erişimli (LR)', 'bool', NULL, true, false, 9, NULL),
  (1, 'boom_type', 'Bom tipi', 'enum', NULL, true, false, 10, '["mono","two_piece"]'::jsonb),
- (1, 'gps_grade', 'GPS / grade kontrol', 'bool', NULL, true, false, 11, NULL),
+ (1, 'gps_grade', 'GPS / eğim kontrolü', 'bool', NULL, true, false, 11, NULL),
  -- Lastikli Ekskavatör (13)
  (13, 'breaker_circuit', 'Kırıcı tesisatı', 'bool', NULL, true, false, 1, NULL),
  (13, 'ac_cabin', 'Klimalı kabin', 'bool', NULL, true, false, 2, NULL),
@@ -863,10 +863,10 @@ INSERT INTO category_attributes (category_id, key, label, data_type, unit, is_fi
  (14, 'track_type', 'Yürüyüş tipi', 'enum', NULL, true, false, 4, '["wheel","track"]'::jsonb),
  (14, 'auxiliary_hydraulics', 'Ek hidrolik hat', 'bool', NULL, true, false, 5, NULL),
  (14, 'lift_type', 'Kaldırma tipi', 'enum', NULL, true, false, 6, '["radial","vertical"]'::jsonb),
- (14, 'high_flow', 'High-flow hidrolik', 'bool', NULL, true, false, 7, NULL),
+ (14, 'high_flow', 'Yüksek debili hidrolik', 'bool', NULL, true, false, 7, NULL),
  (14, 'quick_coupler', 'Hızlı bağlantı', 'bool', NULL, true, false, 8, NULL),
  -- Dozer (6)
- (6, 'lgp', 'LGP', 'bool', NULL, true, false, 1, NULL),
+ (6, 'lgp', 'LGP (geniş palet)', 'bool', NULL, true, false, 1, NULL),
  (6, 'blade_width_m', 'Bıçak genişliği', 'number', 'm', false, false, 2, NULL),
  (6, 'engine_power_hp', 'Motor gücü', 'number', 'HP', true, false, 3, NULL),
  (6, 'blade_type', 'Bıçak tipi', 'enum', NULL, true, false, 4, '["straight_s","semi_u","u_blade","angle_pat"]'::jsonb),
@@ -874,7 +874,7 @@ INSERT INTO category_attributes (category_id, key, label, data_type, unit, is_fi
  (6, 'ac_cabin', 'Klimalı kabin', 'bool', NULL, true, false, 6, NULL),
  (6, 'blade_capacity_m3', 'Bıçak hacmi', 'number', 'm³', true, false, 7, NULL),
  (6, 'winch', 'Vinç', 'bool', NULL, true, false, 8, NULL),
- (6, 'gps_grade', 'GPS / grade kontrol', 'bool', NULL, true, false, 9, NULL),
+ (6, 'gps_grade', 'GPS / eğim kontrolü', 'bool', NULL, true, false, 9, NULL),
  -- Greyder (7)
  (7, 'blade_width_m', 'Bıçak genişliği', 'number', 'm', true, false, 1, NULL),
  (7, 'engine_power_hp', 'Motor gücü', 'number', 'HP', true, false, 2, NULL),
@@ -883,7 +883,7 @@ INSERT INTO category_attributes (category_id, key, label, data_type, unit, is_fi
  (7, 'ac_cabin', 'Klimalı kabin', 'bool', NULL, true, false, 5, NULL),
  (7, 'moldboard_length_m', 'Bıçak uzunluğu', 'number', 'm', true, false, 6, NULL),
  (7, 'rear_ripper', 'Arka riper', 'bool', NULL, true, false, 7, NULL),
- (7, 'gps_grade', 'GPS / grade kontrol', 'bool', NULL, true, false, 8, NULL),
+ (7, 'gps_grade', 'GPS / eğim kontrolü', 'bool', NULL, true, false, 8, NULL),
  (7, 'articulation', 'Mafsallı şasi', 'bool', NULL, true, false, 9, NULL),
  -- Damper (19)
  (19, 'dump_type', 'Damper tipi', 'enum', NULL, true, true, 1, '["rigid","articulated","truck_tipper"]'::jsonb),
@@ -899,7 +899,7 @@ INSERT INTO category_attributes (category_id, key, label, data_type, unit, is_fi
  (8, 'vibration', 'Titreşimli', 'bool', NULL, true, false, 2, NULL),
  (8, 'roller_type', 'Silindir tipi', 'enum', NULL, true, false, 3, '["single_drum_soil","tandem_asphalt","pneumatic","combi"]'::jsonb),
  (8, 'padfoot', 'Keçiayağı tambur', 'bool', NULL, true, false, 4, NULL),
- (8, 'oscillation', 'Osilasyon', 'bool', NULL, true, false, 5, NULL),
+ (8, 'oscillation', 'Osilasyonlu tambur', 'bool', NULL, true, false, 5, NULL),
  (8, 'engine_power_hp', 'Motor gücü', 'number', 'HP', true, false, 6, NULL),
  (8, 'water_spray', 'Su püskürtme', 'bool', NULL, true, false, 7, NULL),
  (8, 'drum_diameter_m', 'Tambur çapı', 'number', 'm', false, false, 8, NULL),
@@ -909,7 +909,7 @@ INSERT INTO category_attributes (category_id, key, label, data_type, unit, is_fi
  (15, 'engine_power_hp', 'Motor gücü', 'number', 'HP', true, false, 3, NULL),
  (15, 'hopper_capacity_t', 'Hazne kapasitesi', 'number', 't', true, false, 4, NULL),
  (15, 'max_paving_thickness_mm', 'Maks. serme kalınlığı', 'number', 'mm', true, false, 5, NULL),
- (15, 'screed_type', 'Screed tipi', 'enum', NULL, true, false, 6, '["tamper","vibrator","high_compaction"]'::jsonb),
+ (15, 'screed_type', 'Tabla tipi (screed)', 'enum', NULL, true, false, 6, '["tamper","vibrator","high_compaction"]'::jsonb),
  (15, 'ac_cabin', 'Klimalı kabin', 'bool', NULL, true, false, 7, NULL),
  -- Asfalt Frezesi (20)
  (20, 'milling_width_m', 'Freze genişliği', 'number', 'm', true, true, 1, NULL),
@@ -933,10 +933,10 @@ INSERT INTO category_attributes (category_id, key, label, data_type, unit, is_fi
  (5, 'boom_length_m', 'Bom uzunluğu', 'number', 'm', true, false, 2, NULL),
  (5, 'max_lift_height_m', 'Maksimum kaldırma yüksekliği', 'number', 'm', true, false, 3, NULL),
  (5, 'axle_count', 'Aks sayısı', 'number', NULL, true, false, 4, NULL),
- (5, 'jib', 'Jib / uzatma bomu', 'bool', NULL, true, false, 5, NULL),
+ (5, 'jib', 'Uzatma bomu (jib)', 'bool', NULL, true, false, 5, NULL),
  (5, 'capacity_t', 'Kaldırma kapasitesi', 'number', 't', true, false, 6, NULL),
  (5, 'outriggers', 'Stabilizatör ayak', 'bool', NULL, true, false, 7, NULL),
- (5, 'all_terrain', 'All-terrain', 'bool', NULL, true, false, 8, NULL),
+ (5, 'all_terrain', 'Arazi tipi (all-terrain)', 'bool', NULL, true, false, 8, NULL),
  (5, 'counterweight_t', 'Karşı ağırlık', 'number', 't', false, false, 9, NULL),
  -- Telehandler (10)
  (10, 'lift_height_m', 'Kaldırma yüksekliği', 'number', 'm', true, false, 1, NULL),
@@ -988,7 +988,7 @@ INSERT INTO category_attributes (category_id, key, label, data_type, unit, is_fi
  (12, 'stage', 'Kırma kademesi', 'enum', NULL, true, false, 4, '["primary","secondary","tertiary"]'::jsonb),
  (12, 'feed_opening_mm', 'Ağız açıklığı', 'number', 'mm', true, false, 5, NULL),
  (12, 'engine_power_hp', 'Motor gücü', 'number', 'HP', true, false, 6, NULL),
- (12, 'magnet', 'Overband mıknatıs', 'bool', NULL, true, false, 7, NULL),
+ (12, 'magnet', 'Konveyör mıknatısı', 'bool', NULL, true, false, 7, NULL),
  (12, 'screen_decks', 'Elek katmanı', 'number', NULL, true, false, 8, NULL)
 ON CONFLICT (category_id, key) DO UPDATE SET
   label=EXCLUDED.label, data_type=EXCLUDED.data_type, unit=EXCLUDED.unit,
