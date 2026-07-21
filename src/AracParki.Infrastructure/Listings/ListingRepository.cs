@@ -135,6 +135,8 @@ public sealed class ListingRepository(IDbConnectionFactory connectionFactory, IS
             PriceUnit = row.PriceUnit,
             IncludesOperator = row.IncludesOperator,
             SellerType = row.SellerType,
+            CorporateAccountId = row.CorporateAccountId,
+            CorporateName = row.CorporateName,
             CityId = row.CityId,
             CityName = row.CityName,
             DistrictId = row.DistrictId,
@@ -225,6 +227,8 @@ public sealed class ListingRepository(IDbConnectionFactory connectionFactory, IS
             SellerName = row.SellerName,
             SellerType = row.SellerType,
             IsVerified = row.IsVerified,
+            CorporateAccountId = row.CorporateAccountId,
+            CorporateDisplayName = row.CorporateDisplayName,
             ListedAt = row.ListedAt,
             Status = row.Status,
             RejectionReason = row.RejectionReason,
@@ -333,6 +337,8 @@ public sealed class ListingRepository(IDbConnectionFactory connectionFactory, IS
         public required string SellerName { get; init; }
         public required string SellerType { get; init; }
         public bool IsVerified { get; init; }
+        public long? CorporateAccountId { get; init; }
+        public string? CorporateDisplayName { get; init; }
         public DateTimeOffset ListedAt { get; init; }
         public string Status { get; init; } = ListingStatus.Published;
         public string? RejectionReason { get; init; }

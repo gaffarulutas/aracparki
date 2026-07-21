@@ -26,6 +26,8 @@ SELECT
     l.includes_operator AS IncludesOperator,
     l.seller_id AS SellerId,
     s.seller_type AS SellerType,
+    l.corporate_account_id AS CorporateAccountId,
+    ca.display_name AS CorporateName,
     l.city_id AS CityId,
     city.name AS CityName,
     l.district_id AS DistrictId,
@@ -40,6 +42,7 @@ JOIN categories c ON c.id = l.category_id
 JOIN category_groups g ON g.id = c.group_id
 JOIN brands b ON b.id = l.brand_id
 JOIN sellers s ON s.id = l.seller_id
+LEFT JOIN corporate_accounts ca ON ca.id = l.corporate_account_id
 JOIN cities city ON city.id = l.city_id
 JOIN districts d ON d.id = l.district_id
 LEFT JOIN neighborhoods n ON n.id = l.neighborhood_id

@@ -30,7 +30,7 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
                     INSERT INTO listings (
                         ad_no, title, description,
                         category_id, brand_id, model_id, model_name, serial_no,
-                        city_id, district_id, neighborhood_id, seller_id,
+                        city_id, district_id, neighborhood_id, seller_id, corporate_account_id,
                         primary_intent, intents, condition,
                         model_year, hours, tons, capacity_kg, horsepower,
                         price, rent_price, currency, price_unit, includes_operator, specs,
@@ -39,7 +39,7 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
                     VALUES (
                         @AdNo, @Title, @Description,
                         @CategoryId, @BrandId, @ModelId, @ModelName, @SerialNo,
-                        @CityId, @DistrictId, @NeighborhoodId, @SellerId,
+                        @CityId, @DistrictId, @NeighborhoodId, @SellerId, @CorporateAccountId,
                         @PrimaryIntent, @Intents, @Condition,
                         @ModelYear, @Hours, @Tons, @CapacityKg, @Horsepower,
                         @Price, @RentPrice, @Currency, @PriceUnit, @IncludesOperator, CAST(@SpecsJson AS jsonb),
@@ -61,6 +61,7 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
                         command.DistrictId,
                         command.NeighborhoodId,
                         SellerId = sellerId,
+                        command.CorporateAccountId,
                         command.PrimaryIntent,
                         Intents = command.Intents,
                         command.Condition,
@@ -182,6 +183,7 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
                         district_id = @DistrictId,
                         neighborhood_id = @NeighborhoodId,
                         seller_id = @SellerId,
+                        corporate_account_id = @CorporateAccountId,
                         primary_intent = @PrimaryIntent,
                         intents = @Intents,
                         condition = @Condition,
@@ -224,6 +226,7 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
                         command.DistrictId,
                         command.NeighborhoodId,
                         SellerId = sellerId,
+                        command.CorporateAccountId,
                         command.PrimaryIntent,
                         Intents = command.Intents,
                         command.Condition,
@@ -438,7 +441,11 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
                     l.title,
                     l.status,
                     l.cover_image_url AS CoverImageUrl,
-                    s.display_name AS SellerName,
+                    COALESCE(
+                        NULLIF(BTRIM(ca.display_name), ''),
+                        NULLIF(BTRIM(ca.trade_name), ''),
+                        s.display_name
+                    ) AS SellerName,
                     city.name AS City,
                     l.submitted_at AS SubmittedAt,
                     l.listed_at AS ListedAt,
@@ -446,6 +453,7 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
                 FROM listings l
                 JOIN sellers s ON s.id = l.seller_id
                 JOIN cities city ON city.id = l.city_id
+                LEFT JOIN corporate_accounts ca ON ca.id = l.corporate_account_id
                 WHERE l.status = @Status
                 ORDER BY COALESCE(l.submitted_at, l.listed_at) DESC, l.id DESC
                 LIMIT @Take

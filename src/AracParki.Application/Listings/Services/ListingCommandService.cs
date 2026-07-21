@@ -89,6 +89,7 @@ public sealed class ListingCommandService(
             SellerDisplayName = command.SellerDisplayName.Trim(),
             Phone = command.Phone.Trim(),
             SellerType = command.SellerType.Trim(),
+            CorporateAccountId = command.CorporateAccountId is > 0 ? command.CorporateAccountId : null,
             CategoryId = command.CategoryId,
             BrandId = command.BrandId,
             ModelId = command.ModelId is > 0 ? command.ModelId : null,

@@ -1169,6 +1169,10 @@
       locationStatus: "",
       priceRaw: 0,
       priceHint: "",
+      accountPhone: "",
+      corporatePhones: {},
+      selectedCorporateId: "",
+      contactPhoneSource: "account",
       _districtAbort: null,
       _neighborhoodAbort: null,
       get hasLocationStatus() {
@@ -1176,6 +1180,48 @@
       },
       get hasPriceHint() {
         return !!this.priceHint;
+      },
+      get isCorporateSeller() {
+        return !!this.selectedCorporateId;
+      },
+      get corporatePhone() {
+        const row = this.corporatePhones[this.selectedCorporateId];
+        return row && row.phone ? String(row.phone) : "";
+      },
+      get corporateName() {
+        const row = this.corporatePhones[this.selectedCorporateId];
+        return row && row.name ? String(row.name) : "Bayi";
+      },
+      get showPhoneChoices() {
+        return this.isCorporateSeller && !!this.accountPhone && !!this.corporatePhone;
+      },
+      get showSinglePhone() {
+        return !!this.activePhone && !this.showPhoneChoices;
+      },
+      get showPhoneFallback() {
+        return !this.accountPhone && !this.corporatePhone;
+      },
+      get isAccountPhoneSelected() {
+        return this.contactPhoneSource === "account";
+      },
+      get isCorporatePhoneSelected() {
+        return this.contactPhoneSource === "corporate";
+      },
+      get accountPhoneLabel() {
+        return this.accountPhone ? "(" + this.accountPhone + ")" : "";
+      },
+      get corporatePhoneLabel() {
+        if (!this.corporatePhone) return "";
+        return "(" + this.corporateName + " · " + this.corporatePhone + ")";
+      },
+      get activePhone() {
+        if (this.contactPhoneSource === "corporate" && this.corporatePhone) {
+          return this.corporatePhone;
+        }
+        return this.accountPhone || this.corporatePhone || "";
+      },
+      get activePhoneLabel() {
+        return this.activePhone || "—";
       },
       init() {
         const cityId = Number(this.$el.dataset.cityId || 0) || 0;
@@ -1185,11 +1231,29 @@
         const neighborhoods = parseJsonAttr(this.$el, "data-neighborhoods", []);
         const initialPrice = Number(this.$el.dataset.price || 0) || 0;
         const initialCurrency = String(this.$el.dataset.currency || "TRY");
+        this.accountPhone = String(this.$el.dataset.accountPhone || "").trim();
+        this.selectedCorporateId = String(this.$el.dataset.corporateId || "").trim();
+        this.contactPhoneSource = String(this.$el.dataset.contactPhoneSource || "account").trim() || "account";
+
+        const phoneRows = parseJsonAttr(this.$el, "data-corporate-phones", []);
+        const map = {};
+        if (Array.isArray(phoneRows)) {
+          for (const row of phoneRows) {
+            if (!row || row.id == null) continue;
+            map[String(row.id)] = {
+              phone: String(row.phone || "").trim(),
+              name: String(row.name || "").trim(),
+            };
+          }
+        }
+        this.corporatePhones = map;
+        this.syncContactPhoneSource();
 
         // disabled select alanları POST'a girmez; gönderimden hemen önce aç.
         this.$el.addEventListener("submit", () => {
           if (this.$refs.district) this.$refs.district.disabled = false;
           if (this.$refs.neighborhood) this.$refs.neighborhood.disabled = false;
+          this.syncContactPhoneSource();
           this.syncPriceHidden();
         });
 
@@ -1222,6 +1286,29 @@
             districtId <= 0
           );
         });
+      },
+      syncContactPhoneSource() {
+        if (!this.showPhoneChoices) {
+          this.contactPhoneSource = "account";
+        } else if (this.contactPhoneSource !== "corporate") {
+          this.contactPhoneSource = "account";
+        }
+        if (this.$refs.contactPhoneSource) {
+          this.$refs.contactPhoneSource.value = this.contactPhoneSource;
+        }
+      },
+      onSellerChange(event) {
+        this.selectedCorporateId = String(event && event.target ? event.target.value : "").trim();
+        if (this.showPhoneChoices) {
+          this.contactPhoneSource = "corporate";
+        } else {
+          this.contactPhoneSource = "account";
+        }
+        this.syncContactPhoneSource();
+      },
+      onContactPhoneSourceChange(event) {
+        this.contactPhoneSource = String(event && event.target ? event.target.value : "account");
+        this.syncContactPhoneSource();
       },
       formatN0(value) {
         const n = Math.floor(Number(value) || 0);
@@ -1669,6 +1756,104 @@
       },
     }));
 
+    // CSP Alpine: kurumsal hesap — şirket türüne göre alanlar + il/ilçe.
+    Alpine.data("corpForm", () => ({
+      companyType: "sahis",
+      init() {
+        const initial = String(this.$el.dataset.companyType || "sahis");
+        this.companyType = initial;
+      },
+      get isCapital() {
+        return this.companyType === "limited" || this.companyType === "anonim";
+      },
+      get isSahis() {
+        return this.companyType === "sahis";
+      },
+      get isDiger() {
+        return this.companyType === "diger";
+      },
+      get showMersis() {
+        return this.isCapital || this.isDiger;
+      },
+      get mersisRequired() {
+        return this.isCapital;
+      },
+      get showTradeRegistry() {
+        return this.isCapital || this.isDiger;
+      },
+      get capitalDocsRequired() {
+        return this.isCapital;
+      },
+      get taxLabel() {
+        return this.isSahis ? "TC kimlik no" : "Vergi kimlik no (VKN)";
+      },
+      get taxHint() {
+        if (this.isSahis) return "Şahıs şirketinde 11 haneli TCKN gir.";
+        if (this.isCapital) return "Vergi levhasındaki 10 haneli VKN.";
+        return "VKN (10 hane) veya TCKN (11 hane).";
+      },
+      get taxMaxLength() {
+        return this.isSahis ? 11 : 11;
+      },
+      get taxPlaceholder() {
+        return this.isSahis ? "11 haneli TCKN" : "10 haneli VKN";
+      },
+      get companyHint() {
+        if (this.isCapital) {
+          return "Limited/Anonim şirketlerde MERSİS, ticaret sicil gazetesi ve faaliyet belgesi zorunludur.";
+        }
+        if (this.isSahis) {
+          return "Şahıs şirketinde vergi levhası ve imza beyannamesi zorunludur. Ticaret sicil ve faaliyet belgesi isteğe bağlı yüklenebilir.";
+        }
+        return "Kooperatif / diğer tüzel kişilerde vergi levhası ve imza sirküleri zorunludur; MERSİS, ticaret sicil ve faaliyet belgesi isteğe bağlıdır.";
+      },
+      onCompanyTypeChange(event) {
+        this.companyType = String(event?.target?.value || "sahis");
+        if (this.isSahis) {
+          const mersis = this.$el.querySelector("#mersisNo");
+          const registry = this.$el.querySelector("#tradeRegistryNo");
+          if (mersis) mersis.value = "";
+          if (registry) registry.value = "";
+        }
+      },
+      async onCityChange(event) {
+        const cityId = Number(event?.target?.value || 0) || 0;
+        const district = this.$refs.district;
+        if (!district) return;
+
+        this._districtAbort?.abort();
+        district.innerHTML = "";
+        district.appendChild(new Option(cityId ? "Yükleniyor…" : "Önce il seç", ""));
+        district.disabled = true;
+        if (!cityId) return;
+
+        this._districtAbort = new AbortController();
+        try {
+          const res = await fetch(`/api/locations/cities/${cityId}/districts`, {
+            headers: { Accept: "application/json" },
+            signal: this._districtAbort.signal,
+          });
+          if (!res.ok) throw new Error("districts");
+          const data = await res.json();
+          const items = (Array.isArray(data) ? data : []).map((d) => ({
+            id: Number(d.id ?? d.Id),
+            name: d.name ?? d.Name,
+          }));
+          district.innerHTML = "";
+          district.appendChild(new Option(items.length ? "İlçe seç" : "İlçe bulunamadı", ""));
+          for (const item of items) {
+            district.appendChild(new Option(item.name, String(item.id)));
+          }
+          district.disabled = items.length === 0;
+        } catch (err) {
+          if (err?.name === "AbortError") return;
+          district.innerHTML = "";
+          district.appendChild(new Option("İlçeler yüklenemedi", ""));
+          district.disabled = true;
+        }
+      },
+    }));
+
     Alpine.data("ilanVerMachine", () => ({
       hoursUnknown: false,
       get hoursRequired() {
@@ -1724,8 +1909,11 @@
       cropBusy: false,
       cropError: "",
       cropFileName: "",
+      get cropSubmitLabel() {
+        return this.cropBusy ? "Hazırlanıyor…" : "Kırp ve yükle";
+      },
       currentCount: 0,
-      maxCount: 8,
+      maxCount: 30,
       maxBytes: 10 * 1024 * 1024,
       uploadUrl: "",
       _nextId: 1,
@@ -1748,7 +1936,7 @@
       },
       init() {
         this.uploadUrl = String(this.$el.dataset.uploadUrl || "");
-        this.maxCount = Number(this.$el.dataset.maxCount || 8);
+        this.maxCount = Number(this.$el.dataset.maxCount || 30);
         this.maxBytes = Number(this.$el.dataset.maxBytes || 10485760);
         this.currentCount = Number(this.$el.dataset.currentCount || 0);
         const tokenInput = this.$el.querySelector('input[name="__RequestVerificationToken"]');
@@ -2533,6 +2721,20 @@
     });
   };
 
+  const galleryFullUrl = (src) => {
+    const raw = String(src || "").trim();
+    if (!raw) return raw;
+    try {
+      const url = new URL(raw, window.location.origin);
+      if (url.searchParams.has("v")) {
+        url.searchParams.set("v", "lg");
+      }
+      return url.toString();
+    } catch {
+      return raw.replace(/([?&]v=)[^&]*/i, "$1lg");
+    }
+  };
+
   const initDetailGallery = () => {
     document.querySelectorAll("[data-detail-gallery]").forEach((host) => {
       if (!(host instanceof HTMLElement) || host.dataset.galleryReady === "1") return;
@@ -2541,24 +2743,94 @@
       if (!(main instanceof HTMLImageElement) || thumbs.length === 0) return;
 
       const counter = host.querySelector("[data-gallery-counter]");
+      const lgTrigger = host.querySelector("[data-gallery-lg-trigger]");
       const total = thumbs.length;
+      let index = Math.max(
+        0,
+        thumbs.findIndex((t) => t.classList.contains("is-active"))
+      );
+      if (index < 0) index = 0;
 
-      const activate = (btn) => {
-        if (!(btn instanceof HTMLElement)) return;
-        const src = btn.getAttribute("data-src");
-        if (!src) return;
-        main.src = src;
-        thumbs.forEach((t) => t.classList.toggle("is-active", t === btn));
-        if (counter) {
-          const idx = thumbs.indexOf(btn);
-          counter.textContent = `${idx + 1} / ${total} Fotoğraf`;
-        }
+      const items = thumbs.map((btn, i) => {
+        const src = String(btn.getAttribute("data-src") || "").trim();
+        const full = galleryFullUrl(src);
+        return {
+          src: full,
+          thumb: src || full,
+          size: "1600-1600",
+          alt: main.alt || `Görsel ${i + 1}`,
+          subHtml: `<div class="lg-sub-html-inner">${i + 1} / ${total}</div>`,
+        };
+      });
+
+      const syncThumbs = (activeIndex) => {
+        thumbs.forEach((btn, i) => {
+          const on = i === activeIndex;
+          btn.classList.toggle("is-active", on);
+          btn.setAttribute("aria-current", on ? "true" : "false");
+        });
+        if (counter) counter.textContent = `${activeIndex + 1} / ${total} Fotoğraf`;
       };
 
-      const step = (delta) => {
-        const current = thumbs.findIndex((t) => t.classList.contains("is-active"));
-        if (current < 0) return;
-        activate(thumbs[(current + delta + total) % total]);
+      const setIndex = (next) => {
+        if (total <= 0) return;
+        index = ((next % total) + total) % total;
+        const src = items[index]?.thumb || "";
+        if (src) {
+          main.src = src;
+          main.dataset.gallerySrc = src;
+        }
+        syncThumbs(index);
+      };
+
+      const step = (delta) => setIndex(index + delta);
+
+      let lgInstance = null;
+      const ensureLightGallery = () => {
+        if (lgInstance) return lgInstance;
+        if (typeof window.lightGallery !== "function") return null;
+        const trigger = lgTrigger instanceof HTMLElement ? lgTrigger : host;
+        const plugins = [];
+        if (typeof window.lgThumbnail !== "undefined") plugins.push(window.lgThumbnail);
+        if (typeof window.lgZoom !== "undefined") plugins.push(window.lgZoom);
+
+        lgInstance = window.lightGallery(trigger, {
+          dynamic: true,
+          dynamicEl: items,
+          plugins,
+          speed: 400,
+          download: false,
+          counter: true,
+          closable: true,
+          escKey: true,
+          keyPress: true,
+          controls: true,
+          mousewheel: true,
+          getCaptionFromTitleOrAlt: true,
+          mobileSettings: {
+            controls: true,
+            showCloseIcon: true,
+            download: false,
+          },
+          // GPLv3 / open-source build — commercial production requires a paid key.
+          // See https://www.lightgalleryjs.com/
+        });
+
+        trigger.addEventListener("lgAfterSlide", (event) => {
+          const detail = event && event.detail;
+          const nextIndex = detail && typeof detail.index === "number" ? detail.index : -1;
+          if (nextIndex >= 0) setIndex(nextIndex);
+        });
+
+        return lgInstance;
+      };
+
+      const openLightboxAt = (at) => {
+        const lg = ensureLightGallery();
+        if (!lg || typeof lg.openGallery !== "function") return;
+        const start = ((at % total) + total) % total;
+        setIndex(start);
+        lg.openGallery(start);
       };
 
       host.addEventListener("click", (e) => {
@@ -2572,17 +2844,34 @@
           step(1);
           return;
         }
-        const btn = t.closest("[data-gallery-thumb]");
-        if (btn) activate(btn);
+        if (t.closest("[data-gallery-open]")) {
+          openLightboxAt(index);
+          return;
+        }
+        const thumb = t.closest("[data-gallery-thumb]");
+        if (thumb) {
+          const i = Number(thumb.getAttribute("data-index"));
+          if (Number.isFinite(i)) setIndex(i);
+          return;
+        }
+        if (t.closest(".gallery-main-wrap") && !t.closest(".gallery-hit, .gallery-expand, [data-gallery-lg-trigger]")) {
+          openLightboxAt(index);
+        }
       });
 
       host.addEventListener("keydown", (e) => {
         if (!(e instanceof KeyboardEvent)) return;
         if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        if (document.activeElement !== host && !host.contains(document.activeElement)) return;
+        // Don't steal keys while lightGallery overlay is open.
+        if (document.querySelector(".lg-container.lg-show")) return;
         step(e.key === "ArrowRight" ? 1 : -1);
         e.preventDefault();
       });
 
+      setIndex(index);
+      // Warm lightGallery after paint so first open is snappy.
+      requestAnimationFrame(() => ensureLightGallery());
       host.dataset.galleryReady = "1";
     });
   };

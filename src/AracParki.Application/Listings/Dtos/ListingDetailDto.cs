@@ -36,6 +36,8 @@ public sealed class ListingDetailDto
     public required string SellerName { get; init; }
     public required string SellerType { get; init; }
     public bool IsVerified { get; init; }
+    public long? CorporateAccountId { get; init; }
+    public string? CorporateDisplayName { get; init; }
     public DateTimeOffset ListedAt { get; init; }
     public string Status { get; init; } = Domain.Listings.ListingStatus.Published;
     public string? RejectionReason { get; init; }

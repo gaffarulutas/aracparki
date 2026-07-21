@@ -6,7 +6,7 @@ namespace AracParki.Application.Listings;
 public static class ListingImageUrl
 {
     public const string UploadPrefix = "/uploads/listings/";
-    public const int MaxCount = 8;
+    public const int MaxCount = 30;
     public const long MaxUploadBytes = 10 * 1024 * 1024;
     public const int MaxWidthPx = 8000;
     public const int MaxHeightPx = 8000;

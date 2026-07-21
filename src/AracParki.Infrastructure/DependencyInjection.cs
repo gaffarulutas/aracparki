@@ -5,8 +5,10 @@ using AracParki.Application.Email;
 using AracParki.Application.Listings;
 using AracParki.Application.Media;
 using AracParki.Application.Messaging;
+using AracParki.Application.Corporate;
 using AracParki.Infrastructure.Accounts;
 using AracParki.Infrastructure.Catalog;
+using AracParki.Infrastructure.Corporate;
 using AracParki.Infrastructure.Email;
 using AracParki.Infrastructure.Listings;
 using AracParki.Infrastructure.Messaging;
@@ -57,6 +59,9 @@ public static class DependencyInjection
         {
             services.AddScoped<IListingImageStorage, LocalListingImageStorage>();
         }
+
+        services.AddScoped<ICorporateAccountStore, CorporateAccountRepository>();
+        services.AddScoped<ICorporateDocumentStorage, LocalCorporateDocumentStorage>();
 
         services.AddScoped<ICatalogQuery, CatalogRepository>();
         services.AddScoped<IAccountStore, AccountRepository>();

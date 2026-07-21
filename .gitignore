@@ -6,6 +6,9 @@ Thumbs.db
 src/AracParki.Web/wwwroot/uploads/listings/**
 !src/AracParki.Web/wwwroot/uploads/listings/.gitkeep
 
+# Private corporate documents (never under wwwroot)
+src/AracParki.Web/App_Data/
+
 # Editors / IDEs
 .vs/
 .idea/

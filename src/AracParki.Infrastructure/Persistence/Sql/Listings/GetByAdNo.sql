@@ -28,9 +28,15 @@ SELECT
     l.includes_operator AS IncludesOperator,
     l.specs::text AS SpecsJson,
     l.cover_image_url AS CoverImageUrl,
-    s.display_name AS SellerName,
+    COALESCE(
+        NULLIF(BTRIM(ca.display_name), ''),
+        NULLIF(BTRIM(ca.trade_name), ''),
+        s.display_name
+    ) AS SellerName,
     s.seller_type AS SellerType,
-    s.is_verified AS IsVerified,
+    CASE WHEN ca.id IS NOT NULL AND ca.status = 'approved' THEN TRUE ELSE s.is_verified END AS IsVerified,
+    l.corporate_account_id AS CorporateAccountId,
+    COALESCE(NULLIF(BTRIM(ca.display_name), ''), NULLIF(BTRIM(ca.trade_name), '')) AS CorporateDisplayName,
     l.listed_at AS ListedAt,
     l.status AS Status,
     l.rejection_reason AS RejectionReason,
@@ -43,6 +49,7 @@ JOIN cities city ON city.id = l.city_id
 JOIN districts d ON d.id = l.district_id
 LEFT JOIN neighborhoods n ON n.id = l.neighborhood_id
 JOIN sellers s ON s.id = l.seller_id
+LEFT JOIN corporate_accounts ca ON ca.id = l.corporate_account_id
 WHERE l.ad_no = @AdNo
   AND (
       l.status = 'published'

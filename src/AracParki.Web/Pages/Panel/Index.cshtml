@@ -64,6 +64,30 @@
       <span class="account-dash-meta">Ad, e-posta ve telefon</span>
     </span>
   </a>
+  <a class="account-dash-card" href="/kurumsal-hesap">
+    <span class="account-dash-icon" aria-hidden="true"><ap-icon name="building-2" size="22" class="ap-icon" /></span>
+    <span class="account-dash-body">
+      <span class="account-dash-title">Kurumsal Hesap</span>
+      <span class="account-dash-meta">
+        @if (Model.CorporateApprovedCount > 0)
+        {
+          <text>@Model.CorporateApprovedCount onaylı firma</text>
+          @if (Model.CorporatePendingCount > 0)
+          {
+            <text> · @Model.CorporatePendingCount incelemede</text>
+          }
+        }
+        else if (Model.CorporatePendingCount > 0)
+        {
+          <text>@Model.CorporatePendingCount başvuru incelemede</text>
+        }
+        else
+        {
+          <text>Bayi / galeri profili oluştur</text>
+        }
+      </span>
+    </span>
+  </a>
   <a class="account-dash-card" href="/ayarlar">
     <span class="account-dash-icon" aria-hidden="true"><ap-icon name="settings" size="22" class="ap-icon" /></span>
     <span class="account-dash-body">

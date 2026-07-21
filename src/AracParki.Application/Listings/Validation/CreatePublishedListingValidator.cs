@@ -13,6 +13,13 @@ public sealed class CreatePublishedListingValidator : AbstractValidator<CreatePu
             .WithMessage("Satıcı adı gerekli.");
         RuleFor(x => x.SellerType).Must(SellerType.Known.Contains)
             .WithMessage("Satıcı tipi geçersiz.");
+        RuleFor(x => x.CorporateAccountId)
+            .GreaterThan(0)
+            .When(x => x.CorporateAccountId.HasValue)
+            .WithMessage("Kurumsal hesap geçersiz.");
+        RuleFor(x => x)
+            .Must(x => x.SellerType != SellerType.Owner || x.CorporateAccountId is null)
+            .WithMessage("Sahibinden ilanda kurumsal hesap seçilemez.");
         RuleFor(x => x.Phone)
             .NotEmpty().WithMessage("Telefon gerekli.")
             .MinimumLength(10).WithMessage("Telefon en az 10 rakam olmalı.")

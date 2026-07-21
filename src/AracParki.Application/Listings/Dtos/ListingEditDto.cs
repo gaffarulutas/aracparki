@@ -28,6 +28,8 @@ public sealed class ListingEditDto
     public string? PriceUnit { get; init; }
     public bool IncludesOperator { get; init; }
     public required string SellerType { get; init; }
+    public long? CorporateAccountId { get; init; }
+    public string? CorporateName { get; init; }
     public int CityId { get; init; }
     public string? CityName { get; init; }
     public int DistrictId { get; init; }

@@ -5,7 +5,7 @@
 }
 <header class="page-account-head">
   <h1>Admin</h1>
-  <p class="page-account-lead">İlan moderasyonu ve onay kuyruğu</p>
+  <p class="page-account-lead">İlan ve kurumsal hesap moderasyonu</p>
 </header>
 
 <div class="account-dash">
@@ -25,6 +25,12 @@
     <span class="account-dash-body">
       <span class="account-dash-title">Reddedilen</span>
       <span class="account-dash-meta">@Model.Counts.Rejected ilan</span>
+    </span>
+  </a>
+  <a class="account-dash-card" href="/admin/kurumsal?durum=pending">
+    <span class="account-dash-body">
+      <span class="account-dash-title">Kurumsal başvurular</span>
+      <span class="account-dash-meta">@Model.CorporateCounts.Pending onay bekliyor</span>
     </span>
   </a>
 </div>

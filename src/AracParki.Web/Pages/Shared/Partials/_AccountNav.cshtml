@@ -11,6 +11,7 @@
     var isMesajlarim = On("/mesajlarim");
     var isBildirimler = On("/bildirimler");
     var isBilgilerim = On("/bilgilerim") || On("/hesabim");
+    var isKurumsal = On("/kurumsal-hesap");
     var isAyarlar = On("/ayarlar");
 }
 <div class="aside-card">
@@ -69,6 +70,9 @@
   <ul class="aside-list" aria-label="Hesap işlemleri">
     <li>
       <partial name="Shared/Partials/_AccountNavItem" model='("/bilgilerim", "Bilgilerim", "circle-user", isBilgilerim)' />
+    </li>
+    <li>
+      <partial name="Shared/Partials/_AccountNavItem" model='("/kurumsal-hesap", "Kurumsal Hesap", "building-2", isKurumsal)' />
     </li>
     <li>
       <partial name="Shared/Partials/_AccountNavItem" model='("/ayarlar", "Ayarlar", "settings", isAyarlar)' />

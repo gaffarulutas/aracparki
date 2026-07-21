@@ -1,0 +1,301 @@
+@page "/kurumsal-hesap/duzenle"
+@model AracParki.Web.Pages.KurumsalHesap.DuzenleModel
+@using AracParki.Domain.Corporate
+@{
+    Layout = "Shared/_AccountLayout";
+    var account = Model.Account;
+    var isNew = account is null;
+    var editable = Model.IsEditable;
+    var selectedCompanyType = account?.CompanyType ?? CompanyType.Sahis;
+    var docsByType = Model.Documents
+        .GroupBy(d => d.DocType)
+        .ToDictionary(g => g.Key, g => g.OrderByDescending(d => d.UploadedAt).First());
+}
+<header class="page-account-head">
+  <h1>@(isNew ? "Yeni kurumsal hesap" : account!.DisplayName)</h1>
+  <p class="page-account-lead">
+    <a class="link-quiet" href="/kurumsal-hesap">← Kurumsal hesaplar</a>
+    @if (!isNew)
+    {
+      <text> · </text><span class="@CorporateStatus.BadgeClass(account!.Status)">@CorporateStatus.Label(account.Status)</span>
+    }
+  </p>
+</header>
+
+@if (!string.IsNullOrWhiteSpace(Model.Notice))
+{
+  <p class="corp-notice" role="status">@Model.Notice</p>
+}
+@if (!string.IsNullOrWhiteSpace(Model.FormError))
+{
+  <p class="field-error" role="alert">@Model.FormError</p>
+}
+@if (!isNew && account!.Status == CorporateStatus.Rejected && !string.IsNullOrWhiteSpace(account.RejectionReason))
+{
+  <div class="corp-reject-panel" role="alert">
+    <strong>Başvurun reddedildi.</strong>
+    <p>@account.RejectionReason</p>
+    <p class="ap-hint">Bilgi ve evraklarını güncelleyip tekrar onaya gönderebilirsin.</p>
+  </div>
+}
+@if (!isNew && account!.Status == CorporateStatus.Pending)
+{
+  <p class="corp-pending-note">Başvurun incelemede. Bu süreçte bilgiler ve evraklar değiştirilemez.</p>
+}
+
+<div x-data="corpForm" data-company-type="@selectedCompanyType">
+<section class="corp-section" aria-labelledby="corp-info-heading">
+  <h2 class="corp-section-title" id="corp-info-heading">Firma bilgileri</h2>
+  <form method="post" asp-page-handler="Save" asp-route-id="@Model.Id" class="corp-form" novalidate>
+    @Html.AntiForgeryToken()
+
+    <div class="corp-grid">
+      <div class="ap-field">
+        <label class="ap-label" for="companyType">Şirket türü <abbr class="field-req" title="Zorunlu">*</abbr></label>
+        <select class="ap-input" id="companyType" name="companyType" required
+                @@change="onCompanyTypeChange"
+                disabled="@(editable ? null : "disabled")">
+          @foreach (var type in new[] { CompanyType.Sahis, CompanyType.Limited, CompanyType.Anonim, CompanyType.Diger })
+          {
+            if (selectedCompanyType == type)
+            {
+              <option value="@type" selected>@CompanyType.Label(type)</option>
+            }
+            else
+            {
+              <option value="@type">@CompanyType.Label(type)</option>
+            }
+          }
+        </select>
+        <p class="ap-hint" x-text="companyHint"></p>
+      </div>
+
+      <div class="ap-field">
+        <label class="ap-label" for="tradeName">Ticaret unvanı <abbr class="field-req" title="Zorunlu">*</abbr></label>
+        <input class="ap-input" id="tradeName" name="tradeName" type="text" maxlength="200" required
+               value="@account?.TradeName" placeholder="Vergi levhasındaki tam unvan" disabled="@(editable ? null : "disabled")" />
+      </div>
+
+      <div class="ap-field">
+        <label class="ap-label" for="displayName">Görünen ad <span class="field-optional">(mağaza adı)</span></label>
+        <input class="ap-input" id="displayName" name="displayName" type="text" maxlength="120"
+               value="@account?.DisplayName" placeholder="Boş bırakılırsa ticaret unvanı kullanılır" disabled="@(editable ? null : "disabled")" />
+      </div>
+
+      <div class="ap-field">
+        <label class="ap-label" for="taxOffice">Vergi dairesi <abbr class="field-req" title="Zorunlu">*</abbr></label>
+        <input class="ap-input" id="taxOffice" name="taxOffice" type="text" maxlength="100" required
+               value="@account?.TaxOffice" disabled="@(editable ? null : "disabled")" />
+      </div>
+
+      <div class="ap-field">
+        <label class="ap-label" for="taxNumber">
+          <span x-text="taxLabel"></span>
+          <abbr class="field-req" title="Zorunlu">*</abbr>
+        </label>
+        <input class="ap-input" id="taxNumber" name="taxNumber" type="text" inputmode="numeric" required
+               :maxlength="taxMaxLength"
+               :placeholder="taxPlaceholder"
+               value="@account?.TaxNumber"
+               disabled="@(editable ? null : "disabled")" />
+        <p class="ap-hint" x-text="taxHint"></p>
+      </div>
+
+      <div class="ap-field" x-show="showMersis" x-cloak>
+        <label class="ap-label" for="mersisNo">
+          MERSİS no
+          <template x-if="mersisRequired">
+            <abbr class="field-req" title="Zorunlu">*</abbr>
+          </template>
+          <template x-if="!mersisRequired">
+            <span class="field-optional">(isteğe bağlı)</span>
+          </template>
+        </label>
+        <input class="ap-input" id="mersisNo" name="mersisNo" type="text" inputmode="numeric" maxlength="16"
+               :required="mersisRequired"
+               value="@account?.MersisNo" placeholder="16 haneli MERSİS numarası"
+               disabled="@(editable ? null : "disabled")" />
+      </div>
+
+      <div class="ap-field" x-show="showTradeRegistry" x-cloak>
+        <label class="ap-label" for="tradeRegistryNo">Ticaret sicil no <span class="field-optional">(isteğe bağlı)</span></label>
+        <input class="ap-input" id="tradeRegistryNo" name="tradeRegistryNo" type="text" maxlength="50"
+               value="@account?.TradeRegistryNo" disabled="@(editable ? null : "disabled")" />
+      </div>
+
+      <div class="ap-field">
+        <label class="ap-label" for="kepAddress">KEP adresi <span class="field-optional">(isteğe bağlı)</span></label>
+        <input class="ap-input" id="kepAddress" name="kepAddress" type="email" maxlength="200"
+               value="@account?.KepAddress" placeholder="firma@hs01.kep.tr" disabled="@(editable ? null : "disabled")" />
+      </div>
+
+      <div class="ap-field">
+        <label class="ap-label" for="authorizedName">Yetkili adı soyadı <abbr class="field-req" title="Zorunlu">*</abbr></label>
+        <input class="ap-input" id="authorizedName" name="authorizedName" type="text" maxlength="120" required
+               value="@account?.AuthorizedName" disabled="@(editable ? null : "disabled")" />
+      </div>
+
+      <div class="ap-field">
+        <label class="ap-label" for="corpPhone">Telefon <abbr class="field-req" title="Zorunlu">*</abbr></label>
+        <input class="ap-input" id="corpPhone" name="phone" type="tel" inputmode="tel" maxlength="15" required
+               value="@account?.Phone" placeholder="5XXXXXXXXX" disabled="@(editable ? null : "disabled")" />
+      </div>
+
+      <div class="ap-field">
+        <label class="ap-label" for="corpEmail">E-posta <abbr class="field-req" title="Zorunlu">*</abbr></label>
+        <input class="ap-input" id="corpEmail" name="email" type="email" maxlength="200" required
+               value="@account?.Email" disabled="@(editable ? null : "disabled")" />
+      </div>
+
+      <div class="ap-field">
+        <label class="ap-label" for="website">Web sitesi <span class="field-optional">(isteğe bağlı)</span></label>
+        <input class="ap-input" id="website" name="website" type="url" maxlength="200"
+               value="@account?.Website" placeholder="https://…" disabled="@(editable ? null : "disabled")" />
+      </div>
+
+      <div class="ap-field">
+        <label class="ap-label" for="corpCityId">İl <abbr class="field-req" title="Zorunlu">*</abbr></label>
+        <select class="ap-input" id="corpCityId" name="cityId" required x-ref="city" @@change="onCityChange"
+                disabled="@(editable ? null : "disabled")">
+          <option value="">İl seç</option>
+          @foreach (var city in Model.Cities)
+          {
+            if (account?.CityId == city.Id)
+            {
+              <option value="@city.Id" selected>@city.Name</option>
+            }
+            else
+            {
+              <option value="@city.Id">@city.Name</option>
+            }
+          }
+        </select>
+      </div>
+
+      <div class="ap-field">
+        <label class="ap-label" for="corpDistrictId">İlçe <abbr class="field-req" title="Zorunlu">*</abbr></label>
+        <select class="ap-input" id="corpDistrictId" name="districtId" required x-ref="district"
+                disabled="@(editable && Model.Districts.Count > 0 ? null : "disabled")">
+          <option value="">@(Model.Districts.Count > 0 ? "İlçe seç" : "Önce il seç")</option>
+          @foreach (var district in Model.Districts)
+          {
+            if (account?.DistrictId == district.Id)
+            {
+              <option value="@district.Id" selected>@district.Name</option>
+            }
+            else
+            {
+              <option value="@district.Id">@district.Name</option>
+            }
+          }
+        </select>
+      </div>
+
+      <div class="ap-field corp-field-wide">
+        <label class="ap-label" for="addressLine">Açık adres <abbr class="field-req" title="Zorunlu">*</abbr></label>
+        <textarea class="ap-input corp-textarea" id="addressLine" name="addressLine" rows="3" maxlength="500" required
+                  disabled="@(editable ? null : "disabled")">@account?.AddressLine</textarea>
+      </div>
+    </div>
+
+    @if (editable)
+    {
+      <div class="ap-actions">
+        <button class="btn btn-machine" type="submit">@(isNew ? "Kaydet ve devam et" : "Bilgileri kaydet")</button>
+      </div>
+    }
+  </form>
+</section>
+
+@if (!isNew)
+{
+  <section class="corp-section" aria-labelledby="corp-docs-heading">
+    <h2 class="corp-section-title" id="corp-docs-heading">Evraklar</h2>
+    <p class="ap-hint">PDF, JPG veya PNG — en fazla 10 MB. Aynı türde yeni evrak yüklersen eskisi geçersiz sayılır. Zorunlu evraklar şirket türüne göre değişir.</p>
+
+    <div class="corp-doc-list">
+      @{
+        var docRows = new[]
+        {
+          CorporateDocumentType.VergiLevhasi,
+          CorporateDocumentType.ImzaSirkuleri,
+          CorporateDocumentType.TicaretSicil,
+          CorporateDocumentType.FaaliyetBelgesi,
+          CorporateDocumentType.YetkiBelgesi
+        };
+      }
+      @foreach (var docType in docRows)
+      {
+        var uploaded = docsByType.GetValueOrDefault(docType);
+        var isCapitalDoc = docType is CorporateDocumentType.TicaretSicil or CorporateDocumentType.FaaliyetBelgesi;
+        <article class="corp-doc-row @(uploaded is null ? "is-missing" : null)">
+          <div class="corp-doc-info">
+            <h3 class="corp-doc-title">
+              @CorporateDocumentType.Label(docType)
+              @if (docType is CorporateDocumentType.VergiLevhasi or CorporateDocumentType.ImzaSirkuleri)
+              {
+                <abbr class="field-req" title="Zorunlu">*</abbr>
+              }
+              else if (isCapitalDoc)
+              {
+                <template x-if="capitalDocsRequired">
+                  <abbr class="field-req" title="Zorunlu">*</abbr>
+                </template>
+                <template x-if="!capitalDocsRequired">
+                  <span class="field-optional">(isteğe bağlı)</span>
+                </template>
+              }
+              else
+              {
+                <span class="field-optional">(isteğe bağlı)</span>
+              }
+            </h3>
+            <p class="ap-hint">@CorporateDocumentType.Hint(docType)</p>
+            @if (uploaded is not null)
+            {
+              <p class="corp-doc-file">
+                <a href="/kurumsal-hesap/duzenle?id=@Model.Id&handler=Document&documentId=@uploaded.Id">@uploaded.FileName</a>
+                <span class="corp-doc-meta">· @(uploaded.ByteSize / 1024) KB · @uploaded.UploadedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+              </p>
+            }
+          </div>
+          @if (editable)
+          {
+            <div class="corp-doc-actions">
+              <form method="post" asp-page-handler="UploadDoc" asp-route-id="@Model.Id" enctype="multipart/form-data" class="corp-doc-upload">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="docType" value="@docType" />
+                <label class="btn btn-ghost btn-sm corp-file-label">
+                  <input type="file" name="file" accept="application/pdf,image/jpeg,image/png" required data-corp-file />
+                  <span>@(uploaded is null ? "Dosya seç" : "Değiştir")</span>
+                </label>
+                <button class="btn btn-dark btn-sm" type="submit">Yükle</button>
+              </form>
+              @if (uploaded is not null)
+              {
+                <form method="post" asp-page-handler="DeleteDoc" asp-route-id="@Model.Id">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="documentId" value="@uploaded.Id" />
+                  <button class="btn btn-ghost btn-sm corp-doc-delete" type="submit">Sil</button>
+                </form>
+              }
+            </div>
+          }
+        </article>
+      }
+    </div>
+  </section>
+
+  @if (editable)
+  {
+    <section class="corp-section corp-submit" aria-labelledby="corp-submit-heading">
+      <h2 class="corp-section-title" id="corp-submit-heading">Onaya gönder</h2>
+      <p class="ap-hint">Zorunlu bilgiler ve evraklar tamamlandıktan sonra başvurun admin tarafından incelenir. Onaylandığında bu firma adına ilan verebilirsin.</p>
+      <form method="post" asp-page-handler="Submit" asp-route-id="@Model.Id">
+        @Html.AntiForgeryToken()
+        <button class="btn btn-machine" type="submit">Onaya gönder</button>
+      </form>
+    </section>
+  }
+}
+</div>

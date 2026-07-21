@@ -7,6 +7,8 @@
         Model.Neighborhoods.Select(n => new { id = n.Id, name = n.DisplayName }));
     var initialDistrictsJson = Model.AttrJson(
         Model.Districts.Select(d => new { id = d.Id, name = d.Name }));
+    var corporatePhonesJson = Model.AttrJson(
+        Model.ApprovedCorporateAccounts.Select(c => new { id = c.Id, phone = c.Phone, name = c.DisplayName }));
 }
 @if (Model.ShowPhoneGate)
 {
@@ -384,17 +386,11 @@ else if (Model.ShowDraftResumeModal)
               novalidate>
           @Html.AntiForgeryToken()
 
-          <p class="wizard-req-legend" id="wizard-req-legend">
-            Zorunlu alanlar
-            <abbr class="field-req" title="Zorunlu">*</abbr>
-            ile işaretlidir. İsteğe bağlı alanlar ayrıca belirtilir.
-          </p>
-
           @* Durum cascader’da seçilir *@
           <input type="hidden" name="condition" value="@draft.Condition" />
           @* Beygir / tonaj katalogdan gelir — kullanıcıya gösterme *@
           <input type="hidden" name="tons" value="@(draft.Tons > 0 ? draft.Tons.ToString(System.Globalization.CultureInfo.InvariantCulture) : "0")" />
-          @if (draft.HorsepowerFromCatalog && draft.Horsepower is >= 0)
+          @if (draft is { HorsepowerFromCatalog: true, Horsepower: >= 0 })
           {
             <input type="hidden" name="horsepower" value="@draft.Horsepower" />
           }
@@ -552,7 +548,7 @@ else if (Model.ShowDraftResumeModal)
                     var specErrKey = "spec:" + attr.Key;
                     var fieldInvalid = Model.FieldInvalidClass(specErrKey);
                     <div class="ap-field @fieldInvalid" id="field-@attr.Key">
-                      <span class="ap-label" id="@labelId">
+                      <label class="ap-label" id="@labelId" for="@fieldId">
                         @attr.Label@(attr.Unit is not null ? $" ({attr.Unit})" : null)
                         @if (attr.IsRequired)
                         {
@@ -562,80 +558,37 @@ else if (Model.ShowDraftResumeModal)
                         {
                           <span class="field-optional">(isteğe bağlı)</span>
                         }
-                      </span>
+                      </label>
                       @if (opts.Count > 0)
                       {
-                        <div class="ap-tile-group@(opts.Count > 6 ? " ap-tile-group--compact" : null)"
-                             role="radiogroup"
-                             aria-labelledby="@labelId"
-                             aria-required="@(attr.IsRequired ? "true" : null)"
-                             aria-invalid="@(Model.AriaInvalid(specErrKey))"
-                             aria-describedby="@(Model.HasFieldError(specErrKey) ? $"err-{attr.Key}" : null)">
-                          @if (!attr.IsRequired)
-                          {
-                            <label class="ap-tile">
-                              <input type="radio" name="@key" value=""
-                                     @(string.IsNullOrEmpty(val) ? "checked" : null) />
-                              <span class="ap-tile-face">
-                                <span class="ap-tile-mark" aria-hidden="true"></span>
-                                <span>Belirtilmedi</span>
-                              </span>
-                            </label>
-                          }
+                        <select id="@fieldId" name="@key" class="ap-input @Model.FieldInvalidClass(specErrKey)"
+                                required="@(attr.IsRequired ? "required" : null)"
+                                aria-invalid="@(Model.AriaInvalid(specErrKey))"
+                                aria-describedby="@(Model.HasFieldError(specErrKey) ? $"err-{attr.Key}" : null)">
+                          <option value="" selected="@(string.IsNullOrEmpty(val) ? "selected" : null)">
+                            @(attr.IsRequired ? "Seçin" : "Belirtilmedi")
+                          </option>
                           @foreach (var opt in opts)
                           {
                             var optLabel = SpecOptionLabels.For(opt);
-                            <label class="ap-tile">
-                              <input type="radio" name="@key" value="@opt"
-                                     @(attr.IsRequired ? "required" : null)
-                                     @(val == opt ? "checked" : null) />
-                              <span class="ap-tile-face">
-                                <span class="ap-tile-mark" aria-hidden="true"></span>
-                                <span>@optLabel</span>
-                              </span>
-                            </label>
+                            <option value="@opt" selected="@(val == opt ? "selected" : null)">@optLabel</option>
                           }
-                        </div>
+                        </select>
                       }
                       else if (attr.DataType == "bool")
                       {
                         var isTrue = val is "true" or "1";
                         var isFalse = val is "false" or "0";
-                        <div class="ap-tile-group ap-tile-group--bool"
-                             role="radiogroup"
-                             aria-labelledby="@labelId"
-                             aria-required="@(attr.IsRequired ? "true" : null)"
-                             aria-invalid="@(Model.AriaInvalid(specErrKey))"
-                             aria-describedby="@(Model.HasFieldError(specErrKey) ? $"err-{attr.Key}" : null)">
-                          @if (!attr.IsRequired)
-                          {
-                            <label class="ap-tile">
-                              <input type="radio" name="@key" value=""
-                                     @(!isTrue && !isFalse ? "checked" : null) />
-                              <span class="ap-tile-face">
-                                <span class="ap-tile-mark" aria-hidden="true"></span>
-                                <span>Belirtilmedi</span>
-                              </span>
-                            </label>
-                          }
-                          <label class="ap-tile">
-                            <input type="radio" name="@key" value="true"
-                                   @(attr.IsRequired ? "required" : null)
-                                   @(isTrue ? "checked" : null) />
-                            <span class="ap-tile-face">
-                              <span class="ap-tile-mark" aria-hidden="true"></span>
-                              <span>Evet</span>
-                            </span>
-                          </label>
-                          <label class="ap-tile">
-                            <input type="radio" name="@key" value="false"
-                                   @(isFalse ? "checked" : null) />
-                            <span class="ap-tile-face">
-                              <span class="ap-tile-mark" aria-hidden="true"></span>
-                              <span>Hayır</span>
-                            </span>
-                          </label>
-                        </div>
+                        <select id="@fieldId" name="@key" class="ap-input @Model.FieldInvalidClass(specErrKey)"
+                                required="@(attr.IsRequired ? "required" : null)"
+                                aria-invalid="@(Model.AriaInvalid(specErrKey))"
+                                aria-describedby="@(Model.HasFieldError(specErrKey) ? $"err-{attr.Key}" : null)">
+                          <option value="" selected="@(!isTrue && !isFalse ? "selected" : null)">
+                            @(attr.IsRequired ? "Seçin" : "Belirtilmedi")
+                          </option>
+                          <option value="true" selected="@(isTrue ? "selected" : null)">Evet</option>
+                          <option value="false" selected="@(isFalse ? "selected" : null)">Hayır</option>
+                        </select>
                       }
                       else
                       {
@@ -741,15 +694,14 @@ else if (Model.ShowDraftResumeModal)
               data-neighborhoods="@neighborhoodsJson"
               data-price="@(draft.Price > 0 ? draft.Price.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : "0")"
               data-currency="@Currency.Normalize(draft.Currency)"
+              data-account-phone="@(Model.AccountPhone ?? "")"
+              data-corporate-phones="@corporatePhonesJson"
+              data-corporate-id="@(draft.CorporateAccountId?.ToString() ?? "")"
+              data-contact-phone-source="@(string.IsNullOrWhiteSpace(draft.ContactPhoneSource) ? "account" : draft.ContactPhoneSource)"
               novalidate>
           @Html.AntiForgeryToken()
 
-          <p class="wizard-req-legend">
-            Zorunlu alanlar
-            <abbr class="field-req" title="Zorunlu">*</abbr>
-            ile işaretlidir.
-          </p>
-
+          <div class="wizard-section-grid">
           <section class="wizard-section" aria-labelledby="wizard-price-heading">
             <div class="wizard-section-head">
               <h3 class="wizard-section-title" id="wizard-price-heading">Fiyat</h3>
@@ -859,35 +811,64 @@ else if (Model.ShowDraftResumeModal)
               <h3 class="wizard-section-title" id="wizard-seller-heading">
                 İlan sahibi <abbr class="field-req" title="Zorunlu">*</abbr>
               </h3>
-              <p class="wizard-section-hint">Satış veya kirayı kim yapıyor?</p>
+              <p class="wizard-section-hint">
+                @(Model.ApprovedCorporateAccounts.Count > 0
+                    ? "Sahibinden veya onaylı kurumsal hesaplarından birini seç."
+                    : "Satış veya kirayı kim yapıyor?")
+              </p>
             </div>
-            <div class="ap-tile-group ap-tile-group--2" role="radiogroup" aria-labelledby="wizard-seller-heading"
+            <div class="ap-tile-group @(Model.ApprovedCorporateAccounts.Count > 0 ? null : "ap-tile-group--2")"
+                 role="radiogroup" aria-labelledby="wizard-seller-heading"
                  aria-required="true"
                  aria-invalid="@(Model.AriaInvalid("sellerType"))"
-                 aria-describedby="@(Model.HasFieldError("sellerType") ? "err-sellerType" : null)">
+                 aria-describedby="@(Model.HasFieldError("sellerType") ? "err-sellerType" : "sellerType-hint")">
               <label class="ap-tile">
-                <input type="radio" name="sellerType" value="@SellerType.Owner" required
-                       @(draft.SellerType == SellerType.Dealer ? null : "checked") />
+                <input type="radio" name="corporateAccountId" value="" required
+                       @@change="onSellerChange"
+                       @(draft.CorporateAccountId is > 0 ? null : "checked") />
                 <span class="ap-tile-face">
                   <span class="ap-tile-mark" aria-hidden="true"></span>
-                  <span>Sahibi</span>
+                  <span>
+                    Sahibinden
+                    @if (!string.IsNullOrWhiteSpace(Model.OwnerDisplayName))
+                    {
+                      <span class="ap-hint">(@Model.OwnerDisplayName)</span>
+                    }
+                  </span>
                 </span>
               </label>
-              <label class="ap-tile">
-                <input type="radio" name="sellerType" value="@SellerType.Dealer" required
-                       @(draft.SellerType == SellerType.Dealer ? "checked" : null) />
-                <span class="ap-tile-face">
-                  <span class="ap-tile-mark" aria-hidden="true"></span>
-                  <span>Bayi</span>
-                </span>
-              </label>
+              @foreach (var corp in Model.ApprovedCorporateAccounts)
+              {
+                <label class="ap-tile">
+                  <input type="radio" name="corporateAccountId" value="@corp.Id" required
+                         @@change="onSellerChange"
+                         @(draft.CorporateAccountId == corp.Id ? "checked" : null) />
+                  <span class="ap-tile-face">
+                    <span class="ap-tile-mark" aria-hidden="true"></span>
+                    <span>
+                      @corp.DisplayName
+                      <span class="ap-hint">(@CompanyType.Label(corp.CompanyType) · Bayi)</span>
+                    </span>
+                  </span>
+                </label>
+              }
             </div>
+            @if (Model.ApprovedCorporateAccounts.Count == 0)
+            {
+              <p class="ap-hint" id="sellerType-hint">
+                Bayi olarak ilan vermek için
+                <a href="/kurumsal-hesap">kurumsal hesap oluştur</a>
+                ve admin onayını bekle.
+              </p>
+            }
             @if (Model.HasFieldError("sellerType"))
             {
               <p class="field-error" id="err-sellerType" role="alert">@Model.FieldError("sellerType")</p>
             }
           </section>
+          </div>
 
+          <div class="wizard-section-grid">
           <section class="wizard-section" aria-labelledby="wizard-location-heading">
             <div class="wizard-section-head">
               <h3 class="wizard-section-title" id="wizard-location-heading">Konum</h3>
@@ -966,28 +947,57 @@ else if (Model.ShowDraftResumeModal)
 
           <section class="wizard-section @(Model.HasFieldError("phone") ? "is-invalid" : null)" id="field-phone" aria-labelledby="wizard-contact-heading">
             <h3 class="wizard-section-title" id="wizard-contact-heading">İletişim</h3>
-            @if (!string.IsNullOrWhiteSpace(Model.AccountPhone))
-            {
-              <div class="wizard-contact">
-                <div class="wizard-contact-icon" aria-hidden="true">
-                  <ap-icon name="phone" size="18" />
-                </div>
-                <div>
-                  <p class="wizard-contact-label">İlanda görünecek telefon</p>
-                  <p class="wizard-contact-value">@Model.AccountPhone</p>
-                  <p class="ap-hint">Alıcılar bu numaradan seni arayabilir. Değiştirmek için hesap ayarlarını kullan.</p>
-                </div>
+            <p class="wizard-section-hint">İlanda görünecek telefon numarası.</p>
+            <input type="hidden" name="contactPhoneSource" x-ref="contactPhoneSource"
+                   value="@(string.IsNullOrWhiteSpace(draft.ContactPhoneSource) ? "account" : draft.ContactPhoneSource)" />
+
+            <div class="ap-tile-group" role="radiogroup" aria-labelledby="wizard-contact-heading"
+                 x-show="showPhoneChoices" x-cloak>
+              <label class="ap-tile">
+                <input type="radio" name="contactPhoneSourceUi" value="account"
+                       @@change="onContactPhoneSourceChange"
+                       :checked="isAccountPhoneSelected" />
+                <span class="ap-tile-face">
+                  <span class="ap-tile-mark" aria-hidden="true"></span>
+                  <span>
+                    Hesap telefonum
+                    <span class="ap-hint" x-text="accountPhoneLabel"></span>
+                  </span>
+                </span>
+              </label>
+              <label class="ap-tile">
+                <input type="radio" name="contactPhoneSourceUi" value="corporate"
+                       @@change="onContactPhoneSourceChange"
+                       :checked="isCorporatePhoneSelected" />
+                <span class="ap-tile-face">
+                  <span class="ap-tile-mark" aria-hidden="true"></span>
+                  <span>
+                    Bayi telefonu
+                    <span class="ap-hint" x-text="corporatePhoneLabel"></span>
+                  </span>
+                </span>
+              </label>
+            </div>
+
+            <div class="wizard-contact" x-show="showSinglePhone" x-cloak>
+              <div class="wizard-contact-icon" aria-hidden="true">
+                <ap-icon name="phone" size="18" />
               </div>
-            }
-            else
-            {
-              <p class="ap-hint">Yayınlamadan önce telefon doğrulaması istenecek.</p>
-            }
+              <div>
+                <p class="wizard-contact-label">İlanda görünecek telefon</p>
+                <p class="wizard-contact-value" x-text="activePhoneLabel"></p>
+                <p class="ap-hint">Alıcılar bu numaradan seni arayabilir.</p>
+              </div>
+            </div>
+
+            <p class="ap-hint" x-show="showPhoneFallback" x-cloak>Yayınlamadan önce telefon doğrulaması istenecek.</p>
+
             @if (Model.HasFieldError("phone"))
             {
               <p class="field-error" id="err-phone" role="alert">@Model.FieldError("phone")</p>
             }
           </section>
+          </div>
 
           <div class="ap-actions wizard-actions--inline">
             <a class="btn btn-ghost" href="/ilan-ver?adim=2">← Geri</a>
@@ -1116,7 +1126,7 @@ else if (Model.ShowDraftResumeModal)
                 <button type="button" class="btn btn-ghost" @@click="cancelCrop" :disabled="cropBusy">Vazgeç</button>
                 <button type="button" class="btn btn-ghost" @@click="uploadWithoutCrop" :disabled="cropBusy" x-show="cropError">Kırpmadan yükle</button>
                 <button type="button" class="btn btn-machine" @@click="confirmCrop" :disabled="cropBusy">
-                  <span x-text="cropBusy ? 'Hazırlanıyor…' : 'Kırp ve yükle'"></span>
+                  <span x-text="cropSubmitLabel">Kırp ve yükle</span>
                 </button>
               </div>
             </div>
@@ -1160,7 +1170,9 @@ else if (Model.ShowDraftResumeModal)
           <div class="wizard-preview-body">
             <p class="wizard-preview-meta">
               @ListingIntent.Label(draft.PrimaryIntent)
-              · @SellerType.Label(draft.SellerType)
+              · @(draft.CorporateAccountId is > 0
+                  ? (draft.CorporateName ?? "Bayi")
+                  : SellerType.Label(draft.SellerType))
               · @draft.CategoryName
               · @draft.CityName / @draft.DistrictName
               @if (!string.IsNullOrWhiteSpace(draft.NeighborhoodName))
@@ -1200,7 +1212,11 @@ else if (Model.ShowDraftResumeModal)
             <div class="wizard-preview-desc detail-desc">@Html.Raw(ListingDescriptionHtml.ToSafeDisplayHtml(draft.Description))</div>
             <p class="wizard-muted">
               Görsel: @draft.ImageUrls.Count
-              · Telefon: @(Model.RequirePhoneVerification && !Model.AccountPhoneConfirmed ? draft.Phone : Model.AccountPhone)
+              · Telefon: @(string.IsNullOrWhiteSpace(draft.Phone) ? Model.AccountPhone : draft.Phone)
+              @if (draft.CorporateAccountId is > 0)
+              {
+                <span>· @(draft.ContactPhoneSource == "corporate" ? "Bayi hattı" : "Hesap hattı")</span>
+              }
               @if (draft.AttachmentIds.Count > 0)
               {
                 <span>· Ekipman: @draft.AttachmentIds.Count</span>

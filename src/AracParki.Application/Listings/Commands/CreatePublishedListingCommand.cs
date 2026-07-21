@@ -7,6 +7,9 @@ public sealed class CreatePublishedListingCommand
     public required string Phone { get; init; }
     public required string SellerType { get; init; }
 
+    /// <summary>Onaylı kurumsal hesap adına ilan veriliyorsa set edilir.</summary>
+    public long? CorporateAccountId { get; init; }
+
     public int CategoryId { get; init; }
     public int BrandId { get; init; }
     public int? ModelId { get; init; }

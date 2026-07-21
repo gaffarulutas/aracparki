@@ -6,7 +6,14 @@
     var listing = Model.Listing!;
     var badgeClass = ListingIntent.BadgeClass(listing.PrimaryIntent);
     var badgeText = ListingIntent.Label(listing.PrimaryIntent);
-    var sellerLabel = SellerType.Label(listing.SellerType);
+    var isCorporateListing = listing.CorporateAccountId is > 0;
+    var sellerDisplayName = !string.IsNullOrWhiteSpace(listing.CorporateDisplayName)
+        ? listing.CorporateDisplayName
+        : listing.SellerName;
+    var sellerLabel = isCorporateListing
+        ? "Bayi"
+        : SellerType.Label(listing.SellerType);
+    var sellerVerified = listing.IsVerified || isCorporateListing;
     var images = listing.ImageUrls.Count > 0
         ? listing.ImageUrls
         : string.IsNullOrWhiteSpace(listing.CoverImageUrl)
@@ -60,16 +67,29 @@
   <div class="detail-top">
     <div class="detail-gallery" data-detail-gallery tabindex="0" aria-label="İlan görselleri">
       <div class="gallery-main-wrap">
-        <img class="gallery-main" src="@mainImage" alt="@listing.Title" width="900" height="600" loading="eager" data-gallery-main />
+        <img class="gallery-main"
+             src="@mainImage"
+             alt="@listing.Title"
+             width="900"
+             height="900"
+             loading="eager"
+             data-gallery-main
+             data-gallery-src="@mainImage" />
         @if (images.Count > 1)
         {
-          <button type="button" class="gallery-nav gallery-nav--prev" data-gallery-prev aria-label="Önceki görsel">
-            <ap-icon name="arrow-left" size="20" />
-          </button>
-          <button type="button" class="gallery-nav gallery-nav--next" data-gallery-next aria-label="Sonraki görsel">
-            <ap-icon name="chevron-right" size="20" />
-          </button>
+          <button type="button" class="gallery-hit gallery-hit--prev" data-gallery-prev aria-label="Önceki görsel"></button>
+          <button type="button" class="gallery-hit gallery-hit--next" data-gallery-next aria-label="Sonraki görsel"></button>
         }
+        <button type="button"
+                class="gallery-expand"
+                data-gallery-open
+                aria-haspopup="dialog"
+                aria-label="Büyük galeriyi aç">
+          <ap-icon name="maximize" size="16" />
+          <span>@(images.Count) fotoğraf</span>
+        </button>
+        @* lightGallery dynamic trigger (hidden; opened via API) *@
+        <button type="button" class="sr-only" data-gallery-lg-trigger id="gallery-lg-@listing.Id" tabindex="-1">Galeri</button>
       </div>
 
       @if (images.Count > 0)
@@ -77,9 +97,15 @@
         <div class="gallery-thumbs" role="list">
           @for (var i = 0; i < images.Count; i++)
           {
-            <button type="button" role="listitem" class="@(i == 0 ? "is-active" : null)"
-                    data-gallery-thumb data-src="@images[i]" aria-label="Görsel @(i + 1)">
-              <img src="@images[i]" alt="" width="88" height="66" loading="lazy" />
+            <button type="button"
+                    role="listitem"
+                    class="@(i == 0 ? "is-active" : null)"
+                    data-gallery-thumb
+                    data-src="@images[i]"
+                    data-index="@i"
+                    aria-label="Görsel @(i + 1)"
+                    aria-current="@(i == 0 ? "true" : "false")">
+              <img src="@images[i]" alt="" width="88" height="88" loading="lazy" />
             </button>
           }
         </div>
@@ -198,8 +224,8 @@
     <aside class="detail-seller" aria-label="Satıcı bilgileri" id="buybox">
       <div class="seller-card sticky-box">
         <div class="seller-card-head">
-          <strong class="seller-name">@listing.SellerName</strong>
-          <span class="seller-meta">@sellerLabel@(listing.IsVerified ? " · Doğrulanmış" : "")</span>
+          <strong class="seller-name">@sellerDisplayName</strong>
+          <span class="seller-meta">@sellerLabel@(sellerVerified ? " · Doğrulanmış" : "")</span>
         </div>
 
         @if (!isPreview)
@@ -298,4 +324,10 @@
 
 @section CrumbBar {
   <partial name="Shared/Partials/_DetailBreadcrumb" model="Model" />
+}
+
+@section Scripts {
+  <script src="~/lib/lightgallery/lightgallery.umd.js" asp-append-version="true" defer></script>
+  <script src="~/lib/lightgallery/plugins/lg-thumbnail.umd.js" asp-append-version="true" defer></script>
+  <script src="~/lib/lightgallery/plugins/lg-zoom.umd.js" asp-append-version="true" defer></script>
 }

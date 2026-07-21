@@ -7,7 +7,6 @@
   --wiz-duration: 240ms;
   padding-block: var(--space-4) var(--space-6);
   min-width: 0;
-  max-width: 1180px;
 }
 
 .wizard-hero {
@@ -88,7 +87,7 @@
 .wizard-stepper-item {
   position: relative;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   min-width: 0;
   height: 100%;
@@ -96,6 +95,7 @@
   padding: 12px 10px;
   border-radius: var(--wiz-radius-sm);
   border: 1px solid transparent;
+  background: transparent;
   color: var(--muted);
   text-decoration: none;
   transition:
@@ -110,34 +110,13 @@ a.wizard-stepper-item.is-clickable {
 }
 
 a.wizard-stepper-item.is-clickable:hover {
-  background: var(--raised);
-  border-color: var(--line);
+  background: var(--surface-2);
   color: var(--ink);
-  box-shadow: var(--shadow);
 }
 
 a.wizard-stepper-item.is-clickable:focus-visible {
   outline: 2px solid var(--machine-deep, #c4a35a);
   outline-offset: 2px;
-}
-
-.wizard-stepper-item::after {
-  content: "";
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 0;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--line);
-}
-
-.wizard-stepper-item.is-done::after {
-  background: color-mix(in srgb, var(--machine-deep) 70%, var(--ink));
-}
-
-.wizard-stepper-item.is-current::after {
-  background: var(--ink);
 }
 
 .wizard-stepper-index {
@@ -148,13 +127,49 @@ a.wizard-stepper-item.is-clickable:focus-visible {
   place-items: center;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 800;
-  background: var(--surface-2);
-  color: var(--muted);
-  border: 1px solid var(--line);
-  transition: background var(--wiz-duration) var(--wiz-ease), color var(--wiz-duration) var(--wiz-ease);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: transparent;
+  color: var(--muted-2);
+  border: 1.5px solid var(--line-strong, var(--line));
+  transition:
+    background var(--wiz-duration) var(--wiz-ease),
+    border-color var(--wiz-duration) var(--wiz-ease),
+    color var(--wiz-duration) var(--wiz-ease);
 }
 
+/* Upcoming steps: quiet, no chrome */
+.wizard-stepper-item:not(.is-current):not(.is-done) .wizard-stepper-label {
+  color: var(--muted);
+}
+
+/* Completed steps: visibly "filled" but calmer than the current step */
+.wizard-stepper-item.is-done {
+  background: var(--surface-2);
+  border-color: color-mix(in srgb, var(--line) 80%, transparent);
+  color: var(--ink);
+}
+
+.wizard-stepper-item.is-done .wizard-stepper-index {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+.wizard-stepper-item.is-done .wizard-stepper-label {
+  font-weight: 700;
+}
+
+.wizard-stepper-item.is-done .wizard-stepper-desc {
+  color: var(--muted);
+}
+
+a.wizard-stepper-item.is-done.is-clickable:hover {
+  background: var(--raised);
+  border-color: var(--line);
+}
+
+/* Current step: the only prominent one */
 .wizard-stepper-item.is-current {
   background: var(--raised);
   border-color: var(--line);
@@ -166,12 +181,7 @@ a.wizard-stepper-item.is-clickable:focus-visible {
   background: var(--machine);
   border-color: color-mix(in srgb, var(--machine-deep) 50%, var(--ink));
   color: var(--machine-ink);
-}
-
-.wizard-stepper-item.is-done .wizard-stepper-index {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: #fff;
+  font-weight: 800;
 }
 
 .wizard-stepper-text {
@@ -182,9 +192,16 @@ a.wizard-stepper-item.is-clickable:focus-visible {
 
 .wizard-stepper-label {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.2;
   color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wizard-stepper-item.is-current .wizard-stepper-label {
+  font-weight: 800;
 }
 
 .wizard-stepper-desc {
@@ -196,8 +213,7 @@ a.wizard-stepper-item.is-clickable:focus-visible {
   text-overflow: ellipsis;
 }
 
-.wizard-stepper-item.is-current .wizard-stepper-desc,
-.wizard-stepper-item.is-done .wizard-stepper-desc {
+.wizard-stepper-item.is-current .wizard-stepper-desc {
   color: var(--muted);
 }
 
@@ -586,13 +602,13 @@ select.is-catalog {
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: var(--wiz-radius-sm);
-  background: var(--raised);
+  background-color: var(--raised);
   color: var(--ink);
   font: inherit;
   transition:
     border-color var(--wiz-duration) var(--wiz-ease),
     box-shadow var(--wiz-duration) var(--wiz-ease),
-    background var(--wiz-duration) var(--wiz-ease);
+    background-color var(--wiz-duration) var(--wiz-ease);
 }
 
 .wizard-form input::placeholder,
@@ -619,7 +635,7 @@ select.is-catalog {
   outline: none;
   border-color: var(--link);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--link) 22%, transparent);
-  background: var(--raised);
+  background-color: var(--raised);
 }
 
 .wizard-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):disabled,
@@ -628,18 +644,35 @@ select.is-catalog {
 .wizard-form .ap-input:disabled {
   cursor: not-allowed;
   color: var(--muted);
-  background: var(--surface-2);
+  background-color: var(--surface-2);
   opacity: 0.85;
 }
 
-/* Only after user interaction (or native submit attempt) — not on empty required load */
-.wizard-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):user-invalid:not(:focus),
-.wizard-form select:user-invalid:not(:focus),
-.wizard-form textarea:user-invalid:not(:focus),
-.wizard-form .is-invalid {
-  border-color: color-mix(in srgb, var(--signal) 70%, var(--line));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--signal) 16%, transparent);
+/* —— Select: custom chevron aligned with field padding —— */
+.wizard-form select,
+.wizard-form select.ap-input {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%235a5a5a' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px 16px;
+  text-overflow: ellipsis;
 }
+
+.wizard-form select:focus,
+.wizard-form select.ap-input:focus {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%230c0c0c' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.wizard-form select:disabled {
+  cursor: not-allowed;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%23b3b3b3' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* Eksik alanlarda kırmızı çerçeve yok: üstteki uyarı + alan altı hata metni yeterli. */
 
 /* Kill native look on tile controls (wizard-form used to paint borders on them) */
 .wizard-form .ap-tile input {
@@ -796,7 +829,7 @@ select.is-catalog {
 .wizard-form select:disabled {
   cursor: not-allowed;
   color: var(--muted);
-  background: var(--surface-2);
+  background-color: var(--surface-2);
   opacity: 0.85;
 }
 
@@ -849,6 +882,8 @@ select.is-catalog {
 
 .ql-toolbar.ql-snow + .wizard-quill.ql-container {
   border-top: 0;
+  /* Cancel the form-row grid gap so toolbar and editor read as one field. */
+  margin-top: -8px;
 }
 
 .wizard-form .form-row:has(.wizard-quill):hover .ql-toolbar.ql-snow,
@@ -877,14 +912,6 @@ select.is-catalog {
   color: var(--ink);
 }
 
-.form-row.is-invalid .ql-toolbar.ql-snow,
-.form-row.is-invalid .wizard-quill.ql-container {
-  border-color: color-mix(in srgb, var(--signal) 70%, var(--line));
-}
-
-.form-row.is-invalid .wizard-quill.ql-container {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--signal) 16%, transparent);
-}
 
 .form-grid-2 {
   display: grid;
@@ -1056,22 +1083,6 @@ select.is-catalog {
   cursor: pointer;
 }
 
-.form-row.is-invalid .wizard-input-group {
-  border-color: color-mix(in srgb, var(--signal) 70%, var(--line));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--signal) 14%, transparent);
-}
-
-.wizard-req-legend {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: var(--wiz-radius-sm, 8px);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-  line-height: 1.45;
-}
 
 .field-req {
   margin-left: 2px;
@@ -1101,6 +1112,67 @@ select.is-catalog {
   padding-bottom: 0;
 }
 
+/* Two sections side by side (e.g. Fiyat + İlan sahibi, Konum + İletişim).
+   Subgrid keeps the rows (head, first control, …) aligned across both columns. */
+.wizard-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 32px;
+  row-gap: 0;
+  align-items: start;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.wizard-section-grid + .wizard-section-grid {
+  padding-top: 18px;
+}
+
+.wizard-section-grid:has(+ .ap-actions) {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.wizard-section-grid > .wizard-section {
+  border-bottom: 0;
+  padding-bottom: 0;
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 4;
+  row-gap: 0;
+  align-items: start;
+}
+
+.wizard-section-grid > .wizard-section > * + * {
+  margin-top: 14px;
+}
+
+.wizard-section-grid > .wizard-section + .wizard-section {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+@media (max-width: 860px) {
+  .wizard-section-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wizard-section-grid > .wizard-section {
+    display: grid;
+    grid-template-rows: none;
+    grid-row: auto;
+    gap: 14px;
+  }
+
+  .wizard-section-grid > .wizard-section > * + * {
+    margin-top: 0;
+  }
+
+  .wizard-section-grid > .wizard-section + .wizard-section {
+    margin-top: 18px;
+  }
+}
+
 .wizard-section-head {
   display: grid;
   gap: 4px;
@@ -1125,7 +1197,28 @@ select.is-catalog {
 }
 
 .wizard-spec-stack {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .wizard-spec-stack {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .wizard-spec-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .wizard-spec-stack {
+    grid-template-columns: 1fr;
+  }
 }
 
 .wizard-form .form-grid-2 > .form-row,
@@ -1194,21 +1287,6 @@ select.is-catalog {
   color: #8a1f16;
 }
 
-.form-row.is-invalid input:not([type="checkbox"]):not([type="radio"]),
-.form-row.is-invalid textarea,
-.form-row.is-invalid select,
-.ap-field.is-invalid .ap-input,
-.ap-input.is-invalid {
-  border-color: color-mix(in srgb, var(--signal) 70%, var(--line));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--signal) 14%, transparent);
-}
-
-.ap-field.is-invalid .ap-tile-group,
-.form-row.is-invalid .ap-tile-group {
-  outline: 2px solid color-mix(in srgb, var(--signal) 45%, transparent);
-  outline-offset: 2px;
-  border-radius: var(--wiz-radius-sm, 8px);
-}
 
 .wizard-alert-list a {
   color: inherit;
@@ -1554,7 +1632,7 @@ select.is-catalog {
   overflow: hidden;
   border: 1px solid var(--line);
   background: var(--surface-2);
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 1 / 1;
 }
 
 .wizard-image-preview img {
@@ -1587,7 +1665,7 @@ select.is-catalog {
 
 .wizard-preview-cover {
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 1 / 1;
   object-fit: cover;
   border-radius: var(--wiz-radius);
   border: 1px solid var(--line);

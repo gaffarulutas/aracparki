@@ -1,0 +1,55 @@
+@page "/kurumsal-hesap"
+@model AracParki.Web.Pages.KurumsalHesap.IndexModel
+@using AracParki.Domain.Corporate
+@{
+    Layout = "Shared/_AccountLayout";
+}
+<header class="page-account-head">
+  <h1>Kurumsal Hesap</h1>
+  <p class="page-account-lead">Bayi / galeri profillerini oluştur, evraklarını yükle ve onaya gönder. Onaylı kurumsal hesabınla ilan verebilirsin.</p>
+</header>
+
+@if (!string.IsNullOrWhiteSpace(Model.Notice))
+{
+  <p class="corp-notice" role="status">@Model.Notice</p>
+}
+
+<div class="corp-toolbar">
+  <a class="btn btn-machine" href="/kurumsal-hesap/duzenle">+ Yeni kurumsal hesap</a>
+</div>
+
+@if (Model.Accounts.Count == 0)
+{
+  <div class="empty-state">
+    <p>Henüz kurumsal hesabın yok.</p>
+    <p class="ap-hint">Kurumsal hesap oluşturup evraklarını yükledikten sonra admin onayıyla ilanlarını firma adına yayınlayabilirsin.</p>
+  </div>
+}
+else
+{
+  <div class="corp-list">
+    @foreach (var account in Model.Accounts)
+    {
+      <article class="corp-card">
+        <div class="corp-card-body">
+          <h2 class="corp-card-title">
+            <a href="/kurumsal-hesap/duzenle?id=@account.Id">@account.DisplayName</a>
+          </h2>
+          <p class="corp-card-meta">
+            <span class="@CorporateStatus.BadgeClass(account.Status)">@CorporateStatus.Label(account.Status)</span>
+            · @CompanyType.Label(account.CompanyType)
+            · @account.TradeName
+          </p>
+          <p class="corp-card-meta">@account.CityName / @account.DistrictName · VKN/TCKN: @account.TaxNumber</p>
+          @if (account.Status == CorporateStatus.Rejected && !string.IsNullOrWhiteSpace(account.RejectionReason))
+          {
+            <p class="corp-reject-note"><strong>Red nedeni:</strong> @account.RejectionReason</p>
+          }
+        </div>
+        <a class="btn btn-ghost btn-sm" href="/kurumsal-hesap/duzenle?id=@account.Id">
+          @(account.Status is CorporateStatus.Draft or CorporateStatus.Rejected ? "Düzenle" : "Görüntüle")
+        </a>
+      </article>
+    }
+  </div>
+}

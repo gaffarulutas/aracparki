@@ -1,0 +1,215 @@
+@page "/admin/kurumsal/{id:long}"
+@model AracParki.Web.Pages.Admin.Kurumsal.DetayModel
+@using AracParki.Domain.Corporate
+@{
+    Layout = "Shared/_AccountLayout";
+    var account = Model.Account!;
+    var docsByType = Model.Documents
+        .GroupBy(d => d.DocType)
+        .ToDictionary(g => g.Key, g => g.OrderByDescending(d => d.UploadedAt).First());
+    var requiredDocs = CorporateDocumentType.RequiredFor(account.CompanyType).ToHashSet(StringComparer.Ordinal);
+    var uploadedCount = requiredDocs.Count(t => docsByType.ContainsKey(t));
+    var requiredTotal = requiredDocs.Count;
+    var initial = string.IsNullOrWhiteSpace(account.DisplayName)
+        ? "?"
+        : char.ToUpperInvariant(account.DisplayName.Trim()[0]).ToString();
+    var taxLabel = account.CompanyType == CompanyType.Sahis ? "TCKN" : "VKN";
+}
+<header class="page-account-head admin-corp-detail-head">
+  <p class="admin-corp-kicker">
+    <a class="link-quiet" href="/admin">Admin</a>
+    <span aria-hidden="true">/</span>
+    <a class="link-quiet" href="/admin/kurumsal?durum=@account.Status">Kurumsal</a>
+    <span aria-hidden="true">/</span>
+    <span>#@account.Id</span>
+  </p>
+  <div class="admin-corp-detail-hero">
+    <div class="admin-corp-avatar admin-corp-avatar--lg" aria-hidden="true">@initial</div>
+    <div>
+      <div class="admin-corp-title-row">
+        <h1>@account.DisplayName</h1>
+        <span class="@CorporateStatus.BadgeClass(account.Status)">@CorporateStatus.Label(account.Status)</span>
+      </div>
+      <p class="admin-corp-trade">@account.TradeName · @CompanyType.Label(account.CompanyType)</p>
+      <p class="admin-corp-owner">
+        <ap-icon name="map-pin" size="14" />
+        <span>@account.DistrictName / @account.CityName</span>
+        @if (account.SubmittedAt is not null)
+        {
+          <span class="admin-corp-sep">·</span>
+          <span>Başvuru @account.SubmittedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+        }
+      </p>
+    </div>
+  </div>
+</header>
+
+@if (!string.IsNullOrWhiteSpace(Model.FormError))
+{
+  <p class="field-error" role="alert">@Model.FormError</p>
+}
+
+<div class="admin-corp-detail-grid">
+  <div class="admin-corp-detail-main">
+    <section class="admin-corp-panel">
+      <h2 class="admin-corp-panel-title">Firma</h2>
+      <dl class="admin-corp-dl">
+        <div><dt>Görünen ad</dt><dd>@account.DisplayName</dd></div>
+        <div><dt>Ticaret unvanı</dt><dd>@account.TradeName</dd></div>
+        <div><dt>Şirket türü</dt><dd>@CompanyType.Label(account.CompanyType)</dd></div>
+        <div><dt>Yetkili</dt><dd>@account.AuthorizedName</dd></div>
+      </dl>
+    </section>
+
+    <section class="admin-corp-panel">
+      <h2 class="admin-corp-panel-title">Vergi ve sicil</h2>
+      <dl class="admin-corp-dl">
+        <div><dt>Vergi dairesi</dt><dd>@account.TaxOffice</dd></div>
+        <div><dt>@taxLabel</dt><dd class="admin-corp-mono">@account.TaxNumber</dd></div>
+        <div><dt>MERSİS</dt><dd class="admin-corp-mono">@(account.MersisNo ?? "—")</dd></div>
+        <div><dt>Ticaret sicil no</dt><dd>@(account.TradeRegistryNo ?? "—")</dd></div>
+        <div><dt>KEP</dt><dd>@(account.KepAddress ?? "—")</dd></div>
+      </dl>
+    </section>
+
+    <section class="admin-corp-panel">
+      <h2 class="admin-corp-panel-title">İletişim ve adres</h2>
+      <dl class="admin-corp-dl">
+        <div><dt>Telefon</dt><dd><a href="tel:@account.Phone">@account.Phone</a></dd></div>
+        <div><dt>E-posta</dt><dd><a href="mailto:@account.Email">@account.Email</a></dd></div>
+        <div><dt>Web</dt>
+          <dd>
+            @if (!string.IsNullOrWhiteSpace(account.Website))
+            {
+              <a href="@account.Website" rel="noopener noreferrer" target="_blank">@account.Website</a>
+            }
+            else
+            {
+              <text>—</text>
+            }
+          </dd>
+        </div>
+        <div class="admin-corp-dl-wide">
+          <dt>Adres</dt>
+          <dd>@account.AddressLine<br /><span class="admin-corp-muted">@account.DistrictName / @account.CityName</span></dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="admin-corp-panel">
+      <div class="admin-corp-panel-head">
+        <h2 class="admin-corp-panel-title">Evraklar</h2>
+        <p class="admin-corp-doc-progress">Zorunlu: @uploadedCount / @requiredTotal yüklü</p>
+      </div>
+      <div class="admin-corp-docs">
+        @foreach (var docType in new[]
+                  {
+                      CorporateDocumentType.VergiLevhasi,
+                      CorporateDocumentType.ImzaSirkuleri,
+                      CorporateDocumentType.TicaretSicil,
+                      CorporateDocumentType.FaaliyetBelgesi,
+                      CorporateDocumentType.YetkiBelgesi
+                  })
+        {
+          var uploaded = docsByType.GetValueOrDefault(docType);
+          var isRequired = requiredDocs.Contains(docType);
+          var stateClass = uploaded is not null
+              ? "is-ready"
+              : isRequired ? "is-missing" : "is-optional";
+          <article class="admin-corp-doc @stateClass">
+            <div class="admin-corp-doc-status" aria-hidden="true">
+              @if (uploaded is not null)
+              {
+                <ap-icon name="check" size="16" />
+              }
+              else if (isRequired)
+              {
+                <ap-icon name="alert-circle" size="16" />
+              }
+              else
+              {
+                <ap-icon name="minus" size="16" />
+              }
+            </div>
+            <div class="admin-corp-doc-body">
+              <h3>
+                @CorporateDocumentType.Label(docType)
+                @if (isRequired)
+                {
+                  <abbr class="field-req" title="Zorunlu">*</abbr>
+                }
+                else
+                {
+                  <span class="field-optional">isteğe bağlı</span>
+                }
+              </h3>
+              <p class="admin-corp-muted">@CorporateDocumentType.Hint(docType)</p>
+              @if (uploaded is not null)
+              {
+                <p class="admin-corp-doc-file">
+                  <a href="/admin/kurumsal/@account.Id?handler=Document&documentId=@uploaded.Id">
+                    <ap-icon name="download" size="14" />
+                    @uploaded.FileName
+                  </a>
+                  <span>· @(uploaded.ByteSize / 1024) KB · @uploaded.UploadedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                </p>
+              }
+              else
+              {
+                <p class="admin-corp-muted">Yüklenmemiş</p>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  </div>
+
+  <aside class="admin-corp-aside">
+    <section class="admin-corp-panel admin-corp-aside-card">
+      <h2 class="admin-corp-panel-title">Hesap sahibi</h2>
+      <p class="admin-corp-aside-name">@(account.OwnerName ?? "—")</p>
+      <p class="admin-corp-muted">@account.OwnerEmail</p>
+    </section>
+
+    @if (account.Status == CorporateStatus.Pending)
+    {
+      <section class="admin-corp-panel admin-corp-aside-card admin-corp-actions">
+        <h2 class="admin-corp-panel-title">Karar</h2>
+        <p class="admin-corp-muted admin-corp-actions-lead">
+          Evrakları ve vergi bilgilerini kontrol ettikten sonra onayla veya gerekçeli reddet.
+        </p>
+        <form method="post" asp-page-handler="Approve">
+          @Html.AntiForgeryToken()
+          <button class="btn btn-machine btn-block" type="submit">Onayla</button>
+        </form>
+        <form method="post" asp-page-handler="Reject" class="admin-corp-reject-form">
+          @Html.AntiForgeryToken()
+          <label class="ap-label" for="reason">Red nedeni <abbr class="field-req" title="Zorunlu">*</abbr></label>
+          <textarea class="ap-input corp-textarea" id="reason" name="reason" required rows="4" maxlength="1000"
+                    placeholder="Eksik veya hatalı bilgileri kullanıcıya net yaz…"></textarea>
+          <button class="btn btn-dark btn-block" type="submit">Reddet</button>
+        </form>
+      </section>
+    }
+    else if (account.Status == CorporateStatus.Rejected)
+    {
+      <section class="admin-corp-panel admin-corp-aside-card admin-corp-aside-reject">
+        <h2 class="admin-corp-panel-title">Red notu</h2>
+        <p>@(string.IsNullOrWhiteSpace(account.RejectionReason) ? "—" : account.RejectionReason)</p>
+        <p class="admin-corp-muted">Kullanıcı düzenleyip yeniden başvurabilir.</p>
+      </section>
+    }
+    else if (account.Status == CorporateStatus.Approved)
+    {
+      <section class="admin-corp-panel admin-corp-aside-card admin-corp-aside-ok">
+        <h2 class="admin-corp-panel-title">Onaylı</h2>
+        <p>Bu firma ilan verirken satıcı olarak seçilebilir.</p>
+        @if (account.ReviewedAt is not null)
+        {
+          <p class="admin-corp-muted">Onay: @account.ReviewedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+        }
+      </section>
+    }
+  </aside>
+</div>

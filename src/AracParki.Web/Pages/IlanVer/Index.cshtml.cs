@@ -4,6 +4,8 @@ using AracParki.Application.Accounts;
 using AracParki.Application.Accounts.Services;
 using AracParki.Application.Catalog.Dtos;
 using AracParki.Application.Catalog.Services;
+using AracParki.Application.Corporate.Dtos;
+using AracParki.Application.Corporate.Services;
 using AracParki.Application.Listings;
 using AracParki.Application.Listings.Commands;
 using AracParki.Application.Listings.Dtos;
@@ -25,6 +27,7 @@ namespace AracParki.Web.Pages.IlanVer;
 public sealed class IndexModel(
     CatalogService catalog,
     AccountService accounts,
+    CorporateAccountService corporate,
     ListingCommandService listingCommands,
     ListingService listings,
     IListingImageStorage imageStorage,
@@ -92,6 +95,8 @@ public sealed class IndexModel(
     public IReadOnlyList<CityOptionDto> Cities { get; private set; } = [];
     public IReadOnlyList<DistrictOptionDto> Districts { get; private set; } = [];
     public IReadOnlyList<NeighborhoodOptionDto> Neighborhoods { get; private set; } = [];
+    public IReadOnlyList<CorporateOptionDto> ApprovedCorporateAccounts { get; private set; } = [];
+    public string OwnerDisplayName { get; private set; } = "";
 
     public string AttrJson(object value) =>
         JsonSerializer.Serialize(value, AttrJsonOptions);
@@ -567,7 +572,8 @@ public sealed class IndexModel(
         string? currency,
         string? priceUnit,
         bool includesOperator,
-        string? sellerType,
+        long? corporateAccountId,
+        string? contactPhoneSource,
         int cityId,
         int districtId,
         int? neighborhoodId,
@@ -584,9 +590,58 @@ public sealed class IndexModel(
             return RedirectToPage(new { adim = Draft.HasCategory && Draft.HasIntent ? 2 : 1 });
         }
 
-        if (string.IsNullOrWhiteSpace(sellerType) || !SellerType.Known.Contains(sellerType))
+        var accountId = GetAccountId();
+        if (accountId is null)
         {
-            return await FailAsync(3, "Satıcı tipi seç (Sahibi / Bayi).", cancellationToken);
+            return Challenge();
+        }
+
+        await LoadAccountPhoneAsync(cancellationToken);
+
+        string sellerType;
+        string? corporateName = null;
+        long? resolvedCorporateId = null;
+        string? corporatePhone = null;
+
+        if (corporateAccountId is > 0)
+        {
+            var option = await corporate.GetApprovedOptionAsync(
+                corporateAccountId.Value,
+                accountId.Value,
+                cancellationToken);
+            if (option is null)
+            {
+                return await FailAsync(
+                    3,
+                    "Seçilen kurumsal hesap onaylı değil veya sana ait değil.",
+                    cancellationToken,
+                    new Dictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        ["sellerType"] = "Onaylı kurumsal hesap seç veya Sahibinden ile devam et."
+                    });
+            }
+
+            sellerType = SellerType.Dealer;
+            resolvedCorporateId = option.Id;
+            corporateName = option.DisplayName;
+            corporatePhone = AccountService.NormalizePhone(option.Phone);
+        }
+        else
+        {
+            sellerType = SellerType.Owner;
+        }
+
+        var preferCorporatePhone = resolvedCorporateId is > 0
+                                   && string.Equals(contactPhoneSource, "corporate", StringComparison.OrdinalIgnoreCase)
+                                   && corporatePhone is not null;
+        var listingPhone = preferCorporatePhone
+            ? corporatePhone
+            : AccountService.NormalizePhone(AccountPhone) ?? AccountService.NormalizePhone(Draft.Phone);
+
+        if (listingPhone is null && !RequirePhoneVerification)
+        {
+            // Account phone missing but gate already passed somehow — keep draft phone if any.
+            listingPhone = AccountService.NormalizePhone(Draft.Phone);
         }
 
         var cities = await catalog.GetAllCitiesAsync(cancellationToken);
@@ -612,14 +667,25 @@ public sealed class IndexModel(
         Draft.PriceUnit = isRent && !string.IsNullOrWhiteSpace(priceUnit) ? priceUnit.Trim() : null;
         Draft.IncludesOperator = includesOperator && isRent;
         Draft.SellerType = sellerType;
+        Draft.CorporateAccountId = resolvedCorporateId;
+        Draft.CorporateName = corporateName;
+        Draft.ContactPhoneSource = preferCorporatePhone ? "corporate" : "account";
         Draft.CityId = city?.Id ?? 0;
         Draft.CityName = city?.Name;
         Draft.DistrictId = district?.Id ?? 0;
         Draft.DistrictName = district?.Name;
         Draft.NeighborhoodId = neighborhood?.Id;
         Draft.NeighborhoodName = neighborhood?.DisplayName ?? neighborhood?.Name;
-        Draft.Phone = AccountService.NormalizePhone(AccountPhone) ?? Draft.Phone;
-        Draft.PhoneVerified = true;
+        if (listingPhone is not null)
+        {
+            Draft.Phone = listingPhone;
+            Draft.PhoneVerified = true;
+        }
+        else
+        {
+            Draft.Phone = AccountService.NormalizePhone(AccountPhone) ?? Draft.Phone;
+            Draft.PhoneVerified = AccountPhoneConfirmed || Draft.PhoneVerified;
+        }
 
         if (city is null || district is null)
         {
@@ -964,15 +1030,18 @@ public sealed class IndexModel(
             return Challenge();
         }
 
-        var phone = AccountService.NormalizePhone(account.Phone ?? Draft.Phone);
-        if (phone is null || (!account.PhoneConfirmed && !Draft.PhoneVerified))
+        var listingPhone = AccountService.NormalizePhone(Draft.Phone)
+                           ?? AccountService.NormalizePhone(account.Phone);
+        if (listingPhone is null || (!account.PhoneConfirmed && !Draft.PhoneVerified))
         {
             return await FailAsync(5, "Telefon doğrulanmadan yayınlanamaz. Satış adımına dön.", cancellationToken);
         }
 
-        if (string.IsNullOrWhiteSpace(account.Phone) || !account.PhoneConfirmed)
+        // Hesap telefonunu yalnızca kişisel numara seçildiyse / eksikse güncelle; bayi numarasını hesap profiline yazma.
+        if ((string.IsNullOrWhiteSpace(account.Phone) || !account.PhoneConfirmed)
+            && !string.Equals(Draft.ContactPhoneSource, "corporate", StringComparison.OrdinalIgnoreCase))
         {
-            var (ok, error, updated) = await accounts.UpdatePhoneAsync(accountId.Value, phone, cancellationToken);
+            var (ok, error, updated) = await accounts.UpdatePhoneAsync(accountId.Value, listingPhone, cancellationToken);
             if (!ok || updated is null)
             {
                 return await FailAsync(5, error ?? "Telefon güncellenemedi.", cancellationToken);
@@ -982,12 +1051,53 @@ public sealed class IndexModel(
             account = await accounts.GetByIdAsync(accountId.Value, cancellationToken) ?? updated;
         }
 
+        string sellerDisplayName = account.DisplayName;
+        long? corporateAccountId = null;
+        string publishPhone = listingPhone;
+        if (Draft.CorporateAccountId is > 0)
+        {
+            var option = await corporate.GetApprovedOptionAsync(
+                Draft.CorporateAccountId.Value,
+                account.Id,
+                cancellationToken);
+            if (option is null)
+            {
+                return await FailAsync(
+                    5,
+                    "Seçilen kurumsal hesap artık onaylı değil. Fiyat adımına dönüp satıcıyı güncelle.",
+                    cancellationToken);
+            }
+
+            corporateAccountId = option.Id;
+            sellerDisplayName = option.DisplayName;
+            Draft.SellerType = SellerType.Dealer;
+            Draft.CorporateName = option.DisplayName;
+
+            if (string.Equals(Draft.ContactPhoneSource, "corporate", StringComparison.OrdinalIgnoreCase))
+            {
+                var corpPhone = AccountService.NormalizePhone(option.Phone);
+                if (corpPhone is not null)
+                {
+                    publishPhone = corpPhone;
+                    Draft.Phone = corpPhone;
+                }
+            }
+        }
+        else
+        {
+            Draft.SellerType = SellerType.Owner;
+            Draft.CorporateAccountId = null;
+            Draft.CorporateName = null;
+            Draft.ContactPhoneSource = "account";
+        }
+
         var command = new CreatePublishedListingCommand
         {
             AccountId = account.Id,
-            SellerDisplayName = account.DisplayName,
-            Phone = phone,
+            SellerDisplayName = sellerDisplayName,
+            Phone = publishPhone,
             SellerType = Draft.SellerType,
+            CorporateAccountId = corporateAccountId,
             CategoryId = Draft.CategoryId,
             BrandId = Draft.BrandId,
             ModelId = Draft.ModelId,
@@ -1334,6 +1444,23 @@ public sealed class IndexModel(
             {
                 Neighborhoods = await catalog.GetNeighborhoodsByDistrictAsync(Draft.DistrictId, cancellationToken);
             }
+
+            var accountId = GetAccountId();
+            if (accountId is not null)
+            {
+                ApprovedCorporateAccounts = await corporate.ListApprovedAsync(accountId.Value, cancellationToken);
+                var account = await accounts.GetByIdAsync(accountId.Value, cancellationToken);
+                OwnerDisplayName = account?.DisplayName ?? "";
+
+                // Geçersiz / onaysız kurumsal seçimi temizle
+                if (Draft.CorporateAccountId is > 0
+                    && ApprovedCorporateAccounts.All(c => c.Id != Draft.CorporateAccountId))
+                {
+                    Draft.CorporateAccountId = null;
+                    Draft.CorporateName = null;
+                    Draft.SellerType = SellerType.Owner;
+                }
+            }
         }
     }
 
@@ -1476,6 +1603,8 @@ public sealed class IndexModel(
             PriceUnit = edit.PriceUnit,
             IncludesOperator = edit.IncludesOperator,
             SellerType = edit.SellerType,
+            CorporateAccountId = edit.CorporateAccountId,
+            CorporateName = edit.CorporateName,
             CityId = edit.CityId,
             CityName = edit.CityName,
             DistrictId = edit.DistrictId,

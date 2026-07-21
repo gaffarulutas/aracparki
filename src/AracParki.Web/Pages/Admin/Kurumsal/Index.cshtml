@@ -1,0 +1,95 @@
+@page "/admin/kurumsal"
+@model AracParki.Web.Pages.Admin.Kurumsal.IndexModel
+@using AracParki.Domain.Corporate
+@{
+    Layout = "Shared/_AccountLayout";
+    var emptyCopy = Model.Status switch
+    {
+        CorporateStatus.Approved => "Onaylı kurumsal hesap yok.",
+        CorporateStatus.Rejected => "Reddedilmiş başvuru yok.",
+        _ => "Onay bekleyen başvuru yok."
+    };
+}
+<header class="page-account-head">
+  <p class="admin-corp-kicker">
+    <a class="link-quiet" href="/admin">Admin</a>
+    <span aria-hidden="true">/</span>
+    <span>Kurumsal hesaplar</span>
+  </p>
+  <h1>Kurumsal moderasyon</h1>
+  <p class="page-account-lead">Bayi ve galeri başvurularını incele, onayla veya reddet.</p>
+</header>
+
+<div class="admin-corp-stats" aria-label="Özet">
+  <a class="admin-corp-stat @(Model.Status == CorporateStatus.Pending ? "is-active" : null)"
+     href="/admin/kurumsal?durum=@CorporateStatus.Pending">
+    <span class="admin-corp-stat-value">@Model.Counts.Pending</span>
+    <span class="admin-corp-stat-label">Onay bekliyor</span>
+  </a>
+  <a class="admin-corp-stat @(Model.Status == CorporateStatus.Approved ? "is-active" : null)"
+     href="/admin/kurumsal?durum=@CorporateStatus.Approved">
+    <span class="admin-corp-stat-value">@Model.Counts.Approved</span>
+    <span class="admin-corp-stat-label">Onaylı</span>
+  </a>
+  <a class="admin-corp-stat @(Model.Status == CorporateStatus.Rejected ? "is-active" : null)"
+     href="/admin/kurumsal?durum=@CorporateStatus.Rejected">
+    <span class="admin-corp-stat-value">@Model.Counts.Rejected</span>
+    <span class="admin-corp-stat-label">Reddedilen</span>
+  </a>
+</div>
+
+@if (Model.Items.Count == 0)
+{
+  <div class="admin-corp-empty">
+    <span class="admin-corp-empty-icon" aria-hidden="true"><ap-icon name="building-2" size="28" /></span>
+    <p>@emptyCopy</p>
+  </div>
+}
+else
+{
+  <div class="admin-corp-list">
+    @foreach (var item in Model.Items)
+    {
+      var initial = string.IsNullOrWhiteSpace(item.DisplayName)
+          ? "?"
+          : char.ToUpperInvariant(item.DisplayName.Trim()[0]).ToString();
+      <article class="admin-corp-row">
+        <div class="admin-corp-avatar" aria-hidden="true">@initial</div>
+        <div class="admin-corp-body">
+          <div class="admin-corp-title-row">
+            <h2 class="admin-corp-title">
+              <a href="/admin/kurumsal/@item.Id">@item.DisplayName</a>
+            </h2>
+            <span class="@CorporateStatus.BadgeClass(item.Status)">@CorporateStatus.Label(item.Status)</span>
+          </div>
+          <p class="admin-corp-trade">@item.TradeName</p>
+          <ul class="admin-corp-chips">
+            <li>@CompanyType.Label(item.CompanyType)</li>
+            <li>@item.CityName / @item.DistrictName</li>
+            <li>VKN/TCKN @item.TaxNumber</li>
+          </ul>
+          <p class="admin-corp-owner">
+            <ap-icon name="circle-user" size="14" />
+            <span>@(item.OwnerName)</span>
+            <span class="admin-corp-sep">·</span>
+            <span>@item.OwnerEmail</span>
+            @if (item.SubmittedAt is not null)
+            {
+              <span class="admin-corp-sep">·</span>
+              <time datetime="@item.SubmittedAt.Value.ToString("o")">
+                @item.SubmittedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+              </time>
+            }
+          </p>
+          @if (!string.IsNullOrWhiteSpace(item.RejectionReason))
+          {
+            <p class="admin-corp-reject">@item.RejectionReason</p>
+          }
+        </div>
+        <a class="btn btn-machine btn-sm admin-corp-cta" href="/admin/kurumsal/@item.Id">
+          @(item.Status == CorporateStatus.Pending ? "İncele" : "Görüntüle")
+        </a>
+      </article>
+    }
+  </div>
+}

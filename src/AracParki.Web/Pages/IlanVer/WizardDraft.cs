@@ -45,6 +45,11 @@ public sealed class WizardDraft
     public string Currency { get; set; } = Domain.Listings.Currency.Try;
     public bool IncludesOperator { get; set; }
     public string SellerType { get; set; } = Domain.Listings.SellerType.Owner;
+    /// <summary>Onaylı kurumsal hesap seçildiyse doldurulur; sahibinden ilanda null.</summary>
+    public long? CorporateAccountId { get; set; }
+    public string? CorporateName { get; set; }
+    /// <summary>İlanda gösterilecek telefon: account | corporate.</summary>
+    public string ContactPhoneSource { get; set; } = "account";
     public int CityId { get; set; }
     public string? CityName { get; set; }
     public int DistrictId { get; set; }
