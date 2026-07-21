@@ -1063,10 +1063,15 @@
       districtsLoading: false,
       neighborhoodsLoading: false,
       locationStatus: "",
+      priceRaw: 0,
+      priceHint: "",
       _districtAbort: null,
       _neighborhoodAbort: null,
       get hasLocationStatus() {
         return !!this.locationStatus;
+      },
+      get hasPriceHint() {
+        return !!this.priceHint;
       },
       init() {
         const cityId = Number(this.$el.dataset.cityId || 0) || 0;
@@ -1074,14 +1079,22 @@
         const neighborhoodId = Number(this.$el.dataset.neighborhoodId || 0) || 0;
         const districts = parseJsonAttr(this.$el, "data-districts", []);
         const neighborhoods = parseJsonAttr(this.$el, "data-neighborhoods", []);
+        const initialPrice = Number(this.$el.dataset.price || 0) || 0;
+        const initialCurrency = String(this.$el.dataset.currency || "TRY");
 
         // disabled select alanları POST'a girmez; gönderimden hemen önce aç.
         this.$el.addEventListener("submit", () => {
           if (this.$refs.district) this.$refs.district.disabled = false;
           if (this.$refs.neighborhood) this.$refs.neighborhood.disabled = false;
+          this.syncPriceHidden();
         });
 
         this.$nextTick(() => {
+          if (this.$refs.currency) {
+            this.$refs.currency.value = initialCurrency;
+          }
+          this.setPriceRaw(initialPrice);
+
           if (this.$refs.city) {
             this.$refs.city.value = cityId > 0 ? String(cityId) : "";
             this.$refs.city.addEventListener("change", (e) => this.onCityChange(e));
@@ -1105,6 +1118,56 @@
             districtId <= 0
           );
         });
+      },
+      formatN0(value) {
+        const n = Math.floor(Number(value) || 0);
+        if (n <= 0) return "";
+        return n.toLocaleString("tr-TR", { maximumFractionDigits: 0 });
+      },
+      setPriceRaw(value) {
+        const n = Math.floor(Number(value) || 0);
+        this.priceRaw = n > 0 ? n : 0;
+        if (this.$refs.priceDisplay) {
+          this.$refs.priceDisplay.value = this.formatN0(this.priceRaw);
+        }
+        this.syncPriceHidden();
+        this.updatePriceHint();
+      },
+      syncPriceHidden() {
+        if (this.$refs.priceRaw) {
+          this.$refs.priceRaw.value = this.priceRaw > 0 ? String(this.priceRaw) : "";
+        }
+      },
+      updatePriceHint() {
+        if (this.priceRaw <= 0) {
+          this.priceHint = "";
+          return;
+        }
+        const label =
+          this.$refs.currency && this.$refs.currency.value
+            ? this.$refs.currency.options[this.$refs.currency.selectedIndex].text
+            : "TL";
+        this.priceHint = this.formatN0(this.priceRaw) + " " + label;
+      },
+      onPriceInput(event) {
+        const el = event && event.target;
+        if (!el) return;
+        const digits = String(el.value || "").replace(/\D/g, "");
+        const n = digits ? Number(digits) : 0;
+        this.priceRaw = Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+        el.value = this.formatN0(this.priceRaw);
+        this.syncPriceHidden();
+        this.updatePriceHint();
+      },
+      onPriceBlur() {
+        if (this.$refs.priceDisplay) {
+          this.$refs.priceDisplay.value = this.formatN0(this.priceRaw);
+        }
+        this.syncPriceHidden();
+        this.updatePriceHint();
+      },
+      onCurrencyChange() {
+        this.updatePriceHint();
       },
       setBusy(select, busy) {
         if (!select) return;
@@ -1515,7 +1578,315 @@
       },
     }));
 
-    // CSP Alpine: drag-drop photo upload → auto-submit Upload handler.
+    // CSP Alpine: description character counter for step 2 (Quill or textarea).
+    Alpine.data("ilanVerCharCount", () => ({
+      count: 0,
+      max: 8000,
+      init() {
+        this.max = Number(this.$el.dataset.max || 8000);
+        this.sync();
+        this.$el.addEventListener("quill-change", () => this.sync());
+      },
+      onInput() {
+        this.sync();
+      },
+      sync() {
+        const fromQuill = this.$el.dataset.textLength;
+        if (fromQuill != null && fromQuill !== "") {
+          this.count = Number(fromQuill) || 0;
+          return;
+        }
+        const el = this.$refs.input;
+        const value = el ? String(el.value || "") : "";
+        this.count = value.length;
+      },
+    }));
+
+    // CSP Alpine: draft resume modal (explicit continue vs new).
+    Alpine.data("draftResumeModal", () => ({
+      // Trap is always open while the modal is rendered.
+    }));
+
+    // CSP Alpine: multi-file upload with per-thumbnail overlay progress → UploadJson handler.
+    Alpine.data("ilanVerUploader", () => ({
+      dragging: false,
+      queue: [],
+      currentCount: 0,
+      maxCount: 8,
+      maxBytes: 10 * 1024 * 1024,
+      uploadUrl: "",
+      _nextId: 1,
+      _token: "",
+      get dropzoneClass() {
+        return this.dragging ? "is-dragging" : "";
+      },
+      get busy() {
+        return this.queue.some((item) => item.state === "pending" || item.state === "uploading");
+      },
+      get busyAria() {
+        return this.busy ? "true" : "false";
+      },
+      init() {
+        this.uploadUrl = String(this.$el.dataset.uploadUrl || "");
+        this.maxCount = Number(this.$el.dataset.maxCount || 8);
+        this.maxBytes = Number(this.$el.dataset.maxBytes || 10485760);
+        this.currentCount = Number(this.$el.dataset.currentCount || 0);
+        const tokenInput = this.$el.querySelector('input[name="__RequestVerificationToken"]');
+        this._token = tokenInput ? tokenInput.value : "";
+      },
+      onDragEnter() {
+        this.dragging = true;
+      },
+      onDragOver() {
+        this.dragging = true;
+      },
+      onDragLeave(event) {
+        const related = event && event.relatedTarget;
+        if (related && this.$el.contains(related)) return;
+        this.dragging = false;
+      },
+      onDrop(event) {
+        this.dragging = false;
+        const files = event && event.dataTransfer && event.dataTransfer.files;
+        if (files && files.length) this.enqueueFiles(files);
+      },
+      onFileChange() {
+        const input = this.$refs.file;
+        if (input && input.files && input.files.length) {
+          this.enqueueFiles(input.files);
+          input.value = "";
+        }
+      },
+      enqueueFiles(fileList) {
+        const inFlight = this.queue.filter((q) => q.state !== "done").length;
+        const remaining = this.maxCount - this.currentCount - inFlight;
+        if (remaining <= 0) return;
+        const files = Array.from(fileList).slice(0, remaining);
+        for (const file of files) {
+          this.queue.push(this.createQueueItem(file));
+        }
+        this.processQueue();
+      },
+      createQueueItem(file) {
+        const parent = this;
+        const id = this._nextId++;
+        const previewUrl = URL.createObjectURL(file);
+        return {
+          id,
+          file,
+          name: file.name || "görsel",
+          previewUrl,
+          state: "pending",
+          progress: 0,
+          error: "",
+          // CSP Alpine: no comparisons / method(args) in markup — expose getters + zero-arg methods.
+          get isVisible() {
+            return this.state !== "done";
+          },
+          get showProgress() {
+            return this.state === "pending" || this.state === "uploading";
+          },
+          get showError() {
+            return this.state === "error";
+          },
+          get progressLabel() {
+            if (this.state === "pending") return "Hazırlanıyor…";
+            if (this.state === "error") return "Hata";
+            if (this.progress <= 0) return "Yükleniyor…";
+            return this.progress + "%";
+          },
+          get barStyle() {
+            return "width:" + Math.max(0, Math.min(100, this.progress)) + "%";
+          },
+          retry() {
+            this.state = "pending";
+            this.progress = 0;
+            this.error = "";
+            parent.processQueue();
+          },
+          dismiss() {
+            parent.dismissItem(this);
+          },
+        };
+      },
+      dismissItem(item) {
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+        this.queue = this.queue.filter((q) => q.id !== item.id);
+      },
+      async processQueue() {
+        if (this._processing) return;
+        this._processing = true;
+        try {
+          while (true) {
+            const next = this.queue.find((i) => i.state === "pending");
+            if (!next) break;
+            if (this.currentCount >= this.maxCount) {
+              next.state = "error";
+              next.error = "En fazla " + this.maxCount + " görsel ekleyebilirsin.";
+              continue;
+            }
+            await this.uploadOne(next);
+          }
+        } finally {
+          this._processing = false;
+        }
+      },
+      uploadOne(item) {
+        const parent = this;
+        return new Promise((resolve) => {
+          if (item.file.size > parent.maxBytes) {
+            item.state = "error";
+            item.error = "Dosya en fazla 10 MB olabilir.";
+            resolve();
+            return;
+          }
+          const type = String(item.file.type || "").toLowerCase();
+          const allowed = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+          if (type && allowed.indexOf(type) < 0) {
+            item.state = "error";
+            item.error = "Desteklenmeyen format.";
+            resolve();
+            return;
+          }
+
+          item.state = "uploading";
+          item.progress = 0;
+          const form = new FormData();
+          form.append("file", item.file, item.file.name);
+
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", parent.uploadUrl);
+          xhr.setRequestHeader("RequestVerificationToken", parent._token);
+          xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+
+          xhr.upload.onprogress = (event) => {
+            if (!event.lengthComputable) return;
+            item.progress = Math.round((event.loaded / event.total) * 100);
+          };
+
+          xhr.onload = () => {
+            let payload = null;
+            try {
+              payload = JSON.parse(xhr.responseText || "{}");
+            } catch {
+              payload = null;
+            }
+            if (xhr.status >= 200 && xhr.status < 300 && payload && payload.ok) {
+              item.progress = 100;
+              parent.currentCount = Number(payload.count || parent.currentCount + 1);
+              parent.appendGalleryItem(
+                payload.deliveryUrl,
+                parent.currentCount === 1,
+                item.previewUrl
+              );
+              parent.appendHiddenUrl(payload.deliveryUrl);
+              item.state = "done";
+              parent.queue = parent.queue.filter((q) => q.id !== item.id);
+            } else {
+              item.state = "error";
+              item.error =
+                (payload && payload.error) ||
+                (xhr.status === 429 ? "Çok fazla istek. Biraz sonra dene." : "Yükleme başarısız.");
+            }
+            resolve();
+          };
+
+          xhr.onerror = () => {
+            item.state = "error";
+            item.error = "Ağ hatası. Tekrar dene.";
+            resolve();
+          };
+
+          xhr.send(form);
+        });
+      },
+      appendHiddenUrl(url) {
+        const wrap = document.getElementById("wizard-hidden-urls");
+        if (!wrap || !url) return;
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = "imageUrls";
+        input.value = url;
+        wrap.appendChild(input);
+        const continueBtn = document.getElementById("wizard-images-continue");
+        if (continueBtn) continueBtn.disabled = false;
+      },
+      appendGalleryItem(url, isCover, previewUrl) {
+        const gallery = this.$refs.gallery;
+        if (!gallery || !url) return;
+        const index = gallery.querySelectorAll(".wizard-gallery-item:not(.is-uploading)").length;
+        const figure = document.createElement("figure");
+        figure.className = "wizard-gallery-item" + (index === 0 || isCover ? " is-cover" : "");
+        figure.setAttribute("data-url", url);
+
+        const img = document.createElement("img");
+        img.alt = "";
+        img.width = 480;
+        img.height = 360;
+        // Show local preview immediately; swap to CDN once it loads to avoid a blank flash.
+        const localPreview = typeof previewUrl === "string" && previewUrl ? previewUrl : "";
+        if (localPreview) {
+          img.src = localPreview;
+          const remote = new Image();
+          remote.decoding = "async";
+          remote.onload = () => {
+            img.src = url;
+            URL.revokeObjectURL(localPreview);
+          };
+          remote.onerror = () => {
+            img.src = url;
+            URL.revokeObjectURL(localPreview);
+          };
+          remote.src = url;
+        } else {
+          img.src = url;
+          img.loading = "lazy";
+        }
+
+        const cap = document.createElement("figcaption");
+        cap.textContent = index === 0 ? "Kapak" : String(index + 1);
+
+        const actions = document.createElement("div");
+        actions.className = "wizard-gallery-actions";
+
+        if (index > 0) {
+          const coverForm = document.createElement("form");
+          coverForm.method = "post";
+          coverForm.action = "?handler=SetCover";
+          coverForm.innerHTML =
+            '<input type="hidden" name="__RequestVerificationToken" />' +
+            '<input type="hidden" name="url" />' +
+            '<button type="submit" class="wizard-gallery-action">Kapak yap</button>';
+          coverForm.querySelector('input[name="__RequestVerificationToken"]').value = this._token;
+          coverForm.querySelector('input[name="url"]').value = url;
+          actions.appendChild(coverForm);
+        }
+
+        const removeForm = document.createElement("form");
+        removeForm.method = "post";
+        removeForm.action = "?handler=RemoveImage";
+        removeForm.innerHTML =
+          '<input type="hidden" name="__RequestVerificationToken" />' +
+          '<input type="hidden" name="url" />' +
+          '<button type="submit" class="wizard-gallery-action wizard-gallery-action--danger">Kaldır</button>';
+        removeForm.querySelector('input[name="__RequestVerificationToken"]').value = this._token;
+        removeForm.querySelector('input[name="url"]').value = url;
+        actions.appendChild(removeForm);
+
+        figure.appendChild(img);
+        figure.appendChild(cap);
+        figure.appendChild(actions);
+
+        const firstUploading = gallery.querySelector(".wizard-gallery-item.is-uploading");
+        if (firstUploading) {
+          gallery.insertBefore(figure, firstUploading);
+        } else {
+          gallery.appendChild(figure);
+        }
+      },
+    }));
+
+    // Legacy single-file dropzone (unused by step 4; kept for safety).
     Alpine.data("ilanVerDropzone", () => ({
       dragging: false,
       get dropzoneClass() {
@@ -1534,25 +1905,8 @@
       },
       onDrop(event) {
         this.dragging = false;
-        const files = event && event.dataTransfer && event.dataTransfer.files;
-        const file = files && files[0];
-        const input = this.$refs.file;
-        if (!file || !input) return;
-        try {
-          const dt = new DataTransfer();
-          dt.items.add(file);
-          input.files = dt.files;
-          this.$el.requestSubmit ? this.$el.requestSubmit() : this.$el.submit();
-        } catch {
-          /* Safari older: fall through to file picker */
-        }
       },
-      onFileChange() {
-        const input = this.$refs.file;
-        if (input && input.files && input.files.length) {
-          this.$el.requestSubmit ? this.$el.requestSubmit() : this.$el.submit();
-        }
-      },
+      onFileChange() {},
     }));
 
     // CSP Alpine: no method(args) / bracket access in markup — use item objects + getters.
@@ -1773,10 +2127,156 @@
     });
   };
 
+  const initQuillDescriptions = () => {
+    if (typeof Quill === "undefined") return;
+
+    document.querySelectorAll("[data-quill-description]").forEach((host) => {
+      if (!(host instanceof HTMLElement) || host.dataset.quillReady === "1") return;
+
+      const input = host.querySelector('input[name="description"], textarea[name="description"]');
+      const editorEl = host.querySelector("[data-quill-editor]");
+      if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)
+          || !(editorEl instanceof HTMLElement)) {
+        return;
+      }
+
+      const max = Number(host.dataset.max || 8000);
+      const quill = new Quill(editorEl, {
+        theme: "snow",
+        placeholder: editorEl.getAttribute("data-placeholder") || "",
+        modules: {
+          toolbar: [
+            ["bold", "italic", "underline"],
+            [{ list: "ordered" }, { list: "bullet" }],
+            ["link"],
+            ["clean"],
+          ],
+        },
+      });
+
+      const initial = String(input.value || "").trim();
+      if (initial) {
+        if (initial.startsWith("<")) {
+          quill.setContents(quill.clipboard.convert({ html: initial }), "silent");
+        } else {
+          quill.setText(initial, "silent");
+        }
+      }
+
+      let applyingLimit = false;
+      const plainLength = () => {
+        const text = quill.getText();
+        return text.endsWith("\n") ? text.length - 1 : text.length;
+      };
+
+      const sync = () => {
+        const length = plainLength();
+        const html = quill.getSemanticHTML();
+        const empty = length === 0 || !String(html).replace(/<[^>]+>/g, "").replace(/&nbsp;/gi, " ").trim();
+        input.value = empty ? "" : html;
+        host.dataset.textLength = String(length);
+        host.dispatchEvent(new CustomEvent("quill-change"));
+      };
+
+      quill.on("text-change", (_delta, _old, source) => {
+        if (applyingLimit) return;
+        if (source === "user" && plainLength() > max) {
+          applyingLimit = true;
+          quill.history.undo();
+          applyingLimit = false;
+        }
+        sync();
+      });
+
+      const form = host.closest("form");
+      if (form instanceof HTMLFormElement) {
+        form.addEventListener("submit", () => {
+          sync();
+          if (!input.value) {
+            input.setCustomValidity("Açıklama zorunlu.");
+          } else {
+            input.setCustomValidity("");
+          }
+        });
+      }
+
+      host.dataset.quillReady = "1";
+      sync();
+    });
+  };
+
+  const initDetailGallery = () => {
+    document.querySelectorAll("[data-detail-gallery]").forEach((host) => {
+      if (!(host instanceof HTMLElement) || host.dataset.galleryReady === "1") return;
+      const main = host.querySelector("[data-gallery-main]");
+      const thumbs = [...host.querySelectorAll("[data-gallery-thumb]")];
+      if (!(main instanceof HTMLImageElement) || thumbs.length === 0) return;
+
+      const activate = (btn) => {
+        if (!(btn instanceof HTMLElement)) return;
+        const src = btn.getAttribute("data-src");
+        if (!src) return;
+        main.src = src;
+        thumbs.forEach((t) => t.classList.toggle("is-active", t === btn));
+      };
+
+      host.addEventListener("click", (e) => {
+        const t = e.target;
+        if (!(t instanceof Element)) return;
+        const btn = t.closest("[data-gallery-thumb]");
+        if (btn) activate(btn);
+      });
+
+      host.addEventListener("keydown", (e) => {
+        if (!(e instanceof KeyboardEvent)) return;
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        const current = thumbs.findIndex((t) => t.classList.contains("is-active"));
+        if (current < 0) return;
+        const next = e.key === "ArrowRight"
+          ? (current + 1) % thumbs.length
+          : (current - 1 + thumbs.length) % thumbs.length;
+        activate(thumbs[next]);
+        e.preventDefault();
+      });
+
+      host.dataset.galleryReady = "1";
+    });
+  };
+
+  const initShareListing = () => {
+    document.querySelectorAll("[data-share-listing]").forEach((btn) => {
+      if (!(btn instanceof HTMLButtonElement) || btn.dataset.shareReady === "1") return;
+      btn.addEventListener("click", async () => {
+        const url = btn.getAttribute("data-share-url") || window.location.href;
+        const title = btn.getAttribute("data-share-title") || document.title;
+        try {
+          if (navigator.share) {
+            await navigator.share({ title, url });
+            return;
+          }
+        } catch {
+          /* fall through to clipboard */
+        }
+        try {
+          await navigator.clipboard.writeText(url);
+          toast("Bağlantı kopyalandı");
+          btn.textContent = "Kopyalandı";
+          setTimeout(() => { btn.textContent = "Bağlantıyı kopyala"; }, 2000);
+        } catch {
+          toast("Bağlantı kopyalanamadı");
+        }
+      });
+      btn.dataset.shareReady = "1";
+    });
+  };
+
   document.addEventListener("DOMContentLoaded", () => {
     trackRecent();
     initVerifyBanner();
     initListEnhancements();
+    initQuillDescriptions();
+    initDetailGallery();
+    initShareListing();
     const boot = document.getElementById("toast")?.getAttribute("data-boot-toast");
     if (boot) {
       // Auth / e-posta bildirimleri daha uzun kalsın — kullanıcı okusun.

@@ -15,6 +15,7 @@ SELECT
     city.name AS City,
     d.name AS District,
     l.price,
+    l.currency AS Currency,
     l.price_unit AS PriceUnit,
     l.cover_image_url AS CoverImageUrl,
     s.seller_type AS SellerType,

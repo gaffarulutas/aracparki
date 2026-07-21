@@ -7,9 +7,9 @@ public static class Formatters
 {
     private static readonly CultureInfo Tr = CultureInfo.GetCultureInfo("tr-TR");
 
-    public static string Price(decimal price, string? priceUnit)
+    public static string Price(decimal price, string? priceUnit, string? currency = null)
     {
-        var formatted = price.ToString("N0", Tr) + " ₺";
+        var formatted = price.ToString("N0", Tr) + " " + Currency.Label(currency);
         if (string.IsNullOrWhiteSpace(priceUnit))
         {
             return formatted;

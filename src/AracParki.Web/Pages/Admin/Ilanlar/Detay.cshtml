@@ -1,0 +1,95 @@
+@page "/admin/ilanlar/{adNo}"
+@model AracParki.Web.Pages.Admin.Ilanlar.DetayModel
+@using AracParki.Domain.Listings
+@using AracParki.Application.Listings
+@{
+    Layout = "Shared/_AccountLayout";
+    var listing = Model.Listing!;
+}
+<header class="page-account-head">
+  <h1>@listing.Title</h1>
+  <p class="page-account-lead">
+    <a class="link-quiet" href="/admin/ilanlar?durum=@listing.Status">← Listeye dön</a>
+    · <span class="@ListingStatus.BadgeClass(listing.Status)">@ListingStatus.Label(listing.Status)</span>
+    · @listing.AdNo
+  </p>
+</header>
+
+@if (!string.IsNullOrWhiteSpace(Model.FormError))
+{
+  <p class="field-error" role="alert">@Model.FormError</p>
+}
+
+<div class="admin-detail-grid">
+  <div>
+    <div class="detail-gallery" data-detail-gallery>
+      @{
+        var images = listing.ImageUrls.Count > 0 ? listing.ImageUrls : new[] { listing.CoverImageUrl };
+        var main = images[0];
+      }
+      <img class="gallery-main" src="@main" alt="@listing.Title" width="900" height="600" data-gallery-main />
+      @if (images.Count > 1)
+      {
+        <div class="gallery-thumbs" role="list">
+          @for (var i = 0; i < images.Count; i++)
+          {
+            <button type="button" role="listitem" class="@(i == 0 ? "is-active" : null)"
+                    data-gallery-thumb data-src="@images[i]" aria-label="Görsel @(i + 1)">
+              <img src="@images[i]" alt="" width="88" height="66" loading="lazy" />
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <section class="detail-card" style="margin-top:16px">
+      <h2 class="detail-section-title">İlan bilgileri</h2>
+      <table class="spec-table">
+        <tbody>
+          <tr><th scope="row">Satıcı</th><td>@listing.SellerName (@SellerType.Label(listing.SellerType))</td></tr>
+          <tr><th scope="row">Fiyat</th><td>@Formatters.Price(listing.Price, listing.PriceUnit, listing.Currency)</td></tr>
+          <tr><th scope="row">Konum</th><td>@listing.City / @listing.District</td></tr>
+          <tr><th scope="row">Kategori</th><td>@listing.Category · @listing.Brand @listing.ModelName</td></tr>
+          <tr><th scope="row">Yıl / Saat</th><td>@listing.ModelYear · @(listing.Hours is null ? "—" : Formatters.Hours(listing.Hours.Value))</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="detail-card" style="margin-top:16px">
+      <h2 class="detail-section-title">Açıklama</h2>
+      <div class="detail-desc">@Html.Raw(ListingDescriptionHtml.ToSafeDisplayHtml(listing.Description))</div>
+    </section>
+  </div>
+
+  <aside>
+    @if (listing.Status == ListingStatus.PendingReview)
+    {
+      <div class="detail-card">
+        <form method="post" asp-page-handler="Approve" class="ap-stack">
+          @Html.AntiForgeryToken()
+          <button class="btn btn-machine btn-block" type="submit">Onayla ve yayınla</button>
+        </form>
+        <form method="post" asp-page-handler="Reject" class="ap-stack" style="margin-top:16px">
+          @Html.AntiForgeryToken()
+          <label for="reason">Red nedeni <abbr class="field-req" title="Zorunlu">*</abbr></label>
+          <textarea id="reason" name="reason" required rows="4" maxlength="1000"
+                    placeholder="Kullanıcıya gösterilecek not…"></textarea>
+          <button class="btn btn-dark btn-block" type="submit">Reddet</button>
+        </form>
+      </div>
+    }
+    else if (listing.Status == ListingStatus.Rejected && !string.IsNullOrWhiteSpace(listing.RejectionReason))
+    {
+      <div class="detail-card">
+        <h2 class="detail-section-title">Red notu</h2>
+        <p>@listing.RejectionReason</p>
+      </div>
+    }
+    else if (listing.Status == ListingStatus.Published)
+    {
+      <div class="detail-card">
+        <p><a href="/ilan/@listing.AdNo">Herkese açık ilan sayfası →</a></p>
+      </div>
+    }
+  </aside>
+</div>

@@ -8,11 +8,20 @@ public sealed class WizardDraftRepository(IDbConnectionFactory connectionFactory
 {
     public async Task<string?> GetPayloadAsync(long accountId, CancellationToken cancellationToken)
     {
+        var meta = await GetMetaAsync(accountId, cancellationToken);
+        return meta?.PayloadJson;
+    }
+
+    public async Task<WizardDraftMeta?> GetMetaAsync(long accountId, CancellationToken cancellationToken)
+    {
         await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
-        return await connection.ExecuteScalarAsync<string?>(
+        return await connection.QuerySingleOrDefaultAsync<WizardDraftMeta>(
             new CommandDefinition(
                 """
-                SELECT payload::text
+                SELECT
+                    step AS Step,
+                    updated_at AS UpdatedAt,
+                    payload::text AS PayloadJson
                 FROM listing_wizard_drafts
                 WHERE account_id = @AccountId
                 """,

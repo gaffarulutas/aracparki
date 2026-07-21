@@ -1,4 +1,5 @@
 @using System.Globalization
+@using AracParki.Application.Common
 @using AracParki.Application.Listings.Dtos
 @model ListingCardDto
 @{
@@ -6,11 +7,7 @@
     var tr = CultureInfo.GetCultureInfo("tr-TR");
     var hoursText = Model.Hours is not null ? Model.Hours.Value.ToString("N0", tr) : "—";
     var dateText = Model.ListedAt.ToString("dd MMMM yyyy", tr);
-    var priceText = Model.Price.ToString("N0", tr) + " TL";
-    if (!string.IsNullOrWhiteSpace(Model.PriceUnit))
-    {
-        priceText += " / " + PriceUnit.Label(Model.PriceUnit);
-    }
+    var priceText = Formatters.Price(Model.Price, Model.PriceUnit, Model.Currency);
 }
 <tr class="classified-table-row" data-href="@href">
   <td class="col-thumb">

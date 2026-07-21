@@ -49,6 +49,7 @@ Yapılandırma: `src/AracParki.Web/appsettings.json` (+ `appsettings.Development
 | `05_equipment_catalog.sql` | Groups, brands, models, attributes, attachments, OEM specs |
 | `06_demo.sql` | Sellers + demo listings |
 | `07_accounts.sql` | Accounts, OTP/drafts, tokens, seller link, saved_searches |
+| `08_media.sql` | listing_images enrichment, watermark_templates, media_upload_sessions |
 
 OEM model metriklerini (HP, kapasite) yeniden üretmek için: `python3 scripts/generate_model_specs.py` (`05` içindeki `OEM_MODEL_SPECS` bloğunu günceller).
 
@@ -68,6 +69,109 @@ OEM model metriklerini (HP, kapasite) yeniden üretmek için: `python3 scripts/g
 Password rules: min 8 chars, ≥1 letter, ≥1 digit, no triple repeat, must not contain name/email local-part.
 
 Icons: **Lucide** (`lucide-static@1.25.0`) via `<ap-icon name="…" />`.
+
+## Medya (Cloudflare R2 + Images)
+
+İlan görselleri production’da **local filesystem’a yazılmaz**. Akış:
+
+1. Wizard `OnPostUpload` → `IListingImageStorage`
+2. `CloudflareMedia` tam yapılandırılmışsa (`Enabled` + `WorkerBaseUrl` + `IngestSecret`) byte’lar Worker `/v1/ingest`’e gider
+3. Worker: MIME/boyut/çözünürlük doğrular, EXIF temizler, orientation düzeltir, master’ı R2’ye yazar (**watermark yok**)
+4. Delivery: `GET /m/{storageKey}?v=card|lg|…` — `thumb` temiz; `card`/`md`/`lg`/`xl`/`og` ortada büyük, düşük opacity logo watermark
+
+Worker projesi: `workers/media/` (kurulum için oradaki README).
+
+`Enabled=false` **veya** `IngestSecret` boşsa → `LocalListingImageStorage` (`wwwroot/uploads/listings/`). URL ile görsel ekleme yok. Şema: `database/08_media.sql`.
+
+### İlan Ver UX (taslak + fotoğraf)
+
+- Hesap başına **tek** taslak (`listing_wizard_drafts`); her adımda session + DB dual-write.
+- `/ilan-ver` açılışında anlamlı taslak varsa **modal**: “Taslağa devam et” / “Yeni ilan” (telefon doğrulamasından sonra).
+- Foto adımı: **çoklu seçim**, XHR progress kuyruğu, galeride kapak yap / kaldır.
+- Shortcut’lar: `?devam=1`, `?yeni=1`.
+
+### Yapılandırma alanları
+
+| Alan | Açıklama |
+|------|----------|
+| `CloudflareMedia:Enabled` | Cloudflare pipeline açık/kapalı |
+| `CloudflareMedia:WorkerBaseUrl` | Worker origin (ingest + API çağrıları) |
+| `CloudflareMedia:PublicBaseUrl` | Görsel delivery origin (genelde Worker ile aynı) |
+| `CloudflareMedia:IngestSecret` | Worker `INGEST_SECRET` ile **birebir aynı** Bearer token — **repoya koyma** |
+| `CloudflareMedia:DefaultWatermarkCode` | Watermark şablon kodu (varsayılan `default`) |
+
+Mevcut Worker (örnek): `https://aracparki-media.dry-meadow-d8d8.workers.dev`
+
+### Development (lokal)
+
+1. Worker deploy edilmiş ve R2 bucket hazır olmalı (`workers/media` README).
+2. `appsettings.Development.json` içinde URL’ler ve `Enabled: true` tanımlı; **secret dosyada boş** bırakılır.
+3. Secret’ı User Secrets’a yaz (Worker’daki `INGEST_SECRET` ile aynı değer):
+
+```bash
+cd workers/media
+npx wrangler secret put INGEST_SECRET
+# istediğin değeri gir (ör. güçlü bir parola)
+
+cd ../../src/AracParki.Web
+dotnet user-secrets set "CloudflareMedia:IngestSecret" "<aynı-değer>"
+```
+
+4. Uygulamayı Development ile başlat (`./watch.sh` veya `dotnet run`). User Secrets otomatik yüklenir.
+5. Kontrol: ilan ver → foto yükle → URL `…workers.dev/m/masters/…` olmalı; `wwwroot/uploads` dolmamalı.
+
+User Secrets listesi (değerleri maskelemeden dikkatli kullan):
+
+```bash
+cd src/AracParki.Web
+dotnet user-secrets list
+```
+
+### Production
+
+`appsettings.json` içinde `Enabled` + Worker URL’leri tutulabilir; **`IngestSecret` asla commit edilmez**. Hosting ortamında environment variable / secret store ile ver:
+
+```bash
+# Çift alt çizgi = ASP.NET Core config hierarchy
+CloudflareMedia__Enabled=true
+CloudflareMedia__WorkerBaseUrl=https://aracparki-media.dry-meadow-d8d8.workers.dev
+CloudflareMedia__PublicBaseUrl=https://aracparki-media.dry-meadow-d8d8.workers.dev
+CloudflareMedia__IngestSecret=<wrangler-daki-INGEST_SECRET-ile-aynı>
+```
+
+Docker / Compose örneği:
+
+```yaml
+environment:
+  CloudflareMedia__Enabled: "true"
+  CloudflareMedia__WorkerBaseUrl: "https://aracparki-media.dry-meadow-d8d8.workers.dev"
+  CloudflareMedia__PublicBaseUrl: "https://aracparki-media.dry-meadow-d8d8.workers.dev"
+  CloudflareMedia__IngestSecret: "${CLOUDFLARE_MEDIA_INGEST_SECRET}"
+```
+
+Prod checklist:
+
+- [ ] Worker canlı (`GET …/health` → `{"ok":true}`)
+- [ ] `INGEST_SECRET` Worker’da set (`wrangler secret put INGEST_SECRET`)
+- [ ] Aynı secret host env’de (`CloudflareMedia__IngestSecret`)
+- [ ] `WorkerBaseUrl` / `PublicBaseUrl` production Worker origin
+- [ ] (İleride) custom domain: `media.aracparki.com` → Worker route + `PUBLIC_BASE_URL` güncelle
+
+### Ortak notlar
+
+- Dev ve prod şu an **aynı** `workers.dev` Worker + R2 bucket kullanabilir; ileride staging için ayrı bucket/Worker önerilir.
+- Secret değişince hem Worker’ı hem (dev) User Secrets / (prod) env’i güncelle.
+- Watermark PNG: `npx wrangler r2 object put aracparki-media/assets/watermarks/default.png --file=../../src/AracParki.Web/wwwroot/assets/logo/logo.png --remote`
+
+### Image API (auth)
+
+| Endpoint | Açıklama |
+|----------|----------|
+| `GET /api/listings/{adNo}/images` | Görseller + variants |
+| `GET /api/listings/{adNo}/images/{id}/variants` | Variant URL’leri |
+| `PATCH /api/listings/{adNo}/images/reorder` | `{ "imageIds": [..] }` |
+| `PATCH /api/listings/{adNo}/images/{id}/cover` | Kapak |
+| `DELETE /api/listings/{adNo}/images/{id}` | Soft delete (7 gün grace) |
 
 ## API
 

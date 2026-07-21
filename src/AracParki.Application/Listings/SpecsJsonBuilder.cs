@@ -25,76 +25,74 @@ public static class SpecsJsonBuilder
         var typed = new Dictionary<string, object?>(StringComparer.Ordinal);
         var storedRaw = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        if (raw is null || raw.Count == 0)
+        if (raw is not null && raw.Count > 0)
         {
-            return (true, null, "{}", storedRaw);
-        }
-
-        if (raw.Count > allowed.Count + 5)
-        {
-            return (false, "Çok fazla özellik gönderildi.", "{}", storedRaw);
-        }
-
-        foreach (var (keyRaw, valueRaw) in raw)
-        {
-            if (string.IsNullOrWhiteSpace(keyRaw) || string.IsNullOrWhiteSpace(valueRaw))
+            if (raw.Count > allowed.Count + 5)
             {
-                continue;
+                return (false, "Çok fazla özellik gönderildi.", "{}", storedRaw);
             }
 
-            var key = keyRaw.Trim();
-            var value = valueRaw.Trim();
-            if (value.Length > MaxValueLength)
+            foreach (var (keyRaw, valueRaw) in raw)
             {
-                return (false, $"'{key}' değeri çok uzun.", "{}", storedRaw);
+                if (string.IsNullOrWhiteSpace(keyRaw) || string.IsNullOrWhiteSpace(valueRaw))
+                {
+                    continue;
+                }
+
+                var key = keyRaw.Trim();
+                var value = valueRaw.Trim();
+                if (value.Length > MaxValueLength)
+                {
+                    return (false, $"'{key}' değeri çok uzun.", "{}", storedRaw);
+                }
+
+                if (!allowed.TryGetValue(key, out var attr))
+                {
+                    return (false, "Geçersiz özellik alanı.", "{}", storedRaw);
+                }
+
+                object? typedValue;
+                switch (attr.DataType)
+                {
+                    case "bool":
+                        if (!TryParseBool(value, out var flag))
+                        {
+                            return (false, $"{attr.Label} için Evet/Hayır seç.", "{}", storedRaw);
+                        }
+
+                        typedValue = flag;
+                        value = flag ? "true" : "false";
+                        break;
+
+                    case "number":
+                        if (!decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var number)
+                            && !decimal.TryParse(value, NumberStyles.Number, CultureInfo.GetCultureInfo("tr-TR"), out number))
+                        {
+                            return (false, $"{attr.Label} sayı olmalı.", "{}", storedRaw);
+                        }
+
+                        typedValue = number;
+                        value = number.ToString(CultureInfo.InvariantCulture);
+                        break;
+
+                    case "enum":
+                        var options = ParseEnumOptions(attr.EnumOptionsJson);
+                        if (options.Count > 0 && !options.Contains(value, StringComparer.Ordinal))
+                        {
+                            return (false, $"{attr.Label} için geçerli bir seçenek seç.", "{}", storedRaw);
+                        }
+
+                        typedValue = value;
+                        break;
+
+                    default:
+                        typedValue = value;
+                        break;
+                }
+
+                typed[key] = typedValue;
+                storedRaw[key] = value;
             }
-
-            if (!allowed.TryGetValue(key, out var attr))
-            {
-                return (false, "Geçersiz özellik alanı.", "{}", storedRaw);
-            }
-
-            object? typedValue;
-            switch (attr.DataType)
-            {
-                case "bool":
-                    if (!TryParseBool(value, out var flag))
-                    {
-                        return (false, $"{attr.Label} için Evet/Hayır seç.", "{}", storedRaw);
-                    }
-
-                    typedValue = flag;
-                    value = flag ? "true" : "false";
-                    break;
-
-                case "number":
-                    if (!decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var number)
-                        && !decimal.TryParse(value, NumberStyles.Number, CultureInfo.GetCultureInfo("tr-TR"), out number))
-                    {
-                        return (false, $"{attr.Label} sayı olmalı.", "{}", storedRaw);
-                    }
-
-                    typedValue = number;
-                    value = number.ToString(CultureInfo.InvariantCulture);
-                    break;
-
-                case "enum":
-                    var options = ParseEnumOptions(attr.EnumOptionsJson);
-                    if (options.Count > 0 && !options.Contains(value, StringComparer.Ordinal))
-                    {
-                        return (false, $"{attr.Label} için geçerli bir seçenek seç.", "{}", storedRaw);
-                    }
-
-                    typedValue = value;
-                    break;
-
-                default:
-                    typedValue = value;
-                    break;
-            }
-
-            typed[key] = typedValue;
-            storedRaw[key] = value;
         }
 
         foreach (var attr in attributes.Where(a => a.IsRequired))
@@ -105,6 +103,11 @@ public static class SpecsJsonBuilder
             }
         }
 
+        if (typed.Count == 0)
+        {
+            return (true, null, "{}", storedRaw);
+        }
+
         var json = JsonSerializer.Serialize(typed, JsonOptions);
         if (System.Text.Encoding.UTF8.GetByteCount(json) > MaxJsonBytes)
         {
@@ -113,6 +116,56 @@ public static class SpecsJsonBuilder
 
         return (true, null, json, storedRaw);
     }
+
+    /// <summary>
+    /// Re-validates an already-built specs JSON against the category attribute schema
+    /// (publish / server-side defense in depth).
+    /// </summary>
+    public static (bool Ok, string? Error, string NormalizedJson) TryValidateJson(
+        string? specsJson,
+        IReadOnlyList<CategoryAttributeDto> attributes)
+    {
+        Dictionary<string, string>? raw = null;
+        if (!string.IsNullOrWhiteSpace(specsJson) && specsJson.Trim() is not "{}")
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(specsJson);
+                if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                {
+                    return (false, "Özellik verisi geçersiz.", "{}");
+                }
+
+                raw = new Dictionary<string, string>(StringComparer.Ordinal);
+                foreach (var prop in doc.RootElement.EnumerateObject())
+                {
+                    var value = JsonValueToRawString(prop.Value);
+                    if (!string.IsNullOrWhiteSpace(value))
+                    {
+                        raw[prop.Name] = value;
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                return (false, "Özellik verisi geçersiz.", "{}");
+            }
+        }
+
+        var (ok, error, json, _) = TryBuild(raw, attributes);
+        return (ok, error, json);
+    }
+
+    private static string JsonValueToRawString(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.Number => value.TryGetDecimal(out var d)
+            ? d.ToString(CultureInfo.InvariantCulture)
+            : value.GetRawText(),
+        JsonValueKind.True => "true",
+        JsonValueKind.False => "false",
+        JsonValueKind.String => value.GetString() ?? "",
+        _ => value.GetRawText()
+    };
 
     public static IReadOnlyList<SpecDisplayRow> ToDisplayRows(
         string? specsJson,

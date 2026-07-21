@@ -1,19 +1,63 @@
 @page "/ilan/{adNo}"
 @model AracParki.Web.Pages.Ilan.IndexModel
+@using AracParki.Domain.Listings
+@using AracParki.Application.Listings
 @{
     var listing = Model.Listing!;
     var badgeClass = ListingIntent.BadgeClass(listing.PrimaryIntent);
     var badgeText = ListingIntent.Label(listing.PrimaryIntent);
     var sellerLabel = SellerType.Label(listing.SellerType);
+    var images = listing.ImageUrls.Count > 0
+        ? listing.ImageUrls
+        : string.IsNullOrWhiteSpace(listing.CoverImageUrl)
+            ? Array.Empty<string>()
+            : new[] { listing.CoverImageUrl };
+    var mainImage = images.Count > 0 ? images[0] : "/assets/logo/icon-512.png";
+    var isPreview = listing.Status != ListingStatus.Published;
 }
 
 <main class="container page-detail" id="main" data-recent-id="@listing.Id">
+  @if (isPreview)
+  {
+    <div class="detail-status-banner @(listing.Status == ListingStatus.Rejected ? "is-rejected" : null)" role="status">
+      <strong>@ListingStatus.Label(listing.Status)</strong>
+      @if (listing.Status == ListingStatus.PendingReview)
+      {
+        <span> — Bu ilan henüz yayında değil; yalnızca sen ve yöneticiler görebilir.</span>
+      }
+      else if (listing.Status == ListingStatus.Rejected)
+      {
+        <span> — @listing.RejectionReason</span>
+        <a class="btn btn-ghost btn-sm" href="/ilan-ver?duzenle=@listing.AdNo" style="margin-left:8px">Düzenle</a>
+      }
+    </div>
+  }
+
   <div class="detail-layout">
     <div class="detail-left">
       <h1 class="detail-title">@listing.Title</h1>
+      <div class="detail-meta-strip">
+        <span>İlan No: @listing.AdNo</span>
+        <span>@Formatters.ListedAt(listing.ListedAt)</span>
+        <span>@listing.City / @listing.District</span>
+        <span class="@badgeClass">@badgeText</span>
+        <span class="@EquipmentCondition.BadgeClass(listing.Condition)">@EquipmentCondition.Label(listing.Condition)</span>
+      </div>
 
-      <div class="detail-gallery">
-        <img class="gallery-main" src="@listing.ImageUrls[0]" alt="@listing.Title" width="900" height="600" loading="eager" />
+      <div class="detail-gallery" data-detail-gallery>
+        <img class="gallery-main" src="@mainImage" alt="@listing.Title" width="900" height="600" loading="eager" data-gallery-main />
+        @if (images.Count > 1)
+        {
+          <div class="gallery-thumbs" role="list">
+            @for (var i = 0; i < images.Count; i++)
+            {
+              <button type="button" role="listitem" class="@(i == 0 ? "is-active" : null)"
+                      data-gallery-thumb data-src="@images[i]" aria-label="Görsel @(i + 1)">
+                <img src="@images[i]" alt="" width="88" height="66" loading="lazy" />
+              </button>
+            }
+          </div>
+        }
       </div>
 
       <section class="detail-card" aria-labelledby="spec-title">
@@ -68,34 +112,58 @@
 
       <section class="detail-card" aria-labelledby="desc-title">
         <h2 class="detail-section-title" id="desc-title">Açıklama</h2>
-        <p class="detail-desc">@listing.Description</p>
+        <div class="detail-desc">@Html.Raw(ListingDescriptionHtml.ToSafeDisplayHtml(listing.Description))</div>
       </section>
+
+      @if (Model.Similar.Count > 0)
+      {
+        <section class="detail-similar" aria-labelledby="similar-title">
+          <h2 id="similar-title">Benzer ilanlar</h2>
+          <div class="listing-grid">
+            @foreach (var card in Model.Similar)
+            {
+              <partial name="Shared/Partials/_ListingCard" model="card" />
+            }
+          </div>
+        </section>
+      }
     </div>
 
     <aside class="detail-right" aria-label="Fiyat ve iletişim">
       <div class="detail-card detail-buybox sticky-box" id="buybox">
         <div class="detail-price">
-          @Formatters.Price(listing.Price, listing.PrimaryIntent == ListingIntent.Kiralik ? listing.PriceUnit : null)
+          @Formatters.Price(listing.Price, listing.PrimaryIntent == ListingIntent.Kiralik ? listing.PriceUnit : null, listing.Currency)
         </div>
         <div class="detail-loc">@listing.City / @listing.District@(string.IsNullOrWhiteSpace(listing.Neighborhood) ? null : $" / {listing.Neighborhood}")</div>
 
-        <div class="detail-actions">
-          <button type="button" class="btn btn-machine btn-block"
-                  data-toast="Teklif talebi alındı">
-            Teklif Al
-          </button>
-          <button type="button" class="btn btn-dark btn-block"
-                  data-reveal-phone="@listing.AdNo">
-            Telefonu Göster
-          </button>
-          <span data-phone-slot hidden>
-            <a class="btn btn-ghost btn-block" data-phone-link href="#">Ara</a>
-          </span>
-        </div>
+        @if (!isPreview)
+        {
+          <div class="detail-actions">
+            <button type="button" class="btn btn-machine btn-block"
+                    data-toast="Teklif talebi alındı">
+              Teklif Al
+            </button>
+            <button type="button" class="btn btn-dark btn-block"
+                    data-reveal-phone="@listing.AdNo">
+              Telefonu Göster
+            </button>
+            <span data-phone-slot hidden>
+              <a class="btn btn-ghost btn-block" data-phone-link href="#">Ara</a>
+            </span>
+          </div>
+        }
 
         <div class="seller-box">
           <strong>@listing.SellerName</strong>
           <span>@sellerLabel@(listing.IsVerified ? " · Doğrulanmış" : "")</span>
+        </div>
+
+        <div class="detail-share">
+          <button type="button" class="btn btn-ghost btn-block" data-share-listing
+                  data-share-title="@listing.Title"
+                  data-share-url="">
+            Bağlantıyı kopyala
+          </button>
         </div>
 
         <a class="detail-back" href="@Model.BackToListUrl()">← Benzer ilanlara dön</a>
@@ -103,17 +171,20 @@
     </aside>
   </div>
 
-  <div class="mobile-cta" id="mobile-cta" aria-label="Hızlı işlemler">
-    <div class="mobile-cta-price">
-      @Formatters.Price(listing.Price, listing.PriceUnit)
+  @if (!isPreview)
+  {
+    <div class="mobile-cta" id="mobile-cta" aria-label="Hızlı işlemler">
+      <div class="mobile-cta-price">
+        @Formatters.Price(listing.Price, listing.PrimaryIntent == ListingIntent.Kiralik ? listing.PriceUnit : null, listing.Currency)
+      </div>
+      <button type="button" class="btn btn-dark btn-sm" data-reveal-phone="@listing.AdNo">
+        Telefon
+      </button>
+      <button type="button" class="btn btn-machine btn-sm" data-toast="Teklif talebi alındı">
+        Teklif Al
+      </button>
     </div>
-    <button type="button" class="btn btn-dark btn-sm" data-reveal-phone="@listing.AdNo">
-      Telefon
-    </button>
-    <button type="button" class="btn btn-machine btn-sm" data-toast="Teklif talebi alındı">
-      Teklif Al
-    </button>
-  </div>
+  }
 </main>
 
 @section CrumbBar {

@@ -1,0 +1,73 @@
+@model AracParki.Web.Pages.IlanVer.IndexModel
+@{
+    var resume = Model.DraftResume;
+    var updated = resume?.UpdatedAt.ToLocalTime().ToString("d MMM yyyy HH:mm") ?? "";
+}
+<div class="ap-draft-gate"
+     x-data="draftResumeModal"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="draft-resume-title"
+     aria-describedby="draft-resume-desc"
+     x-trap.noscroll.inert="true"
+     @@keydown.escape.prevent.stop>
+  <div class="ap-draft-gate__backdrop" aria-hidden="true"></div>
+
+  <div class="ap-draft-gate__dialog" @@click.stop>
+    <header class="ap-draft-gate__header">
+      <h2 id="draft-resume-title" class="ap-draft-gate__title">Kayıtlı taslağın var</h2>
+      <p id="draft-resume-desc" class="ap-draft-gate__lead">
+        Yarım kalan ilanına devam edebilir veya sıfırdan yeni ilan başlatabilirsin.
+      </p>
+    </header>
+
+    <div class="ap-draft-gate__body">
+      @if (resume is not null)
+      {
+        <dl class="ap-draft-gate__summary">
+          <div>
+            <dt>Adım</dt>
+            <dd>@resume.Step · @resume.StepLabel</dd>
+          </div>
+          @if (!string.IsNullOrWhiteSpace(resume.CategoryName))
+          {
+            <div>
+              <dt>Kategori</dt>
+              <dd>@resume.CategoryName</dd>
+            </div>
+          }
+          @if (!string.IsNullOrWhiteSpace(resume.Title))
+          {
+            <div>
+              <dt>Başlık</dt>
+              <dd>@resume.Title</dd>
+            </div>
+          }
+          <div>
+            <dt>Fotoğraf</dt>
+            <dd>@resume.ImageCount adet</dd>
+          </div>
+          <div>
+            <dt>Son kayıt</dt>
+            <dd>@updated</dd>
+          </div>
+        </dl>
+      }
+    </div>
+
+    <footer class="ap-draft-gate__footer">
+      <form method="post" asp-page-handler="StartNewDraft" class="ap-draft-gate__form-action">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-ghost ap-draft-gate__secondary">
+          Yeni ilan
+        </button>
+      </form>
+      <form method="post" asp-page-handler="ContinueDraft" class="ap-draft-gate__form-action">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-machine ap-draft-gate__primary" autofocus>
+          Taslağa devam et
+        </button>
+      </form>
+    </footer>
+  </div>
+</div>

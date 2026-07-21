@@ -11,9 +11,11 @@ public sealed class AccountDto
     public DateTimeOffset? PhoneConfirmedAt { get; init; }
     public DateTimeOffset? EmailConfirmedAt { get; init; }
     public required string SecurityStamp { get; init; }
+    public string Role { get; init; } = Domain.Accounts.AccountRole.User;
 
     public bool EmailConfirmed => EmailConfirmedAt.HasValue;
     public bool PhoneConfirmed => PhoneConfirmedAt.HasValue;
+    public bool IsAdmin => Domain.Accounts.AccountRole.IsAdmin(Role);
 
     public string DisplayName => string.Join(' ', new[] { FirstName, LastName }
         .Where(static part => !string.IsNullOrWhiteSpace(part)));

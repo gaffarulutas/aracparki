@@ -1,17 +1,18 @@
 @page "/ilanlarim"
 @model AracParki.Web.Pages.Ilanlarim.IndexModel
+@using AracParki.Domain.Listings
 @{
     Layout = "Shared/_AccountLayout";
 }
 <header class="page-account-head">
   <h1>İlanlarım</h1>
-  <p class="page-account-lead">Yayındaki ve yönettiğin iş makinesi ilanları</p>
+  <p class="page-account-lead">Yayındaki, incelemedeki ve reddedilen ilanların</p>
 </header>
 
 @if (Model.Items.Count == 0)
 {
   <div class="empty-state">
-    <p>Henüz yayınlanmış ilanın yok.</p>
+    <p>Henüz ilanın yok.</p>
     <a class="btn btn-machine" href="/ilan-ver">Ücretsiz İlan Ver</a>
   </div>
 }
@@ -20,7 +21,30 @@ else
   <div class="account-listings">
     @foreach (var item in Model.Items)
     {
-      <partial name="Shared/Partials/_ClassifiedRow" model="item" />
+      <article class="account-listing-card">
+        <partial name="Shared/Partials/_ClassifiedRow" model="item" />
+        <div class="account-listing-status">
+          <span class="@ListingStatus.BadgeClass(item.Status)">@ListingStatus.Label(item.Status)</span>
+          @if (item.Status == ListingStatus.Rejected && !string.IsNullOrWhiteSpace(item.RejectionReason))
+          {
+            <div class="account-reject-banner" role="status">
+              <strong>Red notu:</strong> @item.RejectionReason
+            </div>
+          }
+          @if (item.Status is ListingStatus.Rejected or ListingStatus.PendingReview)
+          {
+            <a class="btn btn-ghost btn-sm" href="/ilan-ver?duzenle=@item.AdNo">Düzenle ve tekrar gönder</a>
+            @if (item.Status == ListingStatus.PendingReview)
+            {
+              <a class="btn btn-ghost btn-sm" href="/ilan/@item.AdNo">Önizleme</a>
+            }
+          }
+          else if (item.Status == ListingStatus.Published)
+          {
+            <a class="btn btn-ghost btn-sm" href="/ilan/@item.AdNo">İlanı görüntüle</a>
+          }
+        </div>
+      </article>
     }
   </div>
 }

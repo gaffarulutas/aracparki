@@ -15,11 +15,14 @@ SELECT
     city.name AS City,
     d.name AS District,
     l.price,
+    l.currency AS Currency,
     l.price_unit AS PriceUnit,
     l.cover_image_url AS CoverImageUrl,
     s.seller_type AS SellerType,
     s.is_verified AS IsVerified,
-    l.listed_at AS ListedAt
+    l.listed_at AS ListedAt,
+    l.status AS Status,
+    l.rejection_reason AS RejectionReason
 FROM listings l
 JOIN categories c ON c.id = l.category_id
 JOIN brands b ON b.id = l.brand_id
@@ -27,6 +30,6 @@ JOIN cities city ON city.id = l.city_id
 JOIN districts d ON d.id = l.district_id
 JOIN sellers s ON s.id = l.seller_id
 WHERE s.account_id = @AccountId
-  AND l.status = 'published'
-ORDER BY l.listed_at DESC, l.id DESC
+  AND l.status IN ('pending_review', 'published', 'rejected', 'archived')
+ORDER BY COALESCE(l.submitted_at, l.listed_at) DESC, l.id DESC
 LIMIT @Take;

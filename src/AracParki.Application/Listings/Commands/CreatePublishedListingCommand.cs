@@ -1,5 +1,3 @@
-using AracParki.Application.Listings.Commands;
-
 namespace AracParki.Application.Listings.Commands;
 
 public sealed class CreatePublishedListingCommand
@@ -29,8 +27,12 @@ public sealed class CreatePublishedListingCommand
     public int? CapacityKg { get; init; }
     public int? Horsepower { get; init; }
 
+    /// <summary>Category capacity metric (weight / capacity_t / capacity_kg) for publish validation.</summary>
+    public string? CapacityMetric { get; init; }
+
     public decimal Price { get; init; }
     public decimal? RentPrice { get; init; }
+    public string Currency { get; init; } = Domain.Listings.Currency.Try;
     public string? PriceUnit { get; init; }
     public bool IncludesOperator { get; init; }
 
@@ -39,6 +41,9 @@ public sealed class CreatePublishedListingCommand
     public required string SpecsJson { get; init; }
 
     public required IReadOnlyList<string> ImageUrls { get; init; }
+
+    /// <summary>Optional rich metadata from Cloudflare ingest; falls back to <see cref="ImageUrls"/>.</summary>
+    public IReadOnlyList<ListingImageAsset> ImageAssets { get; init; } = [];
 
     public IReadOnlyList<int> AttachmentIds { get; init; } = [];
 }

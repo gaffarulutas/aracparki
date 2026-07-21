@@ -1,0 +1,23 @@
+name = "aracparki-media"
+main = "src/index.ts"
+compatibility_date = "2026-07-01"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+preview_urls = false
+
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "aracparki-media"
+preview_bucket_name = "aracparki-media-preview"
+
+[images]
+binding = "IMAGES"
+
+[vars]
+PUBLIC_BASE_URL = "https://aracparki-media.dry-meadow-d8d8.workers.dev"
+DEFAULT_WATERMARK_KEY = "assets/watermarks/default.png"
+WATERMARK_OPACITY = "0.14"
+WATERMARK_SCALE_PCT = "58"
+MAX_UPLOAD_BYTES = "10485760"
+MAX_MEGAPIXELS = "40"
+MAX_EDGE_PX = "8000"

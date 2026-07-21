@@ -26,6 +26,7 @@ public sealed class ListingDetailDto
     public string? Neighborhood { get; init; }
     public decimal Price { get; init; }
     public decimal? RentPrice { get; init; }
+    public string Currency { get; init; } = Domain.Listings.Currency.Try;
     public string? PriceUnit { get; init; }
     public bool IncludesOperator { get; init; }
     public required string SpecsJson { get; init; }
@@ -36,6 +37,10 @@ public sealed class ListingDetailDto
     public required string SellerType { get; init; }
     public bool IsVerified { get; init; }
     public DateTimeOffset ListedAt { get; init; }
+    public string Status { get; init; } = Domain.Listings.ListingStatus.Published;
+    public string? RejectionReason { get; init; }
+    public DateTimeOffset? SubmittedAt { get; init; }
+    public long? OwnerAccountId { get; init; }
 }
 
 public sealed class AttachmentItemDto

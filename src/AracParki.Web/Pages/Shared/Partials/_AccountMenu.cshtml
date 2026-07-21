@@ -70,6 +70,15 @@
     <div class="account-menu-sep" role="separator"></div>
 
     <ul class="account-menu-list" role="none">
+      @if (AuthCookie.IsAdmin(User))
+      {
+        <li role="none">
+          <a class="account-menu-item" role="menuitem" tabindex="-1" href="/admin">
+            <ap-icon name="shield-check" size="16" />
+            <span>Admin</span>
+          </a>
+        </li>
+      }
       <li role="none">
         <a class="account-menu-item" role="menuitem" tabindex="-1" href="/ilanlarim">
           <ap-icon name="list" size="16" />

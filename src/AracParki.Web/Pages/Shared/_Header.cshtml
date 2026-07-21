@@ -88,6 +88,10 @@
     @if (isAuth)
     {
       <a href="/panel">Panel</a>
+      @if (AuthCookie.IsAdmin(User))
+      {
+        <a href="/admin">Admin</a>
+      }
       <a href="/ilanlarim">İlanlarım</a>
       <a href="/favorilerim">Favorilerim</a>
       <a href="/mesajlarim">Mesajlarım</a>

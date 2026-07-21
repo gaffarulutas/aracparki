@@ -166,6 +166,8 @@ CREATE TABLE IF NOT EXISTS listings (
     horsepower        INT NULL CHECK (horsepower IS NULL OR horsepower >= 0),
     price             NUMERIC(14, 2) NOT NULL CHECK (price > 0),
     rent_price        NUMERIC(14, 2) NULL CHECK (rent_price IS NULL OR rent_price > 0),
+    currency          TEXT NOT NULL DEFAULT 'TRY'
+                      CHECK (currency IN ('TRY', 'USD', 'EUR')),
     price_unit        TEXT NULL
                       CHECK (price_unit IS NULL OR price_unit IN ('day', 'week', 'month', 'hour')),
     includes_operator BOOLEAN NOT NULL DEFAULT FALSE,
@@ -173,7 +175,11 @@ CREATE TABLE IF NOT EXISTS listings (
                       CHECK (jsonb_typeof(specs) = 'object'),
     cover_image_url   TEXT NOT NULL,
     status            TEXT NOT NULL DEFAULT 'published'
-                      CHECK (status IN ('draft', 'published', 'archived')),
+                      CHECK (status IN ('draft', 'pending_review', 'published', 'rejected', 'archived')),
+    rejection_reason  TEXT NULL,
+    reviewed_at       TIMESTAMPTZ NULL,
+    reviewed_by_account_id BIGINT NULL,
+    submitted_at      TIMESTAMPTZ NULL,
     listed_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),

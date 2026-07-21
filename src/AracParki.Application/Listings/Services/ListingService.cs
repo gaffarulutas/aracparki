@@ -23,10 +23,14 @@ public sealed class ListingService(
         return await listingQuery.GetFeaturedAsync(Normalize(query), take, cancellationToken);
     }
 
-    public Task<ListingDetailDto?> GetByAdNoAsync(string adNo, CancellationToken cancellationToken)
+    public Task<ListingDetailDto?> GetByAdNoAsync(
+        string adNo,
+        CancellationToken cancellationToken,
+        long? viewerAccountId = null,
+        bool isAdmin = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(adNo);
-        return listingQuery.GetByAdNoAsync(adNo.Trim(), cancellationToken);
+        return listingQuery.GetByAdNoAsync(adNo.Trim(), viewerAccountId, isAdmin, cancellationToken);
     }
 
     public Task<string?> GetPhoneByAdNoAsync(string adNo, CancellationToken cancellationToken)
@@ -46,6 +50,20 @@ public sealed class ListingService(
         }
 
         return listingQuery.GetByAccountIdAsync(accountId, Math.Clamp(take, 1, 100), cancellationToken);
+    }
+
+    public Task<ListingEditDto?> GetOwnedForEditAsync(
+        string adNo,
+        long accountId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(adNo);
+        if (accountId <= 0)
+        {
+            return Task.FromResult<ListingEditDto?>(null);
+        }
+
+        return listingQuery.GetOwnedForEditAsync(adNo.Trim(), accountId, cancellationToken);
     }
 
     private static ListingSearchQuery Normalize(ListingSearchQuery query)

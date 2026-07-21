@@ -1,6 +1,8 @@
+using System.Security.Claims;
 using AracParki.Application.Catalog.Services;
 using AracParki.Application.Listings;
 using AracParki.Application.Listings.Dtos;
+using AracParki.Application.Listings.Queries;
 using AracParki.Application.Listings.Services;
 using AracParki.Domain.Listings;
 using AracParki.Web.Infrastructure;
@@ -16,6 +18,7 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
 
     public ListingDetailDto? Listing { get; private set; }
     public IReadOnlyList<SpecDisplayRow> SpecRows { get; private set; } = [];
+    public IReadOnlyList<ListingCardDto> Similar { get; private set; } = [];
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
@@ -24,7 +27,13 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
             return NotFound();
         }
 
-        Listing = await listingService.GetByAdNoAsync(AdNo, cancellationToken);
+        var viewerId = GetAccountId();
+        var isAdmin = AuthCookie.IsAdmin(User);
+        Listing = await listingService.GetByAdNoAsync(
+            AdNo,
+            cancellationToken,
+            viewerAccountId: viewerId,
+            isAdmin: isAdmin);
         if (Listing is null)
         {
             return NotFound();
@@ -34,6 +43,18 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
         {
             var attrs = await catalog.GetCategoryAttributesAsync(Listing.CategoryId, cancellationToken);
             SpecRows = SpecsJsonBuilder.ToDisplayRows(Listing.SpecsJson, attrs);
+
+            if (Listing.Status == ListingStatus.Published)
+            {
+                var similar = await listingService.SearchAsync(new ListingSearchQuery
+                {
+                    Intent = Listing.PrimaryIntent,
+                    CategoryId = Listing.CategoryId,
+                    Page = 1,
+                    PageSize = 5
+                }, cancellationToken);
+                Similar = similar.Items.Where(x => x.AdNo != Listing.AdNo).Take(4).ToArray();
+            }
         }
 
         ViewData["PageKey"] = "detail";
@@ -44,6 +65,10 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
             $"{Listing.Title} — {Listing.ModelYear}{(Listing.Hours is null ? "" : $", {Listing.Hours} saat")}, {Listing.City}. İş makinesi ilanı.";
         ViewData["SearchQuery"] = string.Empty;
         ViewData["CanonicalIncludeQuery"] = false;
+        if (Listing.Status != ListingStatus.Published)
+        {
+            ViewData["Robots"] = "noindex, nofollow";
+        }
 
         var cover = !string.IsNullOrWhiteSpace(Listing.CoverImageUrl)
             ? Listing.CoverImageUrl
@@ -55,9 +80,18 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
             ViewData["TwitterCard"] = "summary_large_image";
         }
 
-        ViewData["JsonLd"] = BuildProductJsonLd(Listing);
+        if (Listing.Status == ListingStatus.Published)
+        {
+            ViewData["JsonLd"] = BuildProductJsonLd(Listing);
+        }
 
         return Page();
+    }
+
+    private long? GetAccountId()
+    {
+        var raw = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return long.TryParse(raw, out var id) ? id : null;
     }
 
     private string BuildProductJsonLd(ListingDetailDto listing)
@@ -73,7 +107,7 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
             ["@context"] = "https://schema.org",
             ["@type"] = "Product",
             ["name"] = listing.Title,
-            ["description"] = listing.Description,
+            ["description"] = ListingDescriptionHtml.ToPlainText(listing.Description),
             ["sku"] = listing.AdNo,
             ["brand"] = new Dictionary<string, object?>
             {
@@ -86,7 +120,7 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
             {
                 ["@type"] = "Offer",
                 ["url"] = siteUrls.Absolute($"/ilan/{listing.AdNo}"),
-                ["priceCurrency"] = "TRY",
+                ["priceCurrency"] = Currency.Normalize(listing.Currency),
                 ["price"] = listing.Price.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture),
                 ["availability"] = "https://schema.org/InStock",
                 ["itemCondition"] = listing.Condition.Contains("sıfır", StringComparison.OrdinalIgnoreCase)

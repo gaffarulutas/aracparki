@@ -16,7 +16,8 @@ public sealed class AccountRepository(IDbConnectionFactory connectionFactory) : 
                phone,
                phone_confirmed_at AS PhoneConfirmedAt,
                email_confirmed_at AS EmailConfirmedAt,
-               security_stamp AS SecurityStamp
+               security_stamp AS SecurityStamp,
+               COALESCE(role, 'user') AS Role
         FROM accounts
         """;
 

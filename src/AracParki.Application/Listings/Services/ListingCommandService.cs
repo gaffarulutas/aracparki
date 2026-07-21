@@ -1,32 +1,76 @@
+using AracParki.Application.Catalog.Services;
+using AracParki.Application.Listings;
 using AracParki.Application.Listings.Commands;
 using AracParki.Domain.Listings;
 using FluentValidation;
+using FluentValidation.Results;
 
 namespace AracParki.Application.Listings.Services;
 
 public sealed class ListingCommandService(
     IListingStore store,
-    IValidator<CreatePublishedListingCommand> validator)
+    IValidator<CreatePublishedListingCommand> validator,
+    CatalogService catalog)
 {
     public async Task<string> CreatePublishedAsync(
         CreatePublishedListingCommand command,
         CancellationToken cancellationToken)
     {
         await validator.ValidateAndThrowAsync(command, cancellationToken);
-        return await store.CreatePublishedAsync(Normalize(command), cancellationToken);
+
+        var attributes = await catalog.GetCategoryAttributesAsync(command.CategoryId, cancellationToken);
+        var (specsOk, specsError, normalizedSpecs) = SpecsJsonBuilder.TryValidateJson(command.SpecsJson, attributes);
+        if (!specsOk)
+        {
+            throw new ValidationException(
+            [
+                new ValidationFailure(nameof(CreatePublishedListingCommand.SpecsJson), specsError ?? "Özellikler geçersiz.")
+            ]);
+        }
+
+        var normalized = Normalize(command, normalizedSpecs);
+        return await store.CreatePublishedAsync(normalized, cancellationToken);
     }
 
-    private static CreatePublishedListingCommand Normalize(CreatePublishedListingCommand command)
+    public async Task UpdateForReviewAsync(
+        string adNo,
+        CreatePublishedListingCommand command,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(adNo);
+        await validator.ValidateAndThrowAsync(command, cancellationToken);
+
+        var attributes = await catalog.GetCategoryAttributesAsync(command.CategoryId, cancellationToken);
+        var (specsOk, specsError, normalizedSpecs) = SpecsJsonBuilder.TryValidateJson(command.SpecsJson, attributes);
+        if (!specsOk)
+        {
+            throw new ValidationException(
+            [
+                new ValidationFailure(nameof(CreatePublishedListingCommand.SpecsJson), specsError ?? "Özellikler geçersiz.")
+            ]);
+        }
+
+        var normalized = Normalize(command, normalizedSpecs);
+        await store.UpdateForReviewAsync(adNo.Trim(), command.AccountId, normalized, cancellationToken);
+    }
+
+    private static CreatePublishedListingCommand Normalize(
+        CreatePublishedListingCommand command,
+        string specsJson)
     {
         var primary = command.PrimaryIntent.Trim();
         var intents = new[] { primary };
 
-        var images = command.ImageUrls
-            .Where(u => !string.IsNullOrWhiteSpace(u))
-            .Select(u => u.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+        var assets = (command.ImageAssets.Count > 0
+                ? command.ImageAssets
+                : command.ImageUrls.Select(ListingImageAsset.FromUrl))
+            .Where(a => !string.IsNullOrWhiteSpace(a.DeliveryUrl))
+            .GroupBy(a => a.DeliveryUrl.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
             .Take(ListingImageUrl.MaxCount)
             .ToArray();
+
+        var images = assets.Select(a => a.DeliveryUrl.Trim()).ToArray();
 
         var attachmentIds = command.AttachmentIds
             .Where(id => id > 0)
@@ -61,14 +105,19 @@ public sealed class ListingCommandService(
             Tons = command.Tons,
             CapacityKg = command.CapacityKg is > 0 ? command.CapacityKg : null,
             Horsepower = command.Horsepower is >= 0 ? command.Horsepower : null,
+            CapacityMetric = string.IsNullOrWhiteSpace(command.CapacityMetric)
+                ? null
+                : command.CapacityMetric.Trim(),
             Price = command.Price,
             RentPrice = null,
+            Currency = Currency.Normalize(command.Currency),
             PriceUnit = priceUnit,
             IncludesOperator = command.IncludesOperator && isRent,
             Title = command.Title.Trim(),
-            Description = command.Description.Trim(),
-            SpecsJson = string.IsNullOrWhiteSpace(command.SpecsJson) ? "{}" : command.SpecsJson.Trim(),
+            Description = ListingDescriptionHtml.Sanitize(command.Description),
+            SpecsJson = string.IsNullOrWhiteSpace(specsJson) ? "{}" : specsJson.Trim(),
             ImageUrls = images,
+            ImageAssets = assets,
             AttachmentIds = attachmentIds
         };
     }

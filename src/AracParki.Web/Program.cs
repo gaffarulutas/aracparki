@@ -1,12 +1,17 @@
 using System.Threading.RateLimiting;
+using System.Security.Claims;
 using AracParki.Application;
+using AracParki.Application.Authorization;
 using AracParki.Application.Catalog.Services;
+using AracParki.Application.Listings;
 using AracParki.Application.Listings.Services;
+using AracParki.Application.Media;
 using AracParki.Infrastructure;
 using AracParki.Infrastructure.Persistence;
 using AracParki.Web.Infrastructure;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Options;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -62,7 +67,13 @@ try
             AuthCookie.ConfigureSecurityStampValidation(options);
         });
 
-    builder.Services.AddAuthorization();
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy(AuthPolicies.ListingModerate, policy =>
+            policy.RequireRole(AuthRoles.Admin));
+        options.AddPolicy(AuthPolicies.ListingPublish, policy =>
+            policy.RequireAuthenticatedUser());
+    });
 
     builder.Services.AddRateLimiter(options =>
     {
@@ -104,6 +115,28 @@ try
                 _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = 8,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
+        options.AddPolicy("listing-wizard-upload", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 40,
+                    Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
+        options.AddPolicy("listing-images", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 60,
                     Window = TimeSpan.FromMinutes(15),
                     QueueLimit = 0
                 }));
@@ -221,6 +254,136 @@ try
     catalogApi.MapGet("/facets/brands", async (int? categoryId, CatalogService catalog, CancellationToken ct) =>
         Results.Json(await catalog.GetBrandFacetsAsync(categoryId, ct)));
 
+    var listingImages = app.MapGroup("/api/listings/{adNo}/images")
+        .RequireAuthorization()
+        .RequireRateLimiting("listing-images")
+        .DisableAntiforgery();
+
+    listingImages.MapGet("/", async (
+            string adNo,
+            IListingImageCommandStore images,
+            IOptions<CloudflareMediaSettings> mediaOptions,
+            ClaimsPrincipal user,
+            CancellationToken ct) =>
+        {
+            if (!TryAccountId(user, out var accountId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var items = await images.ListByAdNoForAccountAsync(adNo, accountId, ct);
+            if (items.Count == 0)
+            {
+                // Distinguish empty listing vs not owned: ownership miss also returns empty.
+                // Clients treat [] as no images or no access.
+            }
+
+            var publicBase = mediaOptions.Value.ResolvedPublicBaseUrl;
+            return Results.Json(items.Select(i => new
+            {
+                id = i.Id,
+                url = i.Url,
+                imageId = i.ImageId,
+                storageKey = i.StorageKey,
+                sortOrder = i.SortOrder,
+                isCover = i.IsCover,
+                width = i.Width,
+                height = i.Height,
+                mimeType = i.MimeType,
+                version = i.Version,
+                variants = string.IsNullOrWhiteSpace(i.StorageKey) || string.IsNullOrWhiteSpace(publicBase)
+                    ? null
+                    : ListingImageVariants.All(publicBase, i.StorageKey)
+            }));
+        });
+
+    listingImages.MapGet("/{imageId:long}/variants", async (
+            string adNo,
+            long imageId,
+            IListingImageCommandStore images,
+            IOptions<CloudflareMediaSettings> mediaOptions,
+            ClaimsPrincipal user,
+            CancellationToken ct) =>
+        {
+            if (!TryAccountId(user, out var accountId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var item = (await images.ListByAdNoForAccountAsync(adNo, accountId, ct))
+                .FirstOrDefault(i => i.Id == imageId);
+            if (item is null)
+            {
+                return Results.NotFound();
+            }
+
+            var publicBase = mediaOptions.Value.ResolvedPublicBaseUrl;
+            if (string.IsNullOrWhiteSpace(item.StorageKey) || string.IsNullOrWhiteSpace(publicBase))
+            {
+                return Results.Json(new { url = item.Url, variants = new { card = item.Url } });
+            }
+
+            return Results.Json(new
+            {
+                id = item.Id,
+                storageKey = item.StorageKey,
+                variants = ListingImageVariants.All(publicBase, item.StorageKey)
+            });
+        });
+
+    listingImages.MapPatch("/reorder", async (
+            string adNo,
+            ReorderImagesRequest body,
+            IListingImageCommandStore images,
+            ClaimsPrincipal user,
+            CancellationToken ct) =>
+        {
+            if (!TryAccountId(user, out var accountId))
+            {
+                return Results.Unauthorized();
+            }
+
+            if (body.ImageIds is null || body.ImageIds.Count == 0)
+            {
+                return Results.BadRequest(new { error = "imageIds required" });
+            }
+
+            var ok = await images.ReorderAsync(adNo, accountId, body.ImageIds, ct);
+            return ok ? Results.NoContent() : Results.BadRequest(new { error = "reorder_failed" });
+        });
+
+    listingImages.MapPatch("/{imageId:long}/cover", async (
+            string adNo,
+            long imageId,
+            IListingImageCommandStore images,
+            ClaimsPrincipal user,
+            CancellationToken ct) =>
+        {
+            if (!TryAccountId(user, out var accountId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var ok = await images.SetCoverAsync(adNo, accountId, imageId, ct);
+            return ok ? Results.NoContent() : Results.NotFound();
+        });
+
+    listingImages.MapDelete("/{imageId:long}", async (
+            string adNo,
+            long imageId,
+            IListingImageCommandStore images,
+            ClaimsPrincipal user,
+            CancellationToken ct) =>
+        {
+            if (!TryAccountId(user, out var accountId))
+            {
+                return Results.Unauthorized();
+            }
+
+            var ok = await images.SoftDeleteAsync(adNo, accountId, imageId, TimeSpan.FromDays(7), ct);
+            return ok ? Results.NoContent() : Results.BadRequest(new { error = "delete_failed" });
+        });
+
     app.Run();
 }
 catch (Exception ex)
@@ -232,5 +395,14 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+static bool TryAccountId(ClaimsPrincipal user, out long accountId)
+{
+    accountId = 0;
+    var raw = user.FindFirstValue(ClaimTypes.NameIdentifier);
+    return long.TryParse(raw, out accountId);
+}
+
+file sealed record ReorderImagesRequest(IReadOnlyList<long>? ImageIds);
 
 public partial class Program;

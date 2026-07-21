@@ -6,8 +6,14 @@ namespace AracParki.Application.Listings;
 public interface IListingQuery
 {
     Task<ListingSearchResult> SearchAsync(ListingSearchQuery query, CancellationToken cancellationToken);
-    Task<ListingDetailDto?> GetByAdNoAsync(string adNo, CancellationToken cancellationToken);
+    Task<ListingDetailDto?> GetByAdNoAsync(
+        string adNo,
+        long? viewerAccountId,
+        bool isAdmin,
+        CancellationToken cancellationToken);
     Task<string?> GetPhoneByAdNoAsync(string adNo, CancellationToken cancellationToken);
     Task<IReadOnlyList<ListingCardDto>> GetFeaturedAsync(ListingSearchQuery query, int take, CancellationToken cancellationToken);
     Task<IReadOnlyList<ListingCardDto>> GetByAccountIdAsync(long accountId, int take, CancellationToken cancellationToken);
+
+    Task<ListingEditDto?> GetOwnedForEditAsync(string adNo, long accountId, CancellationToken cancellationToken);
 }

@@ -190,3 +190,139 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Admin moderation */
+.admin-status-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.admin-status-tabs a {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+}
+.admin-status-tabs a.is-active {
+  background: var(--machine);
+  border-color: color-mix(in srgb, var(--machine) 70%, var(--ink));
+}
+.admin-listing-list {
+  display: grid;
+  gap: 12px;
+}
+.admin-listing-row {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+}
+.admin-listing-thumb img {
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  display: block;
+}
+.admin-listing-body h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+.admin-listing-body h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+.admin-listing-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.admin-reject-note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--signal, #b42318);
+}
+.admin-detail-grid {
+  display: grid;
+  gap: 16px;
+}
+@media (min-width: 900px) {
+  .admin-detail-grid {
+    grid-template-columns: 1fr 280px;
+  }
+}
+.account-listing-card {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.account-listing-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px 8px;
+}
+.account-reject-banner {
+  flex: 1 1 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--signal, #b42318) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--signal, #b42318) 35%, var(--line));
+  font-size: 14px;
+  line-height: 1.45;
+}
+.badge-warn {
+  background: color-mix(in srgb, #b54708 18%, var(--surface));
+  color: #93370d;
+}
+.badge-danger {
+  background: color-mix(in srgb, #b42318 16%, var(--surface));
+  color: #912018;
+}
+.badge-ok {
+  background: color-mix(in srgb, #067647 16%, var(--surface));
+  color: #067647;
+}
+.badge-muted {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.detail-status-banner {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 14px;
+}
+.detail-status-banner.is-rejected {
+  border-color: color-mix(in srgb, #b42318 40%, var(--line));
+  background: color-mix(in srgb, #b42318 10%, var(--surface));
+}
+.detail-meta-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.detail-share {
+  margin-top: 12px;
+}
+.detail-similar {
+  margin-top: 28px;
+}
+.detail-similar h2 {
+  font-size: 18px;
+  margin-bottom: 14px;
+}

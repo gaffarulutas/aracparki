@@ -6,6 +6,9 @@ namespace AracParki.Web.Pages.IlanVer;
 public static class WizardDraftStore
 {
     public const string SessionKey = "ilan-ver-draft";
+    public const string ChoiceKey = "ilan-ver-draft-choice";
+    public const string ChoiceContinue = "continue";
+    public const string ChoiceNew = "new";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -55,6 +58,15 @@ public static class WizardDraftStore
 
     public static void Clear(ISession session) => session.Remove(SessionKey);
 
+    public static string? GetChoice(ISession session)
+        => session.GetString(ChoiceKey);
+
+    public static void SetChoice(ISession session, string choice)
+        => session.SetString(ChoiceKey, choice);
+
+    public static void ClearChoice(ISession session)
+        => session.Remove(ChoiceKey);
+
     public static async Task PersistAsync(
         ISession session,
         IWizardDraftStore store,
@@ -78,37 +90,64 @@ public static class WizardDraftStore
         CancellationToken cancellationToken)
     {
         Clear(session);
+        ClearChoice(session);
         if (accountId is not null)
         {
             await store.ClearAsync(accountId.Value, cancellationToken);
         }
     }
 
+    /// <summary>
+    /// Choice-aware load. Does not silently hydrate DB into session —
+    /// call <see cref="HydrateFromDbAsync"/> after user chooses Continue.
+    /// </summary>
     public static async Task<WizardDraft> LoadAsync(
         ISession session,
         IWizardDraftStore store,
         long? accountId,
         CancellationToken cancellationToken)
     {
+        var choice = GetChoice(session);
         var sessionDraft = Get(session);
+
         if (accountId is null)
         {
             return sessionDraft;
         }
 
-        if (sessionDraft.HasCategory || sessionDraft.Step > 1)
+        if (string.Equals(choice, ChoiceContinue, StringComparison.Ordinal)
+            || string.Equals(choice, ChoiceNew, StringComparison.Ordinal))
         {
             return sessionDraft;
         }
 
-        var payload = await store.GetPayloadAsync(accountId.Value, cancellationToken);
-        var dbDraft = FromJson(payload);
-        if (dbDraft.HasCategory || dbDraft.Step > 1)
+        // No choice yet: do not auto-resume from DB (modal decides).
+        return sessionDraft;
+    }
+
+    public static async Task<(WizardDraft Draft, WizardDraftMeta? Meta)> PeekDbDraftAsync(
+        IWizardDraftStore store,
+        long accountId,
+        CancellationToken cancellationToken)
+    {
+        var meta = await store.GetMetaAsync(accountId, cancellationToken);
+        if (meta is null || string.IsNullOrWhiteSpace(meta.PayloadJson))
         {
-            Save(session, dbDraft);
-            return dbDraft;
+            return (new WizardDraft(), meta);
         }
 
-        return sessionDraft;
+        return (FromJson(meta.PayloadJson), meta);
+    }
+
+    public static async Task<WizardDraft> HydrateFromDbAsync(
+        ISession session,
+        IWizardDraftStore store,
+        long accountId,
+        CancellationToken cancellationToken)
+    {
+        var (draft, _) = await PeekDbDraftAsync(store, accountId, cancellationToken);
+        Save(session, draft);
+        SetChoice(session, ChoiceContinue);
+        return draft;
     }
 }

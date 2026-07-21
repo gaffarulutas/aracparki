@@ -37,11 +37,12 @@ public sealed class WizardDraft
     public string SpecsJson { get; set; } = "{}";
     public List<int> AttachmentIds { get; set; } = [];
 
-    public string PrimaryIntent { get; set; } = ListingIntent.Satilik;
-    public List<string> Intents { get; set; } = [ListingIntent.Satilik];
+    public string PrimaryIntent { get; set; } = "";
+    public List<string> Intents { get; set; } = [];
     public decimal Price { get; set; }
     public decimal? RentPrice { get; set; }
     public string? PriceUnit { get; set; }
+    public string Currency { get; set; } = Domain.Listings.Currency.Try;
     public bool IncludesOperator { get; set; }
     public string SellerType { get; set; } = Domain.Listings.SellerType.Owner;
     public int CityId { get; set; }
@@ -54,6 +55,20 @@ public sealed class WizardDraft
     public bool PhoneVerified { get; set; }
 
     public List<string> ImageUrls { get; set; } = [];
+
+    /// <summary>Rich metadata from media ingest; kept in sync with <see cref="ImageUrls"/> on upload.</summary>
+    public List<ListingImageAsset> ImageAssets { get; set; } = [];
+
+    /// <summary>When set, publish updates this ad instead of creating a new listing.</summary>
+    public string? EditingAdNo { get; set; }
+
+    /// <summary>True when the draft has enough progress to offer resume vs new.</summary>
+    public bool IsMeaningful
+        => Step > 1
+           || HasCategory
+           || HasIntent
+           || ImageUrls.Count > 0
+           || !string.IsNullOrWhiteSpace(Title);
 
     public bool HasCategory => CategoryId > 0;
 
@@ -68,9 +83,10 @@ public sealed class WizardDraft
                               && ModelYear is >= 1950 and <= 2100
                               && (HoursUnknown || Hours is >= 0)
                               && Tons > 0
+                              && (CapacityMetric != "capacity_kg" || CapacityKg is > 0)
                               && (HorsepowerUnknown || Horsepower is >= 0)
                               && !string.IsNullOrWhiteSpace(Title)
-                              && !string.IsNullOrWhiteSpace(Description)
+                              && !ListingDescriptionHtml.IsBlank(Description)
                               && EquipmentCondition.Known.Contains(Condition);
 
     public bool HasSaleInfo(bool requirePhoneVerification)
@@ -97,7 +113,7 @@ public sealed class WizardDraft
         {
             var urls = ImageUrls.Where(u => !string.IsNullOrWhiteSpace(u)).Select(u => u.Trim()).ToArray();
             return urls.Length is >= 1 and <= ListingImageUrl.MaxCount
-                   && urls.All(ListingImageUrl.IsAllowed);
+                   && urls.All(u => ListingImageUrl.IsAllowed(u));
         }
     }
 

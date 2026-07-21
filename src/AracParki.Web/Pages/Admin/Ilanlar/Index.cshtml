@@ -1,0 +1,53 @@
+@page "/admin/ilanlar"
+@model AracParki.Web.Pages.Admin.Ilanlar.IndexModel
+@using AracParki.Domain.Listings
+@{
+    Layout = "Shared/_AccountLayout";
+}
+<header class="page-account-head">
+  <h1>İlan moderasyonu</h1>
+  <p class="page-account-lead">
+    <a class="link-quiet" href="/admin">← Admin</a>
+  </p>
+</header>
+
+<nav class="admin-status-tabs" aria-label="Durum filtresi">
+  <a class="@(Model.Status == ListingStatus.PendingReview ? "is-active" : null)"
+     href="/admin/ilanlar?durum=@ListingStatus.PendingReview">İncelemede</a>
+  <a class="@(Model.Status == ListingStatus.Published ? "is-active" : null)"
+     href="/admin/ilanlar?durum=@ListingStatus.Published">Yayında</a>
+  <a class="@(Model.Status == ListingStatus.Rejected ? "is-active" : null)"
+     href="/admin/ilanlar?durum=@ListingStatus.Rejected">Reddedilen</a>
+</nav>
+
+@if (Model.Items.Count == 0)
+{
+  <div class="empty-state">
+    <p>Bu durumda ilan yok.</p>
+  </div>
+}
+else
+{
+  <div class="admin-listing-list">
+    @foreach (var item in Model.Items)
+    {
+      <article class="admin-listing-row">
+        <a class="admin-listing-thumb" href="/admin/ilanlar/@item.AdNo">
+          <img src="@item.CoverImageUrl" alt="" width="120" height="90" loading="lazy" />
+        </a>
+        <div class="admin-listing-body">
+          <h2><a href="/admin/ilanlar/@item.AdNo">@item.Title</a></h2>
+          <p class="admin-listing-meta">
+            <span class="@ListingStatus.BadgeClass(item.Status)">@ListingStatus.Label(item.Status)</span>
+            · @item.AdNo · @item.SellerName · @item.City
+          </p>
+          @if (!string.IsNullOrWhiteSpace(item.RejectionReason))
+          {
+            <p class="admin-reject-note">@item.RejectionReason</p>
+          }
+        </div>
+        <a class="btn btn-ghost btn-sm" href="/admin/ilanlar/@item.AdNo">İncele</a>
+      </article>
+    }
+  </div>
+}

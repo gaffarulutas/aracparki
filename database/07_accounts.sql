@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS accounts (
     phone_confirmed_at  TIMESTAMPTZ NULL,
     email_confirmed_at  TIMESTAMPTZ NULL,
     security_stamp      TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+    role                TEXT NOT NULL DEFAULT 'user'
+                        CHECK (role IN ('user', 'admin')),
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

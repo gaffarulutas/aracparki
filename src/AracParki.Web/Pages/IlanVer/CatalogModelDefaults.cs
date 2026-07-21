@@ -85,6 +85,7 @@ public static class CatalogModelDefaults
         }
 
         MergeDefaultSpecs(draft, model.DefaultSpecsJson, attributes, model.CapacityKg);
+        PruneSpecs(draft, attributes);
 
         if (draft.HorsepowerFromCatalog && draft.Horsepower is > 0)
         {
@@ -98,6 +99,20 @@ public static class CatalogModelDefaults
         draft.HorsepowerFromCatalog = false;
         draft.TonsFromCatalog = false;
         draft.CapacityKgFromCatalog = false;
+    }
+
+    /// <summary>Drops spec keys that are not in the current category attribute schema.</summary>
+    public static void PruneSpecs(WizardDraft draft, IReadOnlyList<CategoryAttributeDto>? attributes)
+    {
+        if (attributes is null || attributes.Count == 0 || draft.Specs.Count == 0)
+        {
+            return;
+        }
+
+        var allowed = attributes.Select(a => a.Key).ToHashSet(StringComparer.Ordinal);
+        draft.Specs = draft.Specs
+            .Where(kv => allowed.Contains(kv.Key))
+            .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
     }
 
     /// <summary>

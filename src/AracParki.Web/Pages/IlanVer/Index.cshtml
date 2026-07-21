@@ -3,8 +3,6 @@
 @{
     var draft = Model.Draft;
     var step = Model.Step;
-    var imageUrlsJson = Model.AttrJson(
-        draft.ImageUrls.Count > 0 ? draft.ImageUrls : [""]);
     var neighborhoodsJson = Model.AttrJson(
         Model.Neighborhoods.Select(n => new { id = n.Id, name = n.DisplayName }));
     var initialDistrictsJson = Model.AttrJson(
@@ -14,42 +12,78 @@
 {
     @await Html.PartialAsync("Shared/_PhoneVerifyModal", Model)
 }
-<main id="main" class="container wizard-page">
+else if (Model.ShowDraftResumeModal)
+{
+    @await Html.PartialAsync("Shared/_DraftResumeModal", Model)
+}
+<main id="main" class="container wizard-page @(Model.ShowDraftResumeModal ? "is-gated" : null)">
+  @{
+    var stepMeta = new (string Short, string Full)[]
+    {
+      ("Kategori", "Tip ve kategori"),
+      ("Araç", "Teknik bilgiler"),
+      ("Fiyat", "Fiyat ve konum"),
+      ("Foto", "Fotoğraflar"),
+      ("Yayın", "Kontrol ve yayın")
+    };
+  }
+
   <header class="wizard-hero">
     <div class="wizard-hero-copy">
       <p class="wizard-kicker">Ücretsiz ilan</p>
       <h1 class="wizard-title">Makine ilanı oluştur</h1>
       <p class="wizard-subtitle">Birkaç adımda profesyonel bir ilan hazırla. Taslağın otomatik kaydedilir.</p>
+      @if (draft.IsMeaningful && !Model.ShowDraftResumeModal)
+      {
+        <p class="wizard-draft-chip" role="status">
+          <ap-icon name="check" size="14" aria-hidden="true" />
+          <span>Taslak kaydedildi · Adım @Math.Clamp(draft.Step is >= 1 and <= 5 ? draft.Step : step, 1, 5)</span>
+        </p>
+      }
     </div>
     <ol class="wizard-stepper" aria-label="İlan adımları">
-      @{
-        var stepMeta = new (string Short, string Full)[]
-        {
-          ("Kategori", "Tip ve kategori"),
-          ("Araç", "Teknik bilgiler"),
-          ("Fiyat", "Fiyat ve konum"),
-          ("Foto", "Fotoğraflar"),
-          ("Yayın", "Kontrol ve yayın")
-        };
-      }
       @for (var i = 1; i <= 5; i++)
       {
-        var state = i == step ? "is-current" : i < step ? "is-done" : "is-todo";
-        <li class="wizard-stepper-item @state">
-          <span class="wizard-stepper-index" aria-hidden="true">
-            @if (i < step)
-            {
-              <ap-icon name="check" size="14" />
-            }
-            else
-            {
-              @i
-            }
-          </span>
-          <span class="wizard-stepper-text">
-            <span class="wizard-stepper-label">@stepMeta[i - 1].Short</span>
-            <span class="wizard-stepper-desc">@stepMeta[i - 1].Full</span>
-          </span>
+        var isCurrent = i == step;
+        var isComplete = IndexModel.IsStepComplete(i, draft, Model.RequirePhoneVerification);
+        var canAccess = IndexModel.CanAccessStep(i, draft, Model.RequirePhoneVerification);
+        var state = isCurrent ? "is-current" : isComplete ? "is-done" : "is-todo";
+        var clickable = canAccess && !isCurrent && !Model.ShowPhoneGate && !Model.ShowDraftResumeModal;
+        <li>
+          @if (clickable)
+          {
+            <a class="wizard-stepper-item @state is-clickable"
+               href="/ilan-ver?adim=@i"
+               aria-label="@stepMeta[i - 1].Full adımına git">
+              <span class="wizard-stepper-index" aria-hidden="true">
+                <ap-icon name="check" size="14" />
+              </span>
+              <span class="wizard-stepper-text">
+                <span class="wizard-stepper-label">@stepMeta[i - 1].Short</span>
+                <span class="wizard-stepper-desc">@stepMeta[i - 1].Full</span>
+              </span>
+            </a>
+          }
+          else
+          {
+            <div class="wizard-stepper-item @state"
+                 @(isCurrent ? Html.Raw("aria-current=\"step\"") : null)>
+              <span class="wizard-stepper-index" aria-hidden="true">
+                @if (isComplete && !isCurrent)
+                {
+                  <ap-icon name="check" size="14" />
+                }
+                else
+                {
+                  @i
+                }
+              </span>
+              <span class="wizard-stepper-text">
+                <span class="wizard-stepper-label">@stepMeta[i - 1].Short</span>
+                <span class="wizard-stepper-desc">@stepMeta[i - 1].Full</span>
+              </span>
+            </div>
+          }
         </li>
       }
     </ol>
@@ -89,7 +123,6 @@
 
   <section class="wizard-card @(step == 1 ? "wizard-card--cascade" : null)" aria-labelledby="wizard-step-heading">
       <div class="wizard-card-head">
-        <p class="wizard-card-step">Adım @step / 5</p>
         <h2 class="wizard-card-title" id="wizard-step-heading">@Model.StepTitle</h2>
       </div>
 
@@ -275,7 +308,7 @@
             </div>
           </div>
 
-          <div class="wizard-actions cascade-actions">
+          <div class="wizard-actions cascade-actions wizard-actions--inline">
             <span class="wizard-actions-hint">İlan tipi ve kategoriyi seçerek başla</span>
             <button class="btn btn-machine" type="submit" :disabled="cannotContinue">
               Kaydet ve devam →
@@ -456,14 +489,14 @@
 
           <div class="form-row">
             <label for="serialNo">Seri numarası <span class="field-optional">(isteğe bağlı)</span></label>
-            <input id="serialNo" name="serialNo" type="text" maxlength="60"
+            <input id="serialNo" name="serialNo" type="text" maxlength="80"
                    value="@draft.SerialNo" placeholder="Örn. ABC-12345" />
           </div>
 
           @if (Model.Attributes.Count > 0)
           {
-            <fieldset class="ap-fieldset">
-              <legend>Teknik özellikler</legend>
+            <section class="wizard-section" aria-labelledby="wizard-specs-heading">
+              <h3 class="wizard-section-title" id="wizard-specs-heading">Teknik özellikler</h3>
               <div class="ap-stack">
                 @foreach (var attr in Model.Attributes)
                 {
@@ -593,14 +626,14 @@
                   </div>
                 }
               </div>
-            </fieldset>
+            </section>
           }
 
           @if (Model.Attachments.Count > 0)
           {
-            <fieldset class="ap-fieldset">
-              <legend>Donanım ve ekipman</legend>
-              <div class="ap-tile-group" role="group" aria-label="Ekipmanlar">
+            <section class="wizard-section" aria-labelledby="wizard-attachments-heading">
+              <h3 class="wizard-section-title" id="wizard-attachments-heading">Donanım ve ekipman</h3>
+              <div class="ap-tile-group" role="group" aria-labelledby="wizard-attachments-heading">
                 @foreach (var att in Model.Attachments)
                 {
                   <label class="ap-tile">
@@ -613,7 +646,7 @@
                   </label>
                 }
               </div>
-            </fieldset>
+            </section>
           }
 
           <div class="form-row @Model.FieldInvalidClass("title")" id="field-title">
@@ -622,6 +655,7 @@
             </label>
             <input id="title" name="title" type="text" required maxlength="200" value="@draft.Title"
                    placeholder="@draft.SuggestedTitle()"
+                   aria-required="true"
                    aria-invalid="@(Model.AriaInvalid("title"))"
                    aria-describedby="hint-title@(Model.HasFieldError("title") ? " err-title" : "")" />
             <p class="field-hint" id="hint-title">Öneri: @draft.SuggestedTitle()</p>
@@ -631,21 +665,43 @@
             }
           </div>
 
-          <div class="form-row @Model.FieldInvalidClass("description")" id="field-description">
-            <label for="description">
+          <div class="form-row @Model.FieldInvalidClass("description")" id="field-description"
+               x-data="ilanVerCharCount"
+               data-max="@ListingDescriptionHtml.MaxLength"
+               data-quill-description>
+            <label id="label-description" for="description-editor">
               Açıklama <abbr class="field-req" title="Zorunlu">*</abbr>
             </label>
-            <textarea id="description" name="description" required rows="5" maxlength="8000"
-                      placeholder="Bakım geçmişi, ekipman, konum notları…"
-                      aria-invalid="@(Model.AriaInvalid("description"))"
-                      aria-describedby="@(Model.HasFieldError("description") ? "err-description" : null)">@draft.Description</textarea>
+            <input type="hidden" id="description" name="description" required
+                   value="@draft.Description"
+                   x-ref="input"
+                   aria-required="true"
+                   aria-invalid="@(Model.AriaInvalid("description"))"
+                   aria-describedby="hint-description@(Model.HasFieldError("description") ? " err-description" : "")" />
+            <div id="description-editor"
+                 class="wizard-quill"
+                 data-quill-editor
+                 data-placeholder="Bakım geçmişi, ekipman, konum notları…"
+                 role="textbox"
+                 aria-multiline="true"
+                 aria-labelledby="label-description"
+                 aria-required="true"
+                 aria-invalid="@(Model.AriaInvalid("description"))"
+                 aria-describedby="hint-description@(Model.HasFieldError("description") ? " err-description" : "")"
+                 tabindex="0"></div>
+            <div class="wizard-char-count">
+              <p class="field-hint" id="hint-description">Kalın, liste ve bağlantı ile net yaz. Dürüst açıklamalar daha hızlı dönüş getirir.</p>
+              <p class="wizard-char-count-value" aria-live="polite">
+                <span x-text="count">@ListingDescriptionHtml.ToPlainText(draft.Description).Length</span> / <span x-text="max">@ListingDescriptionHtml.MaxLength</span>
+              </p>
+            </div>
             @if (Model.HasFieldError("description"))
             {
               <p class="field-error" id="err-description" role="alert">@Model.FieldError("description")</p>
             }
           </div>
 
-          <div class="wizard-actions">
+          <div class="wizard-actions wizard-actions--inline">
             <a class="btn btn-ghost" href="/ilan-ver?adim=1">← Geri</a>
             <button class="btn btn-machine" type="submit">Kaydet ve devam</button>
           </div>
@@ -668,6 +724,8 @@
               data-neighborhood-id="@(draft.NeighborhoodId ?? 0)"
               data-districts="@initialDistrictsJson"
               data-neighborhoods="@neighborhoodsJson"
+              data-price="@(draft.Price > 0 ? draft.Price.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : "0")"
+              data-currency="@Currency.Normalize(draft.Currency)"
               novalidate>
           @Html.AntiForgeryToken()
 
@@ -677,21 +735,61 @@
             ile işaretlidir.
           </p>
 
-          <fieldset class="ap-fieldset">
-            <legend>Fiyat</legend>
+          <section class="wizard-section" aria-labelledby="wizard-price-heading">
+            <h3 class="wizard-section-title" id="wizard-price-heading">Fiyat</h3>
             <div class="ap-field @Model.FieldInvalidClass("price")" id="field-price">
-              <label class="ap-label" for="price">
-                @(isRent ? "Kira bedeli (₺)" : "Satış fiyatı (₺)")
+              <label class="ap-label" for="price-display">
+                @(isRent ? "Kira bedeli" : "Satış fiyatı")
                 <abbr class="field-req" title="Zorunlu">*</abbr>
               </label>
-              <input class="ap-input @Model.FieldInvalidClass("price")" id="price" name="price" type="number" required min="1" step="1"
-                     inputmode="numeric" placeholder="Örn. 1250000"
-                     value="@(draft.Price > 0 ? draft.Price.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : null)"
-                     aria-invalid="@(Model.AriaInvalid("price"))"
-                     aria-describedby="@(Model.HasFieldError("price") ? "err-price" : null)" />
+              <div class="wizard-price-row">
+                <input class="ap-input wizard-price-amount @Model.FieldInvalidClass("price")"
+                       id="price-display"
+                       type="text"
+                       inputmode="numeric"
+                       autocomplete="off"
+                       placeholder="Örn. 1.250.000"
+                       required
+                       x-ref="priceDisplay"
+                       aria-required="true"
+                       aria-invalid="@(Model.AriaInvalid("price"))"
+                       aria-describedby="@(Model.HasFieldError("price") ? "err-price" : "price-hint")"
+                       @@input="onPriceInput"
+                       @@blur="onPriceBlur" />
+                <input type="hidden" name="price" x-ref="priceRaw" value="@(draft.Price > 0 ? draft.Price.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : "")" />
+                <label class="sr-only" for="currency">Para birimi</label>
+                <select class="ap-input wizard-price-currency @Model.FieldInvalidClass("currency")"
+                        id="currency"
+                        name="currency"
+                        x-ref="currency"
+                        required
+                        aria-invalid="@(Model.AriaInvalid("currency"))"
+                        aria-describedby="@(Model.HasFieldError("currency") ? "err-currency" : null)"
+                        @@change="onCurrencyChange">
+                  @{
+                    var selectedCurrency = Currency.Normalize(draft.Currency);
+                    foreach (var code in new[] { Currency.Try, Currency.Usd, Currency.Eur })
+                    {
+                      if (selectedCurrency == code)
+                      {
+                        <option value="@code" selected>@Currency.Label(code)</option>
+                      }
+                      else
+                      {
+                        <option value="@code">@Currency.Label(code)</option>
+                      }
+                    }
+                  }
+                </select>
+              </div>
+              <p class="ap-hint" id="price-hint" x-show="hasPriceHint" x-text="priceHint" x-cloak></p>
               @if (Model.HasFieldError("price"))
               {
                 <p class="field-error" id="err-price" role="alert">@Model.FieldError("price")</p>
+              }
+              @if (Model.HasFieldError("currency"))
+              {
+                <p class="field-error" id="err-currency" role="alert">@Model.FieldError("currency")</p>
               }
             </div>
 
@@ -736,13 +834,13 @@
                 </div>
               </div>
             }
-          </fieldset>
+          </section>
 
-          <fieldset class="ap-fieldset @Model.FieldInvalidClass("sellerType")" id="field-sellerType">
-            <legend>
-              Satıcı <abbr class="field-req" title="Zorunlu">*</abbr>
-            </legend>
-            <div class="ap-tile-group ap-tile-group--2" role="radiogroup" aria-label="Satıcı tipi"
+          <section class="wizard-section @Model.FieldInvalidClass("sellerType")" id="field-sellerType" aria-labelledby="wizard-seller-heading">
+            <h3 class="wizard-section-title" id="wizard-seller-heading">
+              İlan sahibi <abbr class="field-req" title="Zorunlu">*</abbr>
+            </h3>
+            <div class="ap-tile-group ap-tile-group--2" role="radiogroup" aria-labelledby="wizard-seller-heading"
                  aria-required="true"
                  aria-invalid="@(Model.AriaInvalid("sellerType"))"
                  aria-describedby="@(Model.HasFieldError("sellerType") ? "err-sellerType" : null)">
@@ -767,10 +865,10 @@
             {
               <p class="field-error" id="err-sellerType" role="alert">@Model.FieldError("sellerType")</p>
             }
-          </fieldset>
+          </section>
 
-          <fieldset class="ap-fieldset">
-            <legend>Konum</legend>
+          <section class="wizard-section" aria-labelledby="wizard-location-heading">
+            <h3 class="wizard-section-title" id="wizard-location-heading">Konum</h3>
             <div class="ap-grid-2">
               <div class="ap-field @Model.FieldInvalidClass("cityId")" id="field-cityId">
                 <label class="ap-label" for="cityId">
@@ -840,10 +938,10 @@
             </div>
 
             <p class="ap-hint" x-show="hasLocationStatus" x-text="locationStatus" x-cloak role="status" aria-live="polite"></p>
-          </fieldset>
+          </section>
 
-          <fieldset class="ap-fieldset @(Model.HasFieldError("phone") ? "is-invalid" : null)" id="field-phone">
-            <legend>İletişim</legend>
+          <section class="wizard-section @(Model.HasFieldError("phone") ? "is-invalid" : null)" id="field-phone" aria-labelledby="wizard-contact-heading">
+            <h3 class="wizard-section-title" id="wizard-contact-heading">İletişim</h3>
             @if (!string.IsNullOrWhiteSpace(Model.AccountPhone))
             {
               <div class="wizard-contact">
@@ -865,9 +963,9 @@
             {
               <p class="field-error" id="err-phone" role="alert">@Model.FieldError("phone")</p>
             }
-          </fieldset>
+          </section>
 
-          <div class="ap-actions">
+          <div class="ap-actions wizard-actions--inline">
             <a class="btn btn-ghost" href="/ilan-ver?adim=2">← Geri</a>
             <button class="btn btn-machine" type="submit">Kaydet ve devam</button>
           </div>
@@ -877,86 +975,109 @@
       @* ── Step 4: Images ──────────────────────────────────────────── *@
       else if (step == 4)
       {
-        <p class="wizard-lead">Net, aydınlık fotoğraflar ilanı daha hızlı satar. İlk görsel kapak olur — en az 1 fotoğraf ekle.</p>
+        <p class="wizard-lead">Net, aydınlık fotoğraflar ilanı daha hızlı sonuçlandırır. İlk görsel kapak olur — en az 1 fotoğraf ekle. Birden fazla seçebilirsin.</p>
 
-        <form method="post"
-              asp-page-handler="Upload"
-              class="wizard-dropzone"
-              enctype="multipart/form-data"
-              id="wizard-upload"
-              x-data="ilanVerDropzone"
-              :class="dropzoneClass"
-              @@dragenter.prevent="onDragEnter"
-              @@dragover.prevent="onDragOver"
-              @@dragleave.prevent="onDragLeave"
-              @@drop.prevent="onDrop">
+        <div class="wizard-uploader"
+             id="wizard-uploader"
+             x-data="ilanVerUploader"
+             data-upload-url="@Url.Page("/IlanVer/Index", "UploadJson")"
+             data-max-count="@ListingImageUrl.MaxCount"
+             data-max-bytes="@ListingImageUrl.MaxUploadBytes"
+             data-current-count="@draft.ImageUrls.Count"
+             :aria-busy="busyAria">
           @Html.AntiForgeryToken()
-          <input class="sr-only"
-                 id="file-upload"
-                 name="file"
-                 type="file"
-                 accept="image/jpeg,image/png,image/webp,image/gif"
-                 x-ref="file"
-                 @@change="onFileChange" />
-          <label for="file-upload" class="wizard-dropzone-face">
-            <span class="wizard-dropzone-icon" aria-hidden="true">
-              <ap-icon name="plus" size="28" />
-            </span>
-            <span class="wizard-dropzone-title">Fotoğraf sürükle-bırak veya seç</span>
-            <span class="wizard-dropzone-hint">JPG, PNG, WebP · maks. 8 MB · ilk görsel kapak</span>
-            <span class="btn btn-ghost btn-sm wizard-dropzone-btn">Dosya seç</span>
-          </label>
-        </form>
+          <div class="wizard-dropzone wizard-dropzone--lg"
+               :class="dropzoneClass"
+               @@dragenter.prevent="onDragEnter"
+               @@dragover.prevent="onDragOver"
+               @@dragleave.prevent="onDragLeave"
+               @@drop.prevent="onDrop">
+            <input class="sr-only"
+                   id="file-upload"
+                   type="file"
+                   accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                   multiple
+                   x-ref="file"
+                   @@change="onFileChange" />
+            <label for="file-upload" class="wizard-dropzone-face">
+              <span class="wizard-dropzone-icon" aria-hidden="true">
+                <ap-icon name="plus" size="32" />
+              </span>
+              <span class="wizard-dropzone-title">Fotoğrafları buraya bırak veya seç</span>
+              <span class="wizard-dropzone-hint">JPG, PNG, WebP, HEIC · dosya başına maks. 10 MB · en fazla @ListingImageUrl.MaxCount görsel</span>
+              <span class="btn btn-ghost btn-sm wizard-dropzone-btn">Dosya seç</span>
+            </label>
+          </div>
 
-        @if (draft.ImageUrls.Count > 0)
-        {
-          <div class="wizard-gallery" aria-label="Yüklenen fotoğraflar">
+          <div class="wizard-gallery" aria-label="Yüklenen fotoğraflar" x-ref="gallery">
             @for (var i = 0; i < draft.ImageUrls.Count; i++)
             {
               var url = draft.ImageUrls[i];
-              <figure class="wizard-gallery-item @(i == 0 ? "is-cover" : null)">
-                <img src="@url" alt="" loading="lazy" width="240" height="180" />
-                @if (i == 0)
-                {
-                  <figcaption>Kapak</figcaption>
-                }
-                else
-                {
-                  <figcaption>@(i + 1)</figcaption>
-                }
+              <figure class="wizard-gallery-item @(i == 0 ? "is-cover" : null)" data-url="@url">
+                <img src="@url" alt="" loading="lazy" width="480" height="360" />
+                <figcaption>@(i == 0 ? "Kapak" : (i + 1).ToString())</figcaption>
+                <div class="wizard-gallery-actions">
+                  @if (i > 0)
+                  {
+                    <form method="post" asp-page-handler="SetCover">
+                      @Html.AntiForgeryToken()
+                      <input type="hidden" name="url" value="@url" />
+                      <button type="submit" class="wizard-gallery-action">Kapak yap</button>
+                    </form>
+                  }
+                  <form method="post" asp-page-handler="RemoveImage">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="url" value="@url" />
+                    <button type="submit" class="wizard-gallery-action wizard-gallery-action--danger">Kaldır</button>
+                  </form>
+                </div>
               </figure>
             }
-          </div>
-        }
 
-        <form method="post" asp-page-handler="Images" class="wizard-form" id="wizard-form"
-              x-data="ilanVerImages" data-urls='@imageUrlsJson'>
-          @Html.AntiForgeryToken()
-          <details class="wizard-url-panel">
-            <summary>URL ile görsel ekle</summary>
-            <div class="wizard-image-list">
-              <template x-for="item in items" :key="item.id">
-                <div class="form-row wizard-image-row">
-                  <label :for="item.inputId">
-                    <span x-text="item.label"></span>
-                  </label>
-                  <div class="wizard-image-input">
-                    <input type="url" name="imageUrls" :id="item.inputId" x-model="item.value"
-                           placeholder="https://…" pattern="https://.*" />
-                    <button type="button" class="link-quiet" x-show="canRemove" @@click="item.remove">Kaldır</button>
+            <template x-for="item in queue" :key="item.id">
+              <figure class="wizard-gallery-item is-uploading"
+                      :data-state="item.state"
+                      x-show="item.isVisible"
+                      x-cloak>
+                <img :src="item.previewUrl" alt="" width="480" height="360" />
+                <div class="wizard-gallery-overlay"
+                     x-show="item.showProgress"
+                     role="status"
+                     aria-live="polite">
+                  <span class="wizard-gallery-spinner" aria-hidden="true"></span>
+                  <div class="wizard-gallery-progress" role="progressbar"
+                       :aria-valuenow="item.progress"
+                       aria-valuemin="0"
+                       aria-valuemax="100"
+                       :aria-label="item.progressLabel">
+                    <span class="wizard-gallery-progress-fill" :style="item.barStyle"></span>
                   </div>
-                  <div class="wizard-image-preview" x-show="item.hasPreview">
-                    <img :src="item.value" alt="" loading="lazy" />
+                  <span class="wizard-gallery-progress-label" x-text="item.progressLabel"></span>
+                </div>
+                <div class="wizard-gallery-overlay is-error" x-show="item.showError">
+                  <p class="wizard-gallery-error" x-text="item.error"></p>
+                  <div class="wizard-gallery-overlay-actions">
+                    <button type="button" class="btn btn-ghost btn-sm" @@click="item.retry">Tekrar dene</button>
+                    <button type="button" class="link-quiet" @@click="item.dismiss">Kaldır</button>
                   </div>
                 </div>
-              </template>
-            </div>
-            <button type="button" class="btn btn-ghost btn-sm" x-show="canAdd" @@click="add">+ Görsel satırı ekle</button>
-          </details>
+              </figure>
+            </template>
+          </div>
+        </div>
 
-          <div class="wizard-actions">
+        <form method="post" asp-page-handler="Images" class="wizard-form" id="wizard-form">
+          @Html.AntiForgeryToken()
+          <div id="wizard-hidden-urls">
+            @foreach (var url in draft.ImageUrls)
+            {
+              <input type="hidden" name="imageUrls" value="@url" />
+            }
+          </div>
+          <div class="wizard-actions wizard-actions--inline">
             <a class="btn btn-ghost" href="/ilan-ver?adim=3">← Geri</a>
-            <button class="btn btn-machine" type="submit">Kaydet ve devam</button>
+            <button class="btn btn-machine" type="submit" id="wizard-images-continue"
+                    @(draft.ImageUrls.Count == 0 ? "disabled" : null)>Kaydet ve devam</button>
           </div>
         </form>
       }
@@ -992,11 +1113,7 @@
             </p>
             <h2 class="wizard-preview-title">@draft.Title</h2>
             <p class="wizard-preview-price">
-              @draft.Price.ToString("N0", new System.Globalization.CultureInfo("tr-TR")) ₺
-              @if (!string.IsNullOrWhiteSpace(draft.PriceUnit))
-              {
-                <span>/ @PriceUnit.Label(draft.PriceUnit)</span>
-              }
+              @Formatters.Price(draft.Price, draft.PriceUnit, draft.Currency)
             </p>
             <p class="wizard-preview-specs">
               @draft.BrandName @draft.ModelName · @draft.ModelYear · @draft.Tons.ToString("0.##")t
@@ -1024,7 +1141,7 @@
             {
               <p class="wizard-preview-serial">Seri No: @draft.SerialNo</p>
             }
-            <p class="wizard-preview-desc">@draft.Description</p>
+            <div class="wizard-preview-desc detail-desc">@Html.Raw(ListingDescriptionHtml.ToSafeDisplayHtml(draft.Description))</div>
             <p class="wizard-muted">
               Görsel: @draft.ImageUrls.Count
               · Telefon: @(Model.RequirePhoneVerification && !Model.AccountPhoneConfirmed ? draft.Phone : Model.AccountPhone)
@@ -1040,9 +1157,9 @@
           </div>
         </article>
 
-        <div class="wizard-publish-bar">
+        <div class="wizard-publish-bar wizard-actions--inline">
           <a class="btn btn-ghost btn-lg" href="/">Taslağı sakla</a>
-          <form method="post" asp-page-handler="Publish" class="wizard-publish-form">
+          <form method="post" asp-page-handler="Publish" class="wizard-publish-form" id="wizard-publish-form">
             @Html.AntiForgeryToken()
             <input type="hidden" name="publishToken" value="@Model.PublishToken" />
             <a class="link-quiet" href="/ilan-ver?adim=4">← Fotoğrafları düzenle</a>
@@ -1052,14 +1169,11 @@
         <p class="wizard-warn">Taslak hesabına kaydedilir. Sayfadan çıksan da kaldığın yerden devam edebilirsin.</p>
       }
     </section>
-
-  @if (step is >= 2 and <= 4 && !Model.ShowPhoneGate)
-  {
-    <div class="wizard-sticky">
-      <div class="container wizard-sticky-inner">
-        <span>Adım @step / 5 · @Model.StepTitle</span>
-        <button class="btn btn-machine" type="submit" form="wizard-form">Kaydet ve devam</button>
-      </div>
-    </div>
-  }
 </main>
+
+@section Scripts {
+  @if (step == 2)
+  {
+    <script src="~/lib/quill/quill.js" asp-append-version="true" defer></script>
+  }
+}

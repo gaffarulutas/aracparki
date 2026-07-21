@@ -18,9 +18,12 @@ public sealed class ListingCardDto
     public required string City { get; init; }
     public required string District { get; init; }
     public decimal Price { get; init; }
+    public string Currency { get; init; } = Domain.Listings.Currency.Try;
     public string? PriceUnit { get; init; }
     public required string CoverImageUrl { get; init; }
     public required string SellerType { get; init; }
     public bool IsVerified { get; init; }
     public DateTimeOffset ListedAt { get; init; }
+    public string Status { get; init; } = Domain.Listings.ListingStatus.Published;
+    public string? RejectionReason { get; init; }
 }

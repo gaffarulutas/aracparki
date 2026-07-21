@@ -23,6 +23,7 @@ public sealed class Listing
     public int? CapacityKg { get; init; }
     public int Horsepower { get; init; }
     public decimal Price { get; init; }
+    public string Currency { get; init; } = Domain.Listings.Currency.Try;
     public string? PriceUnit { get; init; }
     public bool IncludesOperator { get; init; }
     public required string SpecsJson { get; init; }

@@ -1,14 +1,17 @@
 using AracParki.Application.Listings;
 using AracParki.Application.Listings.Commands;
 using AracParki.Application.Listings.Validation;
+using AracParki.Application.Media;
 using AracParki.Domain.Listings;
 using FluentValidation.TestHelper;
+using Microsoft.Extensions.Options;
 
 namespace AracParki.UnitTests;
 
 public sealed class CreatePublishedListingValidatorTests
 {
-    private readonly CreatePublishedListingValidator _validator = new();
+    private readonly CreatePublishedListingValidator _validator = new(
+        new ListingImageUrlPolicy(Options.Create(new CloudflareMediaSettings())));
 
     private static CreatePublishedListingCommand ValidCommand() => new()
     {
@@ -29,6 +32,7 @@ public sealed class CreatePublishedListingValidatorTests
         Tons = 22.5m,
         Horsepower = 150,
         Price = 1_250_000m,
+        Currency = Currency.Try,
         Title = "CAT 320D",
         Description = "Bakımlı makine.",
         SpecsJson = "{}",
@@ -43,33 +47,78 @@ public sealed class CreatePublishedListingValidatorTests
     }
 
     [Fact]
+    public void Accepts_usd_and_eur()
+    {
+        var baseCmd = ValidCommand();
+        var usd = Clone(baseCmd, Currency.Usd);
+        _validator.TestValidate(usd).ShouldNotHaveAnyValidationErrors();
+
+        var eur = Clone(baseCmd, Currency.Eur);
+        _validator.TestValidate(eur).ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Fact]
+    public void Rejects_unknown_currency()
+    {
+        var result = _validator.TestValidate(Clone(ValidCommand(), "GBP"));
+        result.ShouldHaveValidationErrorFor(x => x.Currency);
+    }
+
+    private static CreatePublishedListingCommand Clone(CreatePublishedListingCommand source, string currency) => new()
+    {
+        AccountId = source.AccountId,
+        SellerDisplayName = source.SellerDisplayName,
+        Phone = source.Phone,
+        SellerType = source.SellerType,
+        CategoryId = source.CategoryId,
+        BrandId = source.BrandId,
+        ModelName = source.ModelName,
+        CityId = source.CityId,
+        DistrictId = source.DistrictId,
+        PrimaryIntent = source.PrimaryIntent,
+        Intents = source.Intents,
+        Condition = source.Condition,
+        ModelYear = source.ModelYear,
+        Hours = source.Hours,
+        Tons = source.Tons,
+        Horsepower = source.Horsepower,
+        Price = source.Price,
+        Currency = currency,
+        PriceUnit = source.PriceUnit,
+        Title = source.Title,
+        Description = source.Description,
+        SpecsJson = source.SpecsJson,
+        ImageUrls = source.ImageUrls
+    };
+
+    [Fact]
     public void Rejects_dual_intent()
     {
-        var cmd = ValidCommand();
-        cmd = new CreatePublishedListingCommand
+        var baseCmd = ValidCommand();
+        var cmd = new CreatePublishedListingCommand
         {
-            AccountId = cmd.AccountId,
-            SellerDisplayName = cmd.SellerDisplayName,
-            Phone = cmd.Phone,
-            SellerType = cmd.SellerType,
-            CategoryId = cmd.CategoryId,
-            BrandId = cmd.BrandId,
-            ModelName = cmd.ModelName,
-            CityId = cmd.CityId,
-            DistrictId = cmd.DistrictId,
+            AccountId = baseCmd.AccountId,
+            SellerDisplayName = baseCmd.SellerDisplayName,
+            Phone = baseCmd.Phone,
+            SellerType = baseCmd.SellerType,
+            CategoryId = baseCmd.CategoryId,
+            BrandId = baseCmd.BrandId,
+            ModelName = baseCmd.ModelName,
+            CityId = baseCmd.CityId,
+            DistrictId = baseCmd.DistrictId,
             PrimaryIntent = ListingIntent.Satilik,
             Intents = [ListingIntent.Satilik, ListingIntent.Kiralik],
-            Condition = cmd.Condition,
-            ModelYear = cmd.ModelYear,
-            Hours = cmd.Hours,
-            Tons = cmd.Tons,
-            Horsepower = cmd.Horsepower,
-            Price = cmd.Price,
+            Condition = baseCmd.Condition,
+            ModelYear = baseCmd.ModelYear,
+            Hours = baseCmd.Hours,
+            Tons = baseCmd.Tons,
+            Horsepower = baseCmd.Horsepower,
+            Price = baseCmd.Price,
             PriceUnit = PriceUnit.Day,
-            Title = cmd.Title,
-            Description = cmd.Description,
-            SpecsJson = cmd.SpecsJson,
-            ImageUrls = cmd.ImageUrls
+            Title = baseCmd.Title,
+            Description = baseCmd.Description,
+            SpecsJson = baseCmd.SpecsJson,
+            ImageUrls = baseCmd.ImageUrls
         };
 
         var result = _validator.TestValidate(cmd);
@@ -79,31 +128,31 @@ public sealed class CreatePublishedListingValidatorTests
     [Fact]
     public void Rent_requires_price_unit()
     {
-        var cmd = ValidCommand();
-        cmd = new CreatePublishedListingCommand
+        var baseCmd = ValidCommand();
+        var cmd = new CreatePublishedListingCommand
         {
-            AccountId = cmd.AccountId,
-            SellerDisplayName = cmd.SellerDisplayName,
-            Phone = cmd.Phone,
-            SellerType = cmd.SellerType,
-            CategoryId = cmd.CategoryId,
-            BrandId = cmd.BrandId,
-            ModelName = cmd.ModelName,
-            CityId = cmd.CityId,
-            DistrictId = cmd.DistrictId,
+            AccountId = baseCmd.AccountId,
+            SellerDisplayName = baseCmd.SellerDisplayName,
+            Phone = baseCmd.Phone,
+            SellerType = baseCmd.SellerType,
+            CategoryId = baseCmd.CategoryId,
+            BrandId = baseCmd.BrandId,
+            ModelName = baseCmd.ModelName,
+            CityId = baseCmd.CityId,
+            DistrictId = baseCmd.DistrictId,
             PrimaryIntent = ListingIntent.Kiralik,
             Intents = [ListingIntent.Kiralik],
-            Condition = cmd.Condition,
-            ModelYear = cmd.ModelYear,
-            Hours = cmd.Hours,
-            Tons = cmd.Tons,
-            Horsepower = cmd.Horsepower,
-            Price = cmd.Price,
+            Condition = baseCmd.Condition,
+            ModelYear = baseCmd.ModelYear,
+            Hours = baseCmd.Hours,
+            Tons = baseCmd.Tons,
+            Horsepower = baseCmd.Horsepower,
+            Price = baseCmd.Price,
             PriceUnit = null,
-            Title = cmd.Title,
-            Description = cmd.Description,
-            SpecsJson = cmd.SpecsJson,
-            ImageUrls = cmd.ImageUrls
+            Title = baseCmd.Title,
+            Description = baseCmd.Description,
+            SpecsJson = baseCmd.SpecsJson,
+            ImageUrls = baseCmd.ImageUrls
         };
 
         var result = _validator.TestValidate(cmd);
@@ -113,29 +162,29 @@ public sealed class CreatePublishedListingValidatorTests
     [Fact]
     public void Rejects_http_image_url()
     {
-        var cmd = ValidCommand();
-        cmd = new CreatePublishedListingCommand
+        var baseCmd = ValidCommand();
+        var cmd = new CreatePublishedListingCommand
         {
-            AccountId = cmd.AccountId,
-            SellerDisplayName = cmd.SellerDisplayName,
-            Phone = cmd.Phone,
-            SellerType = cmd.SellerType,
-            CategoryId = cmd.CategoryId,
-            BrandId = cmd.BrandId,
-            ModelName = cmd.ModelName,
-            CityId = cmd.CityId,
-            DistrictId = cmd.DistrictId,
-            PrimaryIntent = cmd.PrimaryIntent,
-            Intents = cmd.Intents,
-            Condition = cmd.Condition,
-            ModelYear = cmd.ModelYear,
-            Hours = cmd.Hours,
-            Tons = cmd.Tons,
-            Horsepower = cmd.Horsepower,
-            Price = cmd.Price,
-            Title = cmd.Title,
-            Description = cmd.Description,
-            SpecsJson = cmd.SpecsJson,
+            AccountId = baseCmd.AccountId,
+            SellerDisplayName = baseCmd.SellerDisplayName,
+            Phone = baseCmd.Phone,
+            SellerType = baseCmd.SellerType,
+            CategoryId = baseCmd.CategoryId,
+            BrandId = baseCmd.BrandId,
+            ModelName = baseCmd.ModelName,
+            CityId = baseCmd.CityId,
+            DistrictId = baseCmd.DistrictId,
+            PrimaryIntent = baseCmd.PrimaryIntent,
+            Intents = baseCmd.Intents,
+            Condition = baseCmd.Condition,
+            ModelYear = baseCmd.ModelYear,
+            Hours = baseCmd.Hours,
+            Tons = baseCmd.Tons,
+            Horsepower = baseCmd.Horsepower,
+            Price = baseCmd.Price,
+            Title = baseCmd.Title,
+            Description = baseCmd.Description,
+            SpecsJson = baseCmd.SpecsJson,
             ImageUrls = ["http://evil.example/a.jpg"]
         };
 
@@ -155,34 +204,103 @@ public sealed class CreatePublishedListingValidatorTests
     [Fact]
     public void Hours_null_allowed()
     {
-        var cmd = ValidCommand();
-        cmd = new CreatePublishedListingCommand
+        var baseCmd = ValidCommand();
+        var cmd = new CreatePublishedListingCommand
         {
-            AccountId = cmd.AccountId,
-            SellerDisplayName = cmd.SellerDisplayName,
-            Phone = cmd.Phone,
-            SellerType = cmd.SellerType,
-            CategoryId = cmd.CategoryId,
-            BrandId = cmd.BrandId,
-            ModelName = cmd.ModelName,
-            CityId = cmd.CityId,
-            DistrictId = cmd.DistrictId,
-            PrimaryIntent = cmd.PrimaryIntent,
-            Intents = cmd.Intents,
-            Condition = cmd.Condition,
-            ModelYear = cmd.ModelYear,
+            AccountId = baseCmd.AccountId,
+            SellerDisplayName = baseCmd.SellerDisplayName,
+            Phone = baseCmd.Phone,
+            SellerType = baseCmd.SellerType,
+            CategoryId = baseCmd.CategoryId,
+            BrandId = baseCmd.BrandId,
+            ModelName = baseCmd.ModelName,
+            CityId = baseCmd.CityId,
+            DistrictId = baseCmd.DistrictId,
+            PrimaryIntent = baseCmd.PrimaryIntent,
+            Intents = baseCmd.Intents,
+            Condition = baseCmd.Condition,
+            ModelYear = baseCmd.ModelYear,
             Hours = null,
-            Tons = cmd.Tons,
+            Tons = baseCmd.Tons,
             Horsepower = null,
-            Price = cmd.Price,
-            Title = cmd.Title,
-            Description = cmd.Description,
-            SpecsJson = cmd.SpecsJson,
-            ImageUrls = cmd.ImageUrls
+            Price = baseCmd.Price,
+            Title = baseCmd.Title,
+            Description = baseCmd.Description,
+            SpecsJson = baseCmd.SpecsJson,
+            ImageUrls = baseCmd.ImageUrls
         };
 
         var result = _validator.TestValidate(cmd);
         result.ShouldNotHaveValidationErrorFor(x => x.Hours);
         result.ShouldNotHaveValidationErrorFor(x => x.Horsepower);
+    }
+
+    [Fact]
+    public void Capacity_kg_required_when_metric_is_capacity_kg()
+    {
+        var baseCmd = ValidCommand();
+        var cmd = new CreatePublishedListingCommand
+        {
+            AccountId = baseCmd.AccountId,
+            SellerDisplayName = baseCmd.SellerDisplayName,
+            Phone = baseCmd.Phone,
+            SellerType = baseCmd.SellerType,
+            CategoryId = baseCmd.CategoryId,
+            BrandId = baseCmd.BrandId,
+            ModelName = baseCmd.ModelName,
+            CityId = baseCmd.CityId,
+            DistrictId = baseCmd.DistrictId,
+            PrimaryIntent = baseCmd.PrimaryIntent,
+            Intents = baseCmd.Intents,
+            Condition = baseCmd.Condition,
+            ModelYear = baseCmd.ModelYear,
+            Hours = baseCmd.Hours,
+            Tons = baseCmd.Tons,
+            CapacityKg = null,
+            CapacityMetric = "capacity_kg",
+            Horsepower = baseCmd.Horsepower,
+            Price = baseCmd.Price,
+            Title = baseCmd.Title,
+            Description = baseCmd.Description,
+            SpecsJson = baseCmd.SpecsJson,
+            ImageUrls = baseCmd.ImageUrls
+        };
+
+        var result = _validator.TestValidate(cmd);
+        result.ShouldHaveValidationErrorFor(x => x.CapacityKg);
+    }
+
+    [Fact]
+    public void Sale_rejects_includes_operator()
+    {
+        var baseCmd = ValidCommand();
+        var cmd = new CreatePublishedListingCommand
+        {
+            AccountId = baseCmd.AccountId,
+            SellerDisplayName = baseCmd.SellerDisplayName,
+            Phone = baseCmd.Phone,
+            SellerType = baseCmd.SellerType,
+            CategoryId = baseCmd.CategoryId,
+            BrandId = baseCmd.BrandId,
+            ModelName = baseCmd.ModelName,
+            CityId = baseCmd.CityId,
+            DistrictId = baseCmd.DistrictId,
+            PrimaryIntent = ListingIntent.Satilik,
+            Intents = [ListingIntent.Satilik],
+            Condition = baseCmd.Condition,
+            ModelYear = baseCmd.ModelYear,
+            Hours = baseCmd.Hours,
+            Tons = baseCmd.Tons,
+            Horsepower = baseCmd.Horsepower,
+            Price = baseCmd.Price,
+            IncludesOperator = true,
+            Title = baseCmd.Title,
+            Description = baseCmd.Description,
+            SpecsJson = baseCmd.SpecsJson,
+            ImageUrls = baseCmd.ImageUrls
+        };
+
+        var result = _validator.TestValidate(cmd);
+        result.ShouldHaveValidationErrorFor(x => x.IncludesOperator);
     }
 }

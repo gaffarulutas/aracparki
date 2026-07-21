@@ -6,7 +6,7 @@ namespace AracParki.Application.Listings.Validation;
 
 public sealed class CreatePublishedListingValidator : AbstractValidator<CreatePublishedListingCommand>
 {
-    public CreatePublishedListingValidator()
+    public CreatePublishedListingValidator(ListingImageUrlPolicy imageUrlPolicy)
     {
         RuleFor(x => x.AccountId).GreaterThan(0).WithMessage("Hesap geçersiz.");
         RuleFor(x => x.SellerDisplayName).NotEmpty().MaximumLength(120)
@@ -25,7 +25,11 @@ public sealed class CreatePublishedListingValidator : AbstractValidator<CreatePu
         RuleFor(x => x.SerialNo).MaximumLength(80).When(x => x.SerialNo is not null)
             .WithMessage("Seri no en fazla 80 karakter.");
         RuleFor(x => x.Title).NotEmpty().MaximumLength(200).WithMessage("Başlık gerekli.");
-        RuleFor(x => x.Description).NotEmpty().MaximumLength(8000).WithMessage("Açıklama gerekli.");
+        RuleFor(x => x.Description)
+            .Must(d => !ListingDescriptionHtml.IsBlank(d))
+            .WithMessage("Açıklama gerekli.")
+            .Must(d => ListingDescriptionHtml.Sanitize(d).Length <= ListingDescriptionHtml.MaxLength)
+            .WithMessage($"Açıklama en fazla {ListingDescriptionHtml.MaxLength} karakter.");
 
         RuleFor(x => x.CityId).GreaterThan(0).WithMessage("İl seç.");
         RuleFor(x => x.DistrictId).GreaterThan(0).WithMessage("İlçe seç.");
@@ -54,8 +58,17 @@ public sealed class CreatePublishedListingValidator : AbstractValidator<CreatePu
             .WithMessage("Beygir gücü geçersiz.");
         RuleFor(x => x.CapacityKg).GreaterThan(0).When(x => x.CapacityKg.HasValue)
             .WithMessage("Kapasite (kg) geçersiz.");
+        RuleFor(x => x.CapacityKg)
+            .NotNull()
+            .GreaterThan(0)
+            .When(x => string.Equals(x.CapacityMetric, "capacity_kg", StringComparison.Ordinal))
+            .WithMessage("Bu kategoride kapasite (kg) zorunlu.");
 
         RuleFor(x => x.Price).GreaterThan(0).WithMessage("Fiyat 0'dan büyük olmalı.");
+        RuleFor(x => x.Currency)
+            .Must(c => !string.IsNullOrWhiteSpace(c)
+                       && Currency.Known.Contains(c.Trim().ToUpperInvariant()))
+            .WithMessage("Para birimi geçersiz.");
         RuleFor(x => x.RentPrice)
             .Null()
             .WithMessage("Kira bedeli artık kullanılmıyor; tek fiyat alanını kullan.");
@@ -71,6 +84,10 @@ public sealed class CreatePublishedListingValidator : AbstractValidator<CreatePu
             .Empty()
             .When(x => x.PrimaryIntent == ListingIntent.Satilik)
             .WithMessage("Satılık ilanlarda fiyat birimi olmamalı.");
+        RuleFor(x => x.IncludesOperator)
+            .Equal(false)
+            .When(x => x.PrimaryIntent == ListingIntent.Satilik)
+            .WithMessage("Satılık ilanlarda operatör seçeneği olmamalı.");
 
         RuleFor(x => x.SpecsJson)
             .Must(BeJsonObject)
@@ -84,8 +101,8 @@ public sealed class CreatePublishedListingValidator : AbstractValidator<CreatePu
             .WithMessage($"1–{ListingImageUrl.MaxCount} görsel gerekli.");
 
         RuleForEach(x => x.ImageUrls)
-            .Must(ListingImageUrl.IsAllowed)
-            .WithMessage("Görseller https:// URL veya yüklenen dosya olmalı.");
+            .Must(imageUrlPolicy.IsAllowed)
+            .WithMessage("Görseller yalnızca yüklenen medya dosyaları olabilir.");
 
         RuleForEach(x => x.AttachmentIds).GreaterThan(0).WithMessage("Ekipman seçimi geçersiz.");
         RuleFor(x => x.AttachmentIds).Must(ids => ids.Count <= 20)

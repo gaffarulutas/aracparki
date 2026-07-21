@@ -60,4 +60,26 @@ public sealed class CatalogModelDefaultsTests
         Assert.Contains("lift_capacity_kg", CatalogModelDefaults.LockedSpecKeys(draft));
         Assert.Contains("lift_height_m", CatalogModelDefaults.LockedSpecKeys(draft));
     }
+
+    [Fact]
+    public void PruneSpecs_removes_keys_outside_category()
+    {
+        var draft = new WizardDraft
+        {
+            Specs = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["fuel"] = "diesel",
+                ["orphan"] = "x"
+            }
+        };
+        var attrs = new List<CategoryAttributeDto>
+        {
+            new() { Id = 1, Key = "fuel", Label = "Yakıt", DataType = "enum" }
+        };
+
+        CatalogModelDefaults.PruneSpecs(draft, attrs);
+
+        Assert.True(draft.Specs.ContainsKey("fuel"));
+        Assert.False(draft.Specs.ContainsKey("orphan"));
+    }
 }

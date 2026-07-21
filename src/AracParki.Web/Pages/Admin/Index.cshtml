@@ -1,0 +1,30 @@
+@page "/admin"
+@model AracParki.Web.Pages.Admin.IndexModel
+@{
+    Layout = "Shared/_AccountLayout";
+}
+<header class="page-account-head">
+  <h1>Admin</h1>
+  <p class="page-account-lead">İlan moderasyonu ve onay kuyruğu</p>
+</header>
+
+<div class="account-dash">
+  <a class="account-dash-card" href="/admin/ilanlar?durum=pending_review">
+    <span class="account-dash-body">
+      <span class="account-dash-title">İncelemede</span>
+      <span class="account-dash-meta">@Model.Counts.PendingReview bekleyen ilan</span>
+    </span>
+  </a>
+  <a class="account-dash-card" href="/admin/ilanlar?durum=published">
+    <span class="account-dash-body">
+      <span class="account-dash-title">Yayında</span>
+      <span class="account-dash-meta">@Model.Counts.Published ilan</span>
+    </span>
+  </a>
+  <a class="account-dash-card" href="/admin/ilanlar?durum=rejected">
+    <span class="account-dash-body">
+      <span class="account-dash-title">Reddedilen</span>
+      <span class="account-dash-meta">@Model.Counts.Rejected ilan</span>
+    </span>
+  </a>
+</div>

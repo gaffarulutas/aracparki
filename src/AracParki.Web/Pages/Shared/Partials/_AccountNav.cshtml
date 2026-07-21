@@ -1,7 +1,9 @@
+@using AracParki.Web.Infrastructure
 @{
     var path = ViewContext.HttpContext.Request.Path.Value ?? string.Empty;
     bool On(string prefix) => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
     var isPanel = On("/panel");
+    var isAdmin = On("/admin");
     var isIlanlarim = On("/ilanlarim");
     var isIlanVer = On("/ilan-ver");
     var isFavorilerim = On("/favorilerim");
@@ -17,6 +19,12 @@
     <li>
       <partial name="Shared/Partials/_AccountNavItem" model='("/panel", "Panel", "layout-dashboard", isPanel)' />
     </li>
+    @if (AuthCookie.IsAdmin(User))
+    {
+      <li>
+        <partial name="Shared/Partials/_AccountNavItem" model='("/admin", "Admin", "shield-check", isAdmin)' />
+      </li>
+    }
   </ul>
 </div>
 

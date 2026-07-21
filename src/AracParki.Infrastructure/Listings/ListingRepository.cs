@@ -73,14 +73,16 @@ public sealed class ListingRepository(IDbConnectionFactory connectionFactory, IS
         return items.AsList();
     }
 
-    public async Task<ListingDetailDto?> GetByAdNoAsync(string adNo, CancellationToken cancellationToken)
+    public async Task<ListingEditDto?> GetOwnedForEditAsync(
+        string adNo,
+        long accountId,
+        CancellationToken cancellationToken)
     {
         await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
-
-        var row = await connection.QuerySingleOrDefaultAsync<ListingDetailRow>(
+        var row = await connection.QuerySingleOrDefaultAsync<ListingEditDto>(
             new CommandDefinition(
-                sql.Get("Listings/GetByAdNo.sql"),
-                new { AdNo = adNo },
+                sql.Get("Listings/GetOwnedForEdit.sql"),
+                new { AdNo = adNo, AccountId = accountId },
                 cancellationToken: cancellationToken));
 
         if (row is null)
@@ -94,7 +96,90 @@ public sealed class ListingRepository(IDbConnectionFactory connectionFactory, IS
                 new { ListingId = row.Id },
                 cancellationToken: cancellationToken))).AsList();
 
-        if (images.Count == 0)
+        var attachmentIds = (await connection.QueryAsync<int>(
+            new CommandDefinition(
+                """
+                SELECT attachment_id
+                FROM listing_attachments
+                WHERE listing_id = @ListingId
+                ORDER BY attachment_id
+                """,
+                new { ListingId = row.Id },
+                cancellationToken: cancellationToken))).AsList();
+
+        return new ListingEditDto
+        {
+            Id = row.Id,
+            AdNo = row.AdNo,
+            Title = row.Title,
+            Description = row.Description,
+            CategoryId = row.CategoryId,
+            CategoryName = row.CategoryName,
+            CapacityMetric = row.CapacityMetric,
+            GroupId = row.GroupId,
+            GroupName = row.GroupName,
+            BrandId = row.BrandId,
+            BrandName = row.BrandName,
+            ModelId = row.ModelId,
+            ModelName = row.ModelName,
+            SerialNo = row.SerialNo,
+            Condition = row.Condition,
+            ModelYear = row.ModelYear,
+            Hours = row.Hours,
+            Tons = row.Tons,
+            CapacityKg = row.CapacityKg,
+            Horsepower = row.Horsepower,
+            PrimaryIntent = row.PrimaryIntent,
+            Price = row.Price,
+            Currency = row.Currency,
+            PriceUnit = row.PriceUnit,
+            IncludesOperator = row.IncludesOperator,
+            SellerType = row.SellerType,
+            CityId = row.CityId,
+            CityName = row.CityName,
+            DistrictId = row.DistrictId,
+            DistrictName = row.DistrictName,
+            NeighborhoodId = row.NeighborhoodId,
+            NeighborhoodName = row.NeighborhoodName,
+            SpecsJson = row.SpecsJson,
+            Status = row.Status,
+            RejectionReason = row.RejectionReason,
+            ImageUrls = images,
+            AttachmentIds = attachmentIds
+        };
+    }
+
+    public async Task<ListingDetailDto?> GetByAdNoAsync(
+        string adNo,
+        long? viewerAccountId,
+        bool isAdmin,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+
+        var row = await connection.QuerySingleOrDefaultAsync<ListingDetailRow>(
+            new CommandDefinition(
+                sql.Get("Listings/GetByAdNo.sql"),
+                new
+                {
+                    AdNo = adNo,
+                    ViewerAccountId = viewerAccountId,
+                    IsAdmin = isAdmin
+                },
+                cancellationToken: cancellationToken));
+
+        if (row is null)
+        {
+            return null;
+        }
+
+        var images = (await connection.QueryAsync<string>(
+            new CommandDefinition(
+                sql.Get("Listings/GetImages.sql"),
+                new { ListingId = row.Id },
+                cancellationToken: cancellationToken))).AsList();
+
+        if (images.Count == 0 && !string.IsNullOrWhiteSpace(row.CoverImageUrl))
         {
             images.Add(row.CoverImageUrl);
         }
@@ -131,6 +216,7 @@ public sealed class ListingRepository(IDbConnectionFactory connectionFactory, IS
             Neighborhood = row.Neighborhood,
             Price = row.Price,
             RentPrice = row.RentPrice,
+            Currency = Currency.Normalize(row.Currency),
             PriceUnit = row.PriceUnit,
             IncludesOperator = row.IncludesOperator,
             SpecsJson = row.SpecsJson,
@@ -140,7 +226,11 @@ public sealed class ListingRepository(IDbConnectionFactory connectionFactory, IS
             SellerName = row.SellerName,
             SellerType = row.SellerType,
             IsVerified = row.IsVerified,
-            ListedAt = row.ListedAt
+            ListedAt = row.ListedAt,
+            Status = row.Status,
+            RejectionReason = row.RejectionReason,
+            SubmittedAt = row.SubmittedAt,
+            OwnerAccountId = row.OwnerAccountId
         };
     }
 
@@ -236,6 +326,7 @@ public sealed class ListingRepository(IDbConnectionFactory connectionFactory, IS
         public string? Neighborhood { get; init; }
         public decimal Price { get; init; }
         public decimal? RentPrice { get; init; }
+        public string? Currency { get; init; }
         public string? PriceUnit { get; init; }
         public bool IncludesOperator { get; init; }
         public required string SpecsJson { get; init; }
@@ -244,5 +335,9 @@ public sealed class ListingRepository(IDbConnectionFactory connectionFactory, IS
         public required string SellerType { get; init; }
         public bool IsVerified { get; init; }
         public DateTimeOffset ListedAt { get; init; }
+        public string Status { get; init; } = ListingStatus.Published;
+        public string? RejectionReason { get; init; }
+        public DateTimeOffset? SubmittedAt { get; init; }
+        public long? OwnerAccountId { get; init; }
     }
 }

@@ -40,7 +40,7 @@
       </div>
       <div class="listing-foot">
         <div class="listing-price">
-          @Formatters.Price(Model.Price, Model.PriceUnit)
+          @Formatters.Price(Model.Price, Model.PriceUnit, Model.Currency)
         </div>
         <span class="seller-tag@(Model.IsVerified ? " verified" : "")">@(Model.IsVerified ? "Doğrulanmış · " : "")@sellerLabel</span>
       </div>
