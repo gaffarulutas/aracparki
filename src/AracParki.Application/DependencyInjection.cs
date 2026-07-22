@@ -19,9 +19,12 @@ public static class DependencyInjection
         services.AddScoped<ListingService>();
         services.AddScoped<ListingCommandService>();
         services.AddScoped<ListingModerationService>();
+        services.AddScoped<FavoriteService>();
+        services.AddScoped<SavedSearchService>();
         services.AddScoped<CatalogService>();
         services.AddScoped<AuthEmailService>();
         services.AddScoped<AccountService>();
+        services.AddScoped<AccountNavCountsService>();
         services.AddScoped<CorporateAccountService>();
         return services;
     }

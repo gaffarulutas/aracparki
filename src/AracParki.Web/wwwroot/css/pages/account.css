@@ -226,6 +226,34 @@
   color: var(--ink);
 }
 
+.account-nav-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.account-nav-count {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.25rem;
+  padding: 0 6px;
+  margin-left: auto;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.account-nav-link.is-current .account-nav-count {
+  background: var(--machine);
+  color: var(--machine-ink);
+}
+
 .account-nav-footer {
   margin-top: auto;
   flex: 0 0 auto;
@@ -662,6 +690,8 @@
   border: 1px solid var(--line);
   background: linear-gradient(180deg, var(--tint), var(--surface));
   line-height: 1;
+  width: 72px;
+  height: 72px;
 }
 
 .account-result-body,
@@ -825,6 +855,181 @@ div.admin-listing-meta {
 .account-action-item:hover .ap-icon,
 .account-action-item:focus-visible .ap-icon {
   color: var(--ink);
+}
+
+button.account-action-item {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.account-action-menu form {
+  margin: 0;
+}
+
+.account-action-item--danger {
+  color: var(--signal, #b42318);
+}
+
+.account-action-item--danger .ap-icon {
+  color: var(--signal, #b42318);
+}
+
+.account-action-item--danger:hover,
+.account-action-item--danger:focus-visible {
+  background: color-mix(in srgb, #b42318 8%, var(--tint));
+  color: var(--signal, #b42318);
+}
+
+.account-expiry.is-soon {
+  color: #b54708;
+  font-weight: 600;
+}
+
+.account-expiry.is-past {
+  color: var(--signal, #b42318);
+  font-weight: 600;
+}
+
+.account-listing-actions--inline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.account-listing-actions--inline form {
+  display: inline;
+  margin: 0;
+}
+
+.account-fav-price {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.account-fav-remove {
+  color: var(--signal, #b42318);
+}
+
+.empty-state-hint {
+  margin: -4px 0 12px;
+  font-size: 13px;
+  color: var(--muted);
+  max-width: 36ch;
+  text-wrap: pretty;
+}
+
+.saved-search-list {
+  display: grid;
+  gap: 10px;
+}
+
+.saved-search-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 12px 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+}
+
+.saved-search-row:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow);
+}
+
+.saved-search-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  background: var(--tint);
+  color: var(--ok, #067647);
+}
+
+.saved-search-body {
+  min-width: 0;
+}
+
+.saved-search-body h2 {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.saved-search-body h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.saved-search-body h2 a:hover {
+  text-decoration: underline;
+}
+
+.saved-search-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.saved-search-url {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.saved-search-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.saved-search-actions form {
+  display: inline;
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .saved-search-row {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .saved-search-actions {
+    grid-column: 1 / -1;
+    justify-content: stretch;
+  }
+
+  .saved-search-actions .btn {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+
+  .account-listing-actions--inline {
+    justify-content: stretch;
+  }
+
+  .account-listing-actions--inline .btn {
+    flex: 1 1 auto;
+  }
 }
 
 .account-reject-pop {
@@ -1505,6 +1710,12 @@ div.admin-listing-meta {
   border-top: 1px solid var(--line);
 }
 
+.admin-mod-archive-form {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
 .admin-corp-reject-form .ap-label {
   font-size: 12px;
   font-weight: 700;
@@ -1767,5 +1978,221 @@ div.admin-listing-meta {
 @media (max-width: 959px) {
   .admin-mod-gallery .gallery-main-wrap {
     max-width: none;
+  }
+}
+
+/* —— Corporate logo uploader —— */
+.corp-logo-uploader {
+  margin-top: 4px;
+}
+
+.corp-logo-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2);
+  align-items: center;
+  padding: var(--space-2);
+  border: 1px solid var(--line);
+  background: var(--raised);
+  border-radius: var(--radius);
+}
+
+.corp-logo-preview {
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.corp-logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.corp-logo-fallback {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.corp-logo-meta {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.corp-logo-status {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.corp-logo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.corp-logo-pick {
+  cursor: pointer;
+}
+
+.corp-logo-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.corp-logo-progress-bar {
+  height: 100%;
+  background: var(--machine);
+  transition: width 0.15s ease;
+}
+
+.admin-corp-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.admin-corp-avatar.has-logo {
+  padding: 0;
+  background: var(--surface);
+}
+
+/* Crop modal (shared with listing wizard; loaded on account when logo UI is present) */
+.wizard-crop-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.wizard-crop-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 12, 12, 0.62);
+}
+
+html.wizard-crop-open,
+html.wizard-crop-open body {
+  overflow: hidden;
+}
+
+.wizard-crop-panel {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 560px);
+  max-height: min(92vh, 720px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+  outline: none;
+}
+
+.wizard-crop-head {
+  display: grid;
+  gap: 4px;
+}
+
+.wizard-crop-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.wizard-crop-lead {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wizard-crop-stage {
+  position: relative;
+  width: 100%;
+  height: min(52vh, 420px);
+  background: #1a1a1a;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.wizard-crop-stage > img {
+  display: block;
+  max-width: none;
+  max-height: none;
+}
+
+.wizard-crop-stage .cropper-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.wizard-crop-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #b42318;
+  font-weight: 600;
+}
+
+.wizard-crop-toolbar,
+.wizard-crop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.wizard-crop-actions {
+  justify-content: flex-end;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 720px) {
+  .corp-logo-row {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .wizard-crop-panel {
+    padding: 12px;
+    max-height: 96vh;
+  }
+
+  .wizard-crop-stage {
+    height: min(48vh, 360px);
+  }
+
+  .wizard-crop-actions {
+    justify-content: stretch;
+  }
+
+  .wizard-crop-actions .btn {
+    flex: 1 1 auto;
   }
 }

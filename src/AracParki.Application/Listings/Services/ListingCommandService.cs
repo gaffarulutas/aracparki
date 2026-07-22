@@ -54,6 +54,24 @@ public sealed class ListingCommandService(
         await store.UpdateForReviewAsync(adNo.Trim(), command.AccountId, normalized, cancellationToken);
     }
 
+    public Task ArchiveAsync(string adNo, long accountId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(adNo);
+        if (accountId <= 0)
+            throw new ArgumentOutOfRangeException(nameof(accountId));
+
+        return store.ArchiveByOwnerAsync(adNo.Trim(), accountId, cancellationToken);
+    }
+
+    public Task RepublishAsync(string adNo, long accountId, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(adNo);
+        if (accountId <= 0)
+            throw new ArgumentOutOfRangeException(nameof(accountId));
+
+        return store.RepublishByOwnerAsync(adNo.Trim(), accountId, cancellationToken);
+    }
+
     private static CreatePublishedListingCommand Normalize(
         CreatePublishedListingCommand command,
         string specsJson)

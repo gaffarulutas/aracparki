@@ -326,7 +326,7 @@ public sealed class CorporateAccountServiceTests
                 SecurityStamp = "stamp",
                 EmailConfirmedAt = emailConfirmed ? DateTimeOffset.UtcNow : null
             });
-        return new CorporateAccountService(store, new FakeDocStorage(), accounts);
+        return new CorporateAccountService(store, new FakeDocStorage(), accounts, Substitute.For<IListingImageStorage>());
     }
 
     private static CorporateAccountDto MakeAccount(string status, string companyType) => new()
@@ -476,6 +476,49 @@ public sealed class CorporateAccountServiceTests
         public Task<bool> UpdateProfileAsync(long id, long accountId, CorporateProfileData data, CancellationToken cancellationToken)
             => Task.FromResult(true);
 
+        public Task<bool> UpdateLogoUrlAsync(long id, long accountId, string? logoUrl, CancellationToken cancellationToken)
+        {
+            if (Account is null || Account.Id != id || Account.AccountId != accountId)
+            {
+                return Task.FromResult(false);
+            }
+
+            Account = new CorporateAccountDto
+            {
+                Id = Account.Id,
+                AccountId = Account.AccountId,
+                CompanyType = Account.CompanyType,
+                TradeName = Account.TradeName,
+                DisplayName = Account.DisplayName,
+                Slug = Account.Slug,
+                TaxOffice = Account.TaxOffice,
+                TaxNumber = Account.TaxNumber,
+                MersisNo = Account.MersisNo,
+                TradeRegistryNo = Account.TradeRegistryNo,
+                KepAddress = Account.KepAddress,
+                AuthorizedName = Account.AuthorizedName,
+                Phone = Account.Phone,
+                Email = Account.Email,
+                Website = Account.Website,
+                CityId = Account.CityId,
+                DistrictId = Account.DistrictId,
+                AddressLine = Account.AddressLine,
+                LogoUrl = logoUrl,
+                Status = Account.Status,
+                RejectionReason = Account.RejectionReason,
+                SubmittedAt = Account.SubmittedAt,
+                ReviewedAt = Account.ReviewedAt,
+                ReviewedByAccountId = Account.ReviewedByAccountId,
+                CreatedAt = Account.CreatedAt,
+                UpdatedAt = Account.UpdatedAt,
+                CityName = Account.CityName,
+                DistrictName = Account.DistrictName,
+                OwnerEmail = Account.OwnerEmail,
+                OwnerName = Account.OwnerName
+            };
+            return Task.FromResult(true);
+        }
+
         public Task<PublicDealerDto?> GetApprovedPublicBySlugAsync(string slug, CancellationToken cancellationToken)
             => Task.FromResult<PublicDealerDto?>(null);
 
@@ -487,7 +530,17 @@ public sealed class CorporateAccountServiceTests
     {
         public CreatePublishedListingCommand? LastCreate { get; private set; }
 
-        public Task ApproveAsync(string adNo, long adminAccountId, CancellationToken cancellationToken)
+        public Task ApproveAsync(
+            string adNo,
+            long adminAccountId,
+            int publishedDurationDays,
+            CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task ArchiveByAdminAsync(string adNo, long adminAccountId, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task ArchiveByOwnerAsync(string adNo, long accountId, CancellationToken cancellationToken)
             => Task.CompletedTask;
 
         public Task<string> CreatePublishedAsync(
@@ -497,6 +550,9 @@ public sealed class CorporateAccountServiceTests
             LastCreate = command;
             return Task.FromResult("AP-TEST");
         }
+
+        public Task<int> ExpirePublishedAsync(CancellationToken cancellationToken)
+            => Task.FromResult(0);
 
         public Task<ModerationCountsDto> GetModerationCountsAsync(CancellationToken cancellationToken)
             => Task.FromResult(new ModerationCountsDto());
@@ -508,6 +564,9 @@ public sealed class CorporateAccountServiceTests
             => Task.FromResult<IReadOnlyList<ModerationListItemDto>>([]);
 
         public Task RejectAsync(string adNo, long adminAccountId, string reason, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task RepublishByOwnerAsync(string adNo, long accountId, CancellationToken cancellationToken)
             => Task.CompletedTask;
 
         public Task UpdateForReviewAsync(

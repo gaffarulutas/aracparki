@@ -48,5 +48,5 @@ JOIN districts d ON d.id = l.district_id
 LEFT JOIN neighborhoods n ON n.id = l.neighborhood_id
 WHERE l.ad_no = @AdNo
   AND s.account_id = @AccountId
-  AND l.status IN ('pending_review', 'rejected', 'published')
+  AND l.status IN ('pending_review', 'rejected', 'published', 'archived')
 LIMIT 1;

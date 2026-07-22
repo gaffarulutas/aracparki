@@ -102,7 +102,7 @@
                     data-gallery-open
                     aria-haspopup="dialog"
                     aria-label="Büyük galeriyi aç">
-              <ap-icon name="maximize" size="16" />
+              <ap-icon name="maximize-2" size="16" />
               <span>@(images.Count) fotoğraf</span>
             </button>
             <button type="button" class="sr-only" data-gallery-lg-trigger id="gallery-lg-admin-@listing.Id" tabindex="-1">Galeri</button>
@@ -253,9 +253,27 @@
       <section class="admin-corp-panel admin-corp-aside-card admin-corp-aside-ok">
         <h2 class="admin-corp-panel-title">Yayında</h2>
         <p>Bu ilan herkese açık listede görünür.</p>
+        @if (listing.ExpiresAt is DateTimeOffset expiresAt)
+        {
+          <p class="admin-corp-muted">Yayın bitişi: @expiresAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+        }
         <a class="btn btn-machine btn-block" href="/ilan/@listing.AdNo" target="_blank" rel="noopener noreferrer">
           Canlı sayfayı aç
         </a>
+        <form method="post" asp-page-handler="Archive" class="admin-mod-archive-form">
+          @Html.AntiForgeryToken()
+          <button class="btn btn-ghost btn-block" type="submit"
+                  onclick="return confirm('İlan yayından kaldırılsın mı? Satıcı daha sonra yeniden yayınlayabilir.');">
+            Yayından kaldır
+          </button>
+        </form>
+      </section>
+    }
+    else if (listing.Status == ListingStatus.Archived)
+    {
+      <section class="admin-corp-panel admin-corp-aside-card">
+        <h2 class="admin-corp-panel-title">Arşiv</h2>
+        <p class="admin-corp-muted">İlan yayında değil. Satıcı yeniden yayınlayabilir.</p>
       </section>
     }
   </aside>

@@ -18,6 +18,24 @@
   background: color-mix(in srgb, #b42318 10%, var(--surface));
 }
 
+.detail-status-banner.is-archived {
+  border-color: color-mix(in srgb, var(--muted) 35%, var(--line));
+  background: var(--surface);
+}
+
+.detail-util.is-active {
+  color: #c62828;
+}
+
+.detail-util.is-active .ap-icon {
+  fill: currentColor;
+  color: #c62828;
+}
+
+a.detail-util {
+  text-decoration: none;
+}
+
 /* Title + utilities */
 .detail-head {
   display: flex;
@@ -72,6 +90,11 @@
 .detail-util:focus-visible {
   outline: var(--focus);
   outline-offset: 2px;
+}
+
+.detail-util-form {
+  display: inline;
+  margin: 0;
 }
 
 /* Top: gallery | specs | seller */
@@ -272,6 +295,38 @@
   margin-bottom: 12px;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--line);
+}
+
+.detail-loc-sep {
+  margin: 0 0.2em;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.detail-filter-link {
+  color: var(--link);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.12s var(--ease, ease), color 0.12s var(--ease, ease);
+}
+
+.detail-filter-link:hover {
+  color: var(--link-hover, var(--link));
+  border-bottom-color: currentColor;
+}
+
+.detail-filter-link:focus-visible {
+  outline: var(--focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.spec-table a.detail-filter-link {
+  color: var(--link);
+}
+
+.spec-table a.detail-filter-link:hover {
+  color: var(--link-hover, var(--link));
 }
 
 .spec-table {

@@ -70,7 +70,7 @@
           }
           else
           {
-            <partial name="Shared/Partials/_AccountNav" />
+            @await Component.InvokeAsync("AccountSidebarNav")
           }
         </nav>
       </div>

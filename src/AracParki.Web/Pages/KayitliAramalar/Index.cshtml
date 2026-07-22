@@ -5,7 +5,53 @@
 }
 <header class="page-account-head">
   <partial name="Shared/Partials/_AccountBreadcrumb" />
-  <h1>Kayıtlı aramalar</h1>
-  <p class="page-account-lead">Kaydettiğin filtreler ve arama kriterleri</p>
+  <div class="page-account-title-row">
+    <div>
+      <h1>Kayıtlı aramalar</h1>
+      <p class="page-account-lead">
+        @(Model.Items.Count == 0
+            ? "Kaydettiğin filtreler ve arama kriterleri"
+            : $"{Model.Items.Count} kayıtlı arama")
+      </p>
+    </div>
+  </div>
 </header>
-<partial name="Shared/Partials/_AccountComingSoon" model="@($"Kayıtlı aramalar yakında eklenecek. Sık kullandığın filtreleri kaydedip yeni ilanlardan haberdar olabileceksin.")" />
+
+@if (Model.Items.Count == 0)
+{
+  <div class="empty-state">
+    <span class="empty-state-icon" aria-hidden="true"><ap-icon name="bookmark" size="22" class="ap-icon" /></span>
+    <p>Henüz kayıtlı araman yok.</p>
+    <p class="empty-state-hint">İlan listesinde “Aramayı Kaydet” ile filtrelerini buraya saklayabilirsin.</p>
+  </div>
+}
+else
+{
+  <div class="saved-search-list">
+    @foreach (var item in Model.Items)
+    {
+      <article class="saved-search-row">
+        <div class="saved-search-icon" aria-hidden="true">
+          <ap-icon name="bookmark" size="18" class="ap-icon" />
+        </div>
+        <div class="saved-search-body">
+          <h2><a href="@item.Url">@item.Name</a></h2>
+          <div class="saved-search-meta">
+            <time datetime="@item.CreatedAt.UtcDateTime.ToString("o")">
+              @item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+            </time>
+            <span class="saved-search-url" title="@item.Url">@item.Url</span>
+          </div>
+        </div>
+        <div class="saved-search-actions">
+          <a class="btn btn-machine btn-sm" href="@item.Url">Aramayı aç</a>
+          <form method="post" asp-page-handler="Delete">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@item.Id" />
+            <button type="submit" class="btn btn-ghost btn-sm" aria-label="Sil: @item.Name">Sil</button>
+          </form>
+        </div>
+      </article>
+    }
+  </div>
+}

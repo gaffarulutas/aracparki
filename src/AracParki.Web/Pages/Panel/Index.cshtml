@@ -31,7 +31,18 @@
     <span class="account-dash-icon" aria-hidden="true"><ap-icon name="heart" size="22" class="ap-icon" /></span>
     <span class="account-dash-body">
       <span class="account-dash-title">Favorilerim</span>
-      <span class="account-dash-meta">Beğendiğin ilanlar</span>
+      <span class="account-dash-meta">
+        @(Model.FavoriteCount == 0 ? "Beğendiğin ilanlar" : $"{Model.FavoriteCount} favori ilan")
+      </span>
+    </span>
+  </a>
+  <a class="account-dash-card" href="/kayitli-aramalar">
+    <span class="account-dash-icon" aria-hidden="true"><ap-icon name="bookmark" size="22" class="ap-icon" /></span>
+    <span class="account-dash-body">
+      <span class="account-dash-title">Kayıtlı aramalar</span>
+      <span class="account-dash-meta">
+        @(Model.SavedSearchCount == 0 ? "Kaydettiğin filtreler" : $"{Model.SavedSearchCount} kayıtlı arama")
+      </span>
     </span>
   </a>
   <a class="account-dash-card" href="/mesajlarim">

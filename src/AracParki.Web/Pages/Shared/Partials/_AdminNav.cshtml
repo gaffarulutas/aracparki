@@ -16,7 +16,7 @@
       <p class="account-nav-section-title">Özet</p>
       <ul class="account-nav-list" aria-label="Admin özet">
         <li>
-          <partial name="Shared/Partials/_AccountNavItem" model='("/admin", "Admin", "shield-check", isAdminHome)' />
+          <partial name="Shared/Partials/_AccountNavItem" model='("/admin", "Admin", "shield-check", isAdminHome, (int?)null)' />
         </li>
       </ul>
     </div>
@@ -25,10 +25,10 @@
       <p class="account-nav-section-title">Moderasyon</p>
       <ul class="account-nav-list" aria-label="Admin moderasyon">
         <li>
-          <partial name="Shared/Partials/_AccountNavItem" model='("/admin/ilanlar?durum=pending_review", "İlanlar", "list", isAdminIlanlar)' />
+          <partial name="Shared/Partials/_AccountNavItem" model='("/admin/ilanlar?durum=pending_review", "İlanlar", "list", isAdminIlanlar, (int?)null)' />
         </li>
         <li>
-          <partial name="Shared/Partials/_AccountNavItem" model='("/admin/kurumsal?durum=pending", "Kurumsal", "building-2", isAdminKurumsal)' />
+          <partial name="Shared/Partials/_AccountNavItem" model='("/admin/kurumsal?durum=pending", "Kurumsal", "building-2", isAdminKurumsal, (int?)null)' />
         </li>
       </ul>
     </div>
@@ -37,7 +37,7 @@
       <p class="account-nav-section-title">Hesap</p>
       <ul class="account-nav-list" aria-label="Hesaba dön">
         <li>
-          <partial name="Shared/Partials/_AccountNavItem" model='("/panel", "Panele dön", "layout-dashboard", false)' />
+          <partial name="Shared/Partials/_AccountNavItem" model='("/panel", "Panele dön", "layout-dashboard", false, (int?)null)' />
         </li>
       </ul>
     </div>

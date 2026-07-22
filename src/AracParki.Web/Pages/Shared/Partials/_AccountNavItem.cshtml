@@ -1,15 +1,27 @@
-@model (string Href, string Label, string Icon, bool Current)
+@model (string Href, string Label, string Icon, bool Current, int? Count)
+@{
+    var count = Model.Count is > 0 ? Model.Count.Value : (int?)null;
+    var countLabel = count is int c ? $" ({c})" : "";
+}
 @if (Model.Current)
 {
-  <a class="account-nav-link is-current" href="@Model.Href" aria-current="page">
+  <a class="account-nav-link is-current" href="@Model.Href" aria-current="page" aria-label="@(Model.Label + countLabel)">
     <ap-icon name="@Model.Icon" size="18" class="ap-icon account-nav-ico" aria-hidden="true" />
-    <span>@Model.Label</span>
+    <span class="account-nav-label">@Model.Label</span>
+    @if (count is int n)
+    {
+      <span class="account-nav-count" aria-hidden="true">@n</span>
+    }
   </a>
 }
 else
 {
-  <a class="account-nav-link" href="@Model.Href">
+  <a class="account-nav-link" href="@Model.Href" aria-label="@(Model.Label + countLabel)">
     <ap-icon name="@Model.Icon" size="18" class="ap-icon account-nav-ico" aria-hidden="true" />
-    <span>@Model.Label</span>
+    <span class="account-nav-label">@Model.Label</span>
+    @if (count is int n)
+    {
+      <span class="account-nav-count" aria-hidden="true">@n</span>
+    }
   </a>
 }

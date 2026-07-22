@@ -11,6 +11,8 @@ public sealed class ListingDetailDto
     public int CategoryId { get; init; }
     public required string CapacityMetric { get; init; }
     public required string Brand { get; init; }
+    public int BrandId { get; init; }
+    public int? ModelId { get; init; }
     public required string ModelName { get; init; }
     public string? SerialNo { get; init; }
     public required string PrimaryIntent { get; init; }
@@ -21,7 +23,10 @@ public sealed class ListingDetailDto
     public decimal Tons { get; init; }
     public int? CapacityKg { get; init; }
     public int? Horsepower { get; init; }
+    public int CityId { get; init; }
     public required string City { get; init; }
+    public required string CitySlug { get; init; }
+    public int DistrictId { get; init; }
     public required string District { get; init; }
     public string? Neighborhood { get; init; }
     public decimal Price { get; init; }
@@ -40,6 +45,7 @@ public sealed class ListingDetailDto
     public string? CorporateDisplayName { get; init; }
     public string? CorporateSlug { get; init; }
     public DateTimeOffset ListedAt { get; init; }
+    public DateTimeOffset? ExpiresAt { get; init; }
     public string Status { get; init; } = Domain.Listings.ListingStatus.Published;
     public string? RejectionReason { get; init; }
     public DateTimeOffset? SubmittedAt { get; init; }

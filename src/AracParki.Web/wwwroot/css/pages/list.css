@@ -587,6 +587,11 @@
   fill: currentColor;
 }
 
+.list-save-search.is-loading {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
 .list-save-search:focus-visible {
   outline: var(--focus);
   outline-offset: 2px;

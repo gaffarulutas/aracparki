@@ -9,6 +9,9 @@ public interface ICorporateAccountStore
     /// <summary>Yalnızca draft/rejected durumundaki hesaplar güncellenir; etkilenmediyse false döner.</summary>
     Task<bool> UpdateProfileAsync(long id, long accountId, CorporateProfileData data, CancellationToken cancellationToken);
 
+    /// <summary>draft/rejected/approved hesaplarda logo güncellenir; pending etkilenmez.</summary>
+    Task<bool> UpdateLogoUrlAsync(long id, long accountId, string? logoUrl, CancellationToken cancellationToken);
+
     Task<CorporateAccountDto?> GetAsync(long id, CancellationToken cancellationToken);
     Task<IReadOnlyList<CorporateAccountDto>> ListByAccountAsync(long accountId, CancellationToken cancellationToken);
     Task<IReadOnlyList<CorporateOptionDto>> ListApprovedByAccountAsync(long accountId, CancellationToken cancellationToken);

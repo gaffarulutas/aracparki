@@ -220,6 +220,107 @@
 
 @if (!isNew)
 {
+  <section class="corp-section" aria-labelledby="corp-logo-heading">
+    <h2 class="corp-section-title" id="corp-logo-heading">Mağaza logosu</h2>
+    <p class="ap-hint">Kare logo satıcı profilinde ve ilanlarda görünür. JPG, PNG veya WebP — en fazla 5 MB. Yüklemeden önce kare kırpılır.</p>
+
+    @{
+      var logoInitial = string.IsNullOrWhiteSpace(account!.DisplayName)
+          ? "?"
+          : char.ToUpperInvariant(account.DisplayName.Trim()[0]).ToString();
+      var hasLogo = !string.IsNullOrWhiteSpace(account.LogoUrl);
+    }
+
+    <div class="corp-logo-uploader"
+         x-data="corpLogoUploader"
+         data-upload-url="@Url.Page("/KurumsalHesap/Duzenle", "UploadLogoJson", new { id = Model.Id })"
+         data-max-count="1"
+         data-max-bytes="5242880"
+         data-current-count="@(hasLogo ? 1 : 0)"
+         data-logo-url="@(account.LogoUrl ?? "")"
+         data-editable="@(Model.IsLogoEditable ? "1" : "0")">
+      @Html.AntiForgeryToken()
+
+      <div class="corp-logo-row">
+        <div class="corp-logo-preview" aria-hidden="true">
+          <template x-if="logoUrl">
+            <img :src="logoUrl" alt="" width="120" height="120" />
+          </template>
+          <template x-if="!logoUrl">
+            <span class="corp-logo-fallback">@logoInitial</span>
+          </template>
+        </div>
+
+        <div class="corp-logo-meta">
+          <p class="corp-logo-status" x-text="statusLabel"></p>
+          @if (Model.IsLogoEditable)
+          {
+            <div class="corp-logo-actions">
+              <label class="btn btn-machine btn-sm corp-logo-pick">
+                <input type="file"
+                       accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                       x-ref="file"
+                       @@change="onFileChange"
+                       hidden />
+                <span x-text="pickLabel">Logo seç</span>
+              </label>
+              <form method="post"
+                    asp-page-handler="RemoveLogo"
+                    asp-route-id="@Model.Id"
+                    x-show="logoUrl"
+                    x-cloak>
+                @Html.AntiForgeryToken()
+                <button class="btn btn-ghost btn-sm" type="submit">Kaldır</button>
+              </form>
+            </div>
+            <p class="ap-hint" x-show="error" x-text="error" role="alert"></p>
+            <div class="corp-logo-progress" x-show="uploading" x-cloak>
+              <div class="corp-logo-progress-bar" :style="progressBarStyle"></div>
+            </div>
+          }
+          else
+          {
+            <p class="ap-hint">İnceleme sürecinde logo değiştirilemez.</p>
+          }
+        </div>
+      </div>
+
+      <template x-teleport="body">
+        <div class="wizard-crop-modal"
+             x-show="cropOpen"
+             x-cloak
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="corp-logo-crop-title"
+             @@keydown.escape.window="cancelCrop">
+          <div class="wizard-crop-backdrop" @@click="cancelCrop"></div>
+          <div class="wizard-crop-panel" x-ref="cropPanel" tabindex="-1">
+            <header class="wizard-crop-head">
+              <h2 id="corp-logo-crop-title">Logo kırp</h2>
+              <p class="wizard-crop-lead" x-text="cropFileName"></p>
+            </header>
+            <div class="wizard-crop-stage">
+              <img x-ref="cropImage" alt="Kırpılacak logo" data-no-spinner />
+            </div>
+            <p class="wizard-crop-hint" x-show="cropError" x-text="cropError" role="alert"></p>
+            <div class="wizard-crop-toolbar">
+              <button type="button" class="btn btn-ghost btn-sm" @@click="rotateCropLeft" :disabled="cropBusy">90° sola</button>
+              <button type="button" class="btn btn-ghost btn-sm" @@click="rotateCropRight" :disabled="cropBusy">90° sağa</button>
+              <button type="button" class="btn btn-ghost btn-sm" @@click="resetCrop" :disabled="cropBusy">Sıfırla</button>
+            </div>
+            <div class="wizard-crop-actions">
+              <button type="button" class="btn btn-ghost" @@click="cancelCrop" :disabled="cropBusy">Vazgeç</button>
+              <button type="button" class="btn btn-ghost" @@click="uploadWithoutCrop" :disabled="cropBusy" x-show="cropError">Kırpmadan yükle</button>
+              <button type="button" class="btn btn-machine" @@click="confirmCrop" :disabled="cropBusy">
+                <span x-text="cropSubmitLabel">Kırp ve yükle</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </section>
+
   <section class="corp-section" aria-labelledby="corp-docs-heading">
     <h2 class="corp-section-title" id="corp-docs-heading">Evraklar</h2>
     <p class="ap-hint">PDF, JPG veya PNG — en fazla 10 MB. Aynı türde yeni evrak yüklersen eskisi geçersiz sayılır. Zorunlu evraklar şirket türüne göre değişir.</p>
@@ -310,3 +411,10 @@
   }
 }
 </div>
+
+@section Scripts {
+  @if (Model.IsLogoEditable)
+  {
+    <script src="~/lib/cropperjs/cropper.min.js" asp-append-version="true" defer></script>
+  }
+}

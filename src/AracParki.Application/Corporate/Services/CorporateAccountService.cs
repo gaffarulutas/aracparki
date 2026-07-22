@@ -2,6 +2,7 @@ using AracParki.Application.Accounts;
 using AracParki.Application.Accounts.Services;
 using AracParki.Application.Common;
 using AracParki.Application.Corporate.Dtos;
+using AracParki.Application.Listings;
 using AracParki.Domain.Corporate;
 
 namespace AracParki.Application.Corporate.Services;
@@ -9,10 +10,12 @@ namespace AracParki.Application.Corporate.Services;
 public sealed class CorporateAccountService(
     ICorporateAccountStore store,
     ICorporateDocumentStorage documentStorage,
-    IAccountStore accounts)
+    IAccountStore accounts,
+    IListingImageStorage imageStorage)
 {
     public const int RejectionReasonMaxLength = 1000;
     public const long MaxDocumentBytes = 10 * 1024 * 1024;
+    public const long MaxLogoBytes = 5 * 1024 * 1024;
     public const int MaxAccountsPerUser = 5;
 
     private static readonly IReadOnlyDictionary<string, string> AllowedDocumentTypes =
@@ -228,6 +231,138 @@ public sealed class CorporateAccountService(
 
     public Task<IReadOnlyList<CorporateDocumentDto>> ListDocumentsAsync(long corporateAccountId, CancellationToken cancellationToken)
         => store.ListDocumentsAsync(corporateAccountId, cancellationToken);
+
+    /// <summary>
+    /// Mağaza logosu (kare). draft/rejected/approved hesaplarda güncellenir.
+    /// Public delivery URL thumb varyantı olarak saklanır (watermark yok).
+    /// </summary>
+    public async Task<(bool Ok, string? Error, string? LogoUrl)> UploadLogoAsync(
+        long corporateAccountId,
+        long accountId,
+        Stream content,
+        string contentType,
+        string? originalFileName,
+        long byteSize,
+        CancellationToken cancellationToken)
+    {
+        var current = await GetOwnedAsync(corporateAccountId, accountId, cancellationToken);
+        if (current is null)
+        {
+            return (false, "Kurumsal hesap bulunamadı.", null);
+        }
+
+        if (current.Status == CorporateStatus.Pending)
+        {
+            return (false, "İnceleme sürecinde logo değiştirilemez.", null);
+        }
+
+        if (byteSize is <= 0 or > MaxLogoBytes)
+        {
+            return (false, "Logo en fazla 5 MB olabilir.", null);
+        }
+
+        var (sigOk, detectedType, sigError) =
+            await FileSignatures.DetectImageAsync(content, cancellationToken);
+        if (!sigOk || string.IsNullOrWhiteSpace(detectedType))
+        {
+            return (false, sigError ?? "Dosya geçerli bir görsel değil.", null);
+        }
+
+        if (content.CanSeek)
+        {
+            content.Position = 0;
+        }
+        else
+        {
+            return (false, "Dosya okunamadı. Tekrar dene.", null);
+        }
+
+        ListingImageSaveResult saved;
+        try
+        {
+            saved = await imageStorage.SaveAsync(
+                accountId,
+                content,
+                detectedType,
+                originalFileName,
+                cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return (false, ex.Message, null);
+        }
+
+        // Thumb = watermark yok; mağaza logosu için doğru varyant.
+        var logoUrl = ListingImageUrlVariants.WithVariant(saved.DeliveryUrl, "thumb");
+        var previous = current.LogoUrl;
+
+        var updated = await store.UpdateLogoUrlAsync(corporateAccountId, accountId, logoUrl, cancellationToken);
+        if (!updated)
+        {
+            try
+            {
+                await imageStorage.DeleteAsync(saved.StorageKey, cancellationToken);
+            }
+            catch
+            {
+                /* best-effort rollback */
+            }
+
+            return (false, "Logo kaydedilemedi.", null);
+        }
+
+        await TryDeleteStoredLogoAsync(previous, cancellationToken);
+        return (true, null, logoUrl);
+    }
+
+    public async Task<(bool Ok, string? Error)> RemoveLogoAsync(
+        long corporateAccountId,
+        long accountId,
+        CancellationToken cancellationToken)
+    {
+        var current = await GetOwnedAsync(corporateAccountId, accountId, cancellationToken);
+        if (current is null)
+        {
+            return (false, "Kurumsal hesap bulunamadı.");
+        }
+
+        if (current.Status == CorporateStatus.Pending)
+        {
+            return (false, "İnceleme sürecinde logo değiştirilemez.");
+        }
+
+        if (string.IsNullOrWhiteSpace(current.LogoUrl))
+        {
+            return (true, null);
+        }
+
+        var updated = await store.UpdateLogoUrlAsync(corporateAccountId, accountId, null, cancellationToken);
+        if (!updated)
+        {
+            return (false, "Logo kaldırılamadı.");
+        }
+
+        await TryDeleteStoredLogoAsync(current.LogoUrl, cancellationToken);
+        return (true, null);
+    }
+
+    private async Task TryDeleteStoredLogoAsync(string? logoUrl, CancellationToken cancellationToken)
+    {
+        if (!ListingImageUrl.TryGetStorageKey(logoUrl, out var storageKey)
+            && !ListingImageUrl.TryResolveStorageKey(null, logoUrl, out storageKey))
+        {
+            return;
+        }
+
+        try
+        {
+            await imageStorage.DeleteAsync(storageKey, cancellationToken);
+        }
+        catch
+        {
+            /* orphan cleanup can retry later */
+        }
+    }
 
     /// <summary>Sahibi veya admin için evrak stream'i açar; yetkisizse null.</summary>
     public async Task<(Stream Content, CorporateDocumentDto Document)?> OpenDocumentAsync(

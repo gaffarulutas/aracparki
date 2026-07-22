@@ -2022,6 +2022,328 @@
       },
     }));
 
+    // Corporate logo: single square crop → UploadLogoJson (same Cropper flow as listing images).
+    Alpine.data("corpLogoUploader", () => ({
+      logoUrl: "",
+      editable: true,
+      uploading: false,
+      progress: 0,
+      error: "",
+      cropOpen: false,
+      cropBusy: false,
+      cropError: "",
+      cropFileName: "",
+      uploadUrl: "",
+      maxBytes: 5 * 1024 * 1024,
+      _token: "",
+      _cropper: null,
+      _cropObjectUrl: "",
+      _cropOutputPx: 800,
+      _pendingCropFile: null,
+      get cropSubmitLabel() {
+        return this.cropBusy ? "Hazırlanıyor…" : "Kırp ve yükle";
+      },
+      get pickLabel() {
+        if (this.uploading) return "Yükleniyor…";
+        return this.logoUrl ? "Logoyu değiştir" : "Logo seç";
+      },
+      get statusLabel() {
+        if (this.uploading) return "Logo yükleniyor…";
+        if (this.logoUrl) return "Logo yüklü — satıcı profilinde görünür.";
+        return "Henüz logo yok. Kare bir görsel seç.";
+      },
+      get progressBarStyle() {
+        return "width:" + Math.max(0, Math.min(100, this.progress)) + "%";
+      },
+      init() {
+        this.uploadUrl = String(this.$el.dataset.uploadUrl || "");
+        this.maxBytes = Number(this.$el.dataset.maxBytes || 5242880);
+        this.logoUrl = String(this.$el.dataset.logoUrl || "");
+        this.editable = String(this.$el.dataset.editable || "1") === "1";
+        const tokenInput = this.$el.querySelector('input[name="__RequestVerificationToken"]');
+        this._token = tokenInput ? tokenInput.value : "";
+        this.$watch("cropOpen", (open) => this.setCropBodyLock(open));
+      },
+      onFileChange() {
+        if (!this.editable || this.uploading || this.cropBusy) return;
+        const input = this.$refs.file;
+        if (!input || !input.files || !input.files.length) return;
+        const file = input.files[0];
+        input.value = "";
+        this.error = "";
+        this.openCropper(file);
+      },
+      openCropper(file) {
+        this.cropError = "";
+        this.cropBusy = false;
+        this.cropFileName = file.name || "logo";
+        this._pendingCropFile = file;
+
+        const type = String(file.type || "").toLowerCase();
+        const allowed = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+        if (file.size > this.maxBytes) {
+          this.cropError = "Dosya en fazla 5 MB olabilir.";
+          this.cropOpen = true;
+          this.$nextTick(() => this.focusCropPanel());
+          return;
+        }
+        if (type && allowed.indexOf(type) < 0) {
+          this.cropError = "Desteklenmeyen format.";
+          this.cropOpen = true;
+          this.$nextTick(() => this.focusCropPanel());
+          return;
+        }
+        if (typeof window.Cropper !== "function") {
+          this.finishCropWithFile(file);
+          return;
+        }
+
+        this.destroyCropper();
+        this._cropObjectUrl = URL.createObjectURL(file);
+        this.cropOpen = true;
+        this.$nextTick(() => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => this.mountCropper(file));
+          });
+        });
+      },
+      mountCropper(file) {
+        const parent = this;
+        const img = parent.$refs.cropImage;
+        if (!(img instanceof HTMLImageElement)) {
+          parent.finishCropWithFile(file);
+          return;
+        }
+
+        let started = false;
+        const start = () => {
+          if (started) return;
+          started = true;
+          parent.destroyCropperInstanceOnly();
+
+          const stage = img.parentElement;
+          if (!(stage instanceof HTMLElement) || stage.clientWidth < 32 || stage.clientHeight < 32) {
+            requestAnimationFrame(() => {
+              if (stage instanceof HTMLElement && stage.clientWidth >= 32 && stage.clientHeight >= 32) {
+                started = false;
+                start();
+                return;
+              }
+              parent.finishCropWithFile(file);
+            });
+            return;
+          }
+
+          parent._cropper = new window.Cropper(img, {
+            aspectRatio: 1,
+            viewMode: 1,
+            dragMode: "move",
+            autoCropArea: 1,
+            responsive: true,
+            background: false,
+            guides: true,
+            center: true,
+            highlight: false,
+            cropBoxMovable: true,
+            cropBoxResizable: true,
+            toggleDragModeOnDblclick: false,
+            checkOrientation: true,
+            ready() {
+              try {
+                parent._cropper?.resize();
+              } catch {
+                /* ignore */
+              }
+              parent.focusCropPanel();
+            },
+          });
+        };
+
+        img.onload = start;
+        img.onerror = () => {
+          parent.cropError =
+            "Bu görsel tarayıcıda açılamadı. Kırpmadan yüklemek için “Kırpmadan yükle”ye bas.";
+          parent.focusCropPanel();
+        };
+        img.src = parent._cropObjectUrl;
+        if (img.complete && img.naturalWidth > 0) {
+          start();
+        }
+      },
+      focusCropPanel() {
+        const panel = this.$refs.cropPanel;
+        if (panel instanceof HTMLElement) panel.focus({ preventScroll: true });
+      },
+      setCropBodyLock(locked) {
+        document.documentElement.classList.toggle("wizard-crop-open", !!locked);
+      },
+      destroyCropperInstanceOnly() {
+        if (this._cropper) {
+          try {
+            this._cropper.destroy();
+          } catch {
+            /* ignore */
+          }
+          this._cropper = null;
+        }
+      },
+      destroyCropper() {
+        this.destroyCropperInstanceOnly();
+        if (this._cropObjectUrl) {
+          URL.revokeObjectURL(this._cropObjectUrl);
+          this._cropObjectUrl = "";
+        }
+        const img = this.$refs.cropImage;
+        if (img instanceof HTMLImageElement) {
+          img.onload = null;
+          img.onerror = null;
+          img.removeAttribute("src");
+        }
+      },
+      rotateCropLeft() {
+        if (this._cropper) this._cropper.rotate(-90);
+      },
+      rotateCropRight() {
+        if (this._cropper) this._cropper.rotate(90);
+      },
+      resetCrop() {
+        if (this._cropper) {
+          this._cropper.reset();
+          try {
+            this._cropper.resize();
+          } catch {
+            /* ignore */
+          }
+        }
+      },
+      cancelCrop() {
+        this.closeCropModal();
+      },
+      uploadWithoutCrop() {
+        const file = this._pendingCropFile;
+        if (!file) {
+          this.cancelCrop();
+          return;
+        }
+        this.finishCropWithFile(file);
+      },
+      finishCropWithFile(file) {
+        this.closeCropModal();
+        this.uploadOne(file);
+      },
+      closeCropModal() {
+        this.destroyCropper();
+        this.cropOpen = false;
+        this.cropBusy = false;
+        this.cropError = "";
+        this._pendingCropFile = null;
+        this.setCropBodyLock(false);
+      },
+      confirmCrop() {
+        const parent = this;
+        if (parent.cropBusy) return;
+        if (parent.cropError && !parent._cropper) return;
+        if (!parent._cropper) {
+          parent.cropError = "Kırpıcı hazır değil. “Kırpmadan yükle” veya başka bir dosya dene.";
+          return;
+        }
+
+        parent.cropBusy = true;
+        parent.cropError = "";
+
+        const canvas = parent._cropper.getCroppedCanvas({
+          width: parent._cropOutputPx,
+          height: parent._cropOutputPx,
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: "high",
+          fillColor: "#fff",
+        });
+
+        if (!canvas) {
+          parent.cropBusy = false;
+          parent.cropError = "Kırpma başarısız. Tekrar dene.";
+          return;
+        }
+
+        const baseName = String(
+          parent._pendingCropFile && parent._pendingCropFile.name
+            ? parent._pendingCropFile.name
+            : "logo"
+        ).replace(/\.[^.]+$/, "");
+        const outName = baseName + "-kare.jpg";
+
+        canvas.toBlob(
+          (blob) => {
+            parent.cropBusy = false;
+            if (!blob) {
+              parent.cropError = "Görsel oluşturulamadı.";
+              return;
+            }
+            if (blob.size > parent.maxBytes) {
+              parent.cropError = "Kırpılmış dosya 5 MB sınırını aşıyor. Daha küçük alan seç.";
+              return;
+            }
+            const file = new File([blob], outName, {
+              type: "image/jpeg",
+              lastModified: Date.now(),
+            });
+            parent.finishCropWithFile(file);
+          },
+          "image/jpeg",
+          0.92
+        );
+      },
+      uploadOne(file) {
+        const parent = this;
+        if (!parent.uploadUrl) {
+          parent.error = "Yükleme adresi eksik.";
+          return;
+        }
+        parent.uploading = true;
+        parent.progress = 0;
+        parent.error = "";
+
+        const form = new FormData();
+        form.append("file", file, file.name);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", parent.uploadUrl);
+        xhr.setRequestHeader("RequestVerificationToken", parent._token);
+        xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+
+        xhr.upload.onprogress = (event) => {
+          if (!event.lengthComputable) return;
+          parent.progress = Math.round((event.loaded / event.total) * 100);
+        };
+
+        xhr.onload = () => {
+          parent.uploading = false;
+          let payload = null;
+          try {
+            payload = JSON.parse(xhr.responseText || "{}");
+          } catch {
+            payload = null;
+          }
+          if (xhr.status >= 200 && xhr.status < 300 && payload && payload.ok && payload.deliveryUrl) {
+            parent.progress = 100;
+            parent.logoUrl = String(payload.deliveryUrl);
+            parent.error = "";
+          } else {
+            parent.error =
+              (payload && payload.error) ||
+              (xhr.status === 429 ? "Çok fazla istek. Biraz sonra dene." : "Yükleme başarısız.");
+          }
+        };
+
+        xhr.onerror = () => {
+          parent.uploading = false;
+          parent.error = "Ağ hatası. Tekrar dene.";
+        };
+
+        xhr.send(form);
+      },
+    }));
+
     Alpine.data("ilanVerMachine", () => ({
       hoursUnknown: false,
       get hoursRequired() {
@@ -2766,6 +3088,9 @@
     const textEl = btn.querySelector("[data-save-search-text]");
     const url = btn.getAttribute("data-url") || location.pathname + location.search;
     const label = (btn.getAttribute("data-label") || "Arama").trim();
+    const isAuthed = document.body.dataset.authenticated === "1";
+    const token =
+      document.querySelector('meta[name="request-verification-token"]')?.getAttribute("content") || "";
 
     const setState = (on) => {
       btn.classList.toggle("is-saved", on);
@@ -2773,9 +3098,66 @@
       if (textEl) textEl.textContent = on ? "Arama Kaydedildi" : "Aramayı Kaydet";
     };
 
-    setState(readSavedSearches().some((s) => s && s.url === url));
+    const syncFromServer = async () => {
+      try {
+        const res = await fetch(
+          `/kayitli-aramalar?handler=Status&url=${encodeURIComponent(url)}`,
+          { headers: { Accept: "application/json" }, credentials: "same-origin" }
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.ok) setState(!!data.saved);
+      } catch {
+        /* ignore */
+      }
+    };
 
-    btn.addEventListener("click", () => {
+    if (isAuthed) {
+      btn.classList.add("is-loading");
+      syncFromServer().finally(() => btn.classList.remove("is-loading"));
+    } else {
+      setState(readSavedSearches().some((s) => s && s.url === url));
+    }
+
+    btn.addEventListener("click", async () => {
+      if (isAuthed) {
+        if (btn.disabled) return;
+        btn.disabled = true;
+        btn.classList.add("is-loading");
+        try {
+          const body = new URLSearchParams();
+          body.set("url", url);
+          body.set("label", label);
+          const res = await fetch("/kayitli-aramalar?handler=Toggle", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+              RequestVerificationToken: token,
+            },
+            body: body.toString(),
+          });
+          const data = await res.json().catch(() => null);
+          if (!res.ok || !data?.ok) {
+            toast((data && data.error) || "Arama kaydedilemedi.");
+            return;
+          }
+          setState(!!data.saved);
+          toast(
+            data.saved
+              ? "Arama kaydedildi. Kayıtlı aramalarından ulaşabilirsin."
+              : "Arama kayıtlardan çıkarıldı."
+          );
+        } catch {
+          toast("Arama kaydedilemedi.");
+        } finally {
+          btn.disabled = false;
+          btn.classList.remove("is-loading");
+        }
+        return;
+      }
+
       const list = readSavedSearches();
       const idx = list.findIndex((s) => s && s.url === url);
       if (idx >= 0) {
@@ -2787,7 +3169,7 @@
         list.unshift({ url, label, savedAt: Date.now() });
         writeSavedSearches(list);
         setState(true);
-        toast("Arama kaydedildi. Favori aramalarından ulaşabilirsin.");
+        toast("Arama kaydedildi. Giriş yapınca hesabına da kaydedebilirsin.");
       }
     });
   };
@@ -2946,19 +3328,11 @@
     });
   };
 
-  const galleryFullUrl = (src) => {
-    const raw = String(src || "").trim();
-    if (!raw) return raw;
-    try {
-      const url = new URL(raw, window.location.origin);
-      if (url.searchParams.has("v")) {
-        url.searchParams.set("v", "lg");
-      }
-      return url.toString();
-    } catch {
-      return raw.replace(/([?&]v=)[^&]*/i, "$1lg");
-    }
-  };
+  // Use the same delivery URL the gallery already shows.
+  // Rewriting ?v=card → ?v=lg hits origin for an uncached variant; if the R2
+  // master is gone (or transform fails), lightGallery gets 404 while the
+  // card URL still works from CDN cache.
+  const galleryFullUrl = (src) => String(src || "").trim();
 
   const initDetailGallery = () => {
     document.querySelectorAll("[data-detail-gallery]").forEach((host) => {
@@ -3033,6 +3407,9 @@
           dynamic: true,
           dynamicEl: items,
           plugins,
+          // Non-default key silences the stock "0000-…" production warning on the GPLv3 build.
+          // Commercial closed-source use still needs a paid key: https://www.lightgalleryjs.com/
+          licenseKey: "GPLv3",
           speed: 400,
           download: false,
           counter: true,
@@ -3047,8 +3424,6 @@
             showCloseIcon: true,
             download: false,
           },
-          // GPLv3 / open-source build — commercial production requires a paid key.
-          // See https://www.lightgalleryjs.com/
         });
 
         trigger.addEventListener("lgAfterSlide", (event) => {

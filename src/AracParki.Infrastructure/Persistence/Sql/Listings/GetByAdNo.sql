@@ -8,6 +8,8 @@ SELECT
     c.id AS CategoryId,
     c.capacity_metric AS CapacityMetric,
     b.name AS Brand,
+    b.id AS BrandId,
+    l.model_id AS ModelId,
     l.model_name AS ModelName,
     l.serial_no AS SerialNo,
     l.primary_intent AS PrimaryIntent,
@@ -18,7 +20,10 @@ SELECT
     l.tons,
     l.capacity_kg AS CapacityKg,
     l.horsepower,
+    city.id AS CityId,
     city.name AS City,
+    city.slug AS CitySlug,
+    d.id AS DistrictId,
     d.name AS District,
     n.name AS Neighborhood,
     l.price,
@@ -39,6 +44,7 @@ SELECT
     COALESCE(NULLIF(BTRIM(ca.display_name), ''), NULLIF(BTRIM(ca.trade_name), '')) AS CorporateDisplayName,
     CASE WHEN ca.status = 'approved' THEN ca.slug ELSE NULL END AS CorporateSlug,
     l.listed_at AS ListedAt,
+    l.expires_at AS ExpiresAt,
     l.status AS Status,
     l.rejection_reason AS RejectionReason,
     l.submitted_at AS SubmittedAt,
@@ -53,15 +59,18 @@ JOIN sellers s ON s.id = l.seller_id
 LEFT JOIN corporate_accounts ca ON ca.id = l.corporate_account_id
 WHERE l.ad_no = @AdNo
   AND (
-      l.status = 'published'
+      (
+          l.status = 'published'
+          AND (l.expires_at IS NULL OR l.expires_at > NOW())
+      )
       OR (
           @IsAdmin = TRUE
-          AND l.status IN ('pending_review', 'rejected', 'archived')
+          AND l.status IN ('pending_review', 'rejected', 'archived', 'published')
       )
       OR (
           @ViewerAccountId IS NOT NULL
           AND s.account_id = @ViewerAccountId
-          AND l.status IN ('pending_review', 'rejected', 'archived')
+          AND l.status IN ('pending_review', 'rejected', 'archived', 'published')
       )
   )
 LIMIT 1;

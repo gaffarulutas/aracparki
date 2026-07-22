@@ -107,6 +107,24 @@ public sealed class CorporateAccountRepository(IDbConnectionFactory connectionFa
         return affected > 0;
     }
 
+    public async Task<bool> UpdateLogoUrlAsync(long id, long accountId, string? logoUrl, CancellationToken cancellationToken)
+    {
+        await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        var affected = await connection.ExecuteAsync(
+            new CommandDefinition(
+                """
+                UPDATE corporate_accounts
+                SET logo_url = @LogoUrl,
+                    updated_at = now()
+                WHERE id = @Id
+                  AND account_id = @AccountId
+                  AND status IN ('draft', 'rejected', 'approved')
+                """,
+                new { Id = id, AccountId = accountId, LogoUrl = logoUrl },
+                cancellationToken: cancellationToken));
+        return affected > 0;
+    }
+
     public async Task<PublicDealerDto?> GetApprovedPublicBySlugAsync(string slug, CancellationToken cancellationToken)
     {
         await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);

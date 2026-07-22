@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.Configure<AppSettings>(configuration.GetSection(AppSettings.SectionName));
         services.Configure<WhatsAppSettings>(configuration.GetSection(WhatsAppSettings.SectionName));
         services.Configure<CloudflareMediaSettings>(configuration.GetSection(CloudflareMediaSettings.SectionName));
+        services.Configure<ListingOptions>(configuration.GetSection(ListingOptions.SectionName));
 
         services.AddAracParkiRedis(configuration);
         services.AddHttpClient(WhatsAppOtpSender.HttpClientName);
@@ -49,8 +50,11 @@ public static class DependencyInjection
         services.AddSingleton<DatabaseMigrator>();
         services.AddScoped<IListingQuery, ListingRepository>();
         services.AddScoped<IListingStore, ListingWriteRepository>();
+        services.AddScoped<IFavoriteStore, FavoriteRepository>();
+        services.AddScoped<ISavedSearchStore, SavedSearchRepository>();
         services.AddScoped<IWizardDraftStore, WizardDraftRepository>();
         services.AddScoped<IListingImageCommandStore, ListingImageCommandStore>();
+        services.AddHostedService<ListingExpiryHostedService>();
 
         if (media.IsConfigured)
         {

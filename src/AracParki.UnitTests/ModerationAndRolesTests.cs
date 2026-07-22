@@ -25,7 +25,7 @@ public sealed class ModerationAndRolesTests
         Assert.True(ListingStatus.IsOwnerEditable(ListingStatus.Published));
         Assert.True(ListingStatus.IsOwnerEditable(ListingStatus.PendingReview));
         Assert.True(ListingStatus.IsOwnerEditable(ListingStatus.Rejected));
-        Assert.False(ListingStatus.IsOwnerEditable(ListingStatus.Archived));
+        Assert.True(ListingStatus.IsOwnerEditable(ListingStatus.Archived));
         Assert.False(ListingStatus.IsOwnerImageMutable(ListingStatus.Published));
         Assert.True(ListingStatus.IsOwnerImageMutable(ListingStatus.PendingReview));
     }
@@ -101,25 +101,31 @@ public sealed class ModerationAndRolesTests
     }
 
     [Fact]
-    public async Task RejectAsync_requires_reason()
-    {
-        var svc = new ListingModerationService(new FakeStore());
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            svc.RejectAsync("AP-1", 1, "  ", CancellationToken.None));
-    }
-
-    [Fact]
     public async Task ApproveAsync_rejects_invalid_admin()
     {
-        var svc = new ListingModerationService(new FakeStore());
+        var svc = new ListingModerationService(
+            new FakeStore(),
+            Microsoft.Extensions.Options.Options.Create(new ListingOptions()));
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
             svc.ApproveAsync("AP-1", 0, CancellationToken.None));
     }
 
     [Fact]
+    public async Task RejectAsync_requires_reason()
+    {
+        var svc = new ListingModerationService(
+            new FakeStore(),
+            Microsoft.Extensions.Options.Options.Create(new ListingOptions()));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            svc.RejectAsync("AP-1", 1, "  ", CancellationToken.None));
+    }
+
+    [Fact]
     public async Task RejectAsync_rejects_overlong_reason()
     {
-        var svc = new ListingModerationService(new FakeStore());
+        var svc = new ListingModerationService(
+            new FakeStore(),
+            Microsoft.Extensions.Options.Options.Create(new ListingOptions()));
         var reason = new string('x', ListingModerationService.RejectionReasonMaxLength + 1);
         await Assert.ThrowsAsync<ArgumentException>(() =>
             svc.RejectAsync("AP-1", 1, reason, CancellationToken.None));
@@ -127,13 +133,26 @@ public sealed class ModerationAndRolesTests
 
     private sealed class FakeStore : Application.Listings.IListingStore
     {
-        public Task ApproveAsync(string adNo, long adminAccountId, CancellationToken cancellationToken)
+        public Task ApproveAsync(
+            string adNo,
+            long adminAccountId,
+            int publishedDurationDays,
+            CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task ArchiveByAdminAsync(string adNo, long adminAccountId, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task ArchiveByOwnerAsync(string adNo, long accountId, CancellationToken cancellationToken)
             => Task.CompletedTask;
 
         public Task<string> CreatePublishedAsync(
             Application.Listings.Commands.CreatePublishedListingCommand command,
             CancellationToken cancellationToken)
             => Task.FromResult("AP-1");
+
+        public Task<int> ExpirePublishedAsync(CancellationToken cancellationToken)
+            => Task.FromResult(0);
 
         public Task<Application.Listings.Dtos.ModerationCountsDto> GetModerationCountsAsync(
             CancellationToken cancellationToken)
@@ -146,6 +165,9 @@ public sealed class ModerationAndRolesTests
             => Task.FromResult<IReadOnlyList<Application.Listings.Dtos.ModerationListItemDto>>([]);
 
         public Task RejectAsync(string adNo, long adminAccountId, string reason, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task RepublishByOwnerAsync(string adNo, long accountId, CancellationToken cancellationToken)
             => Task.CompletedTask;
 
         public Task UpdateForReviewAsync(

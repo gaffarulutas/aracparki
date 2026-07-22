@@ -1,21 +1,28 @@
 @page "/ilanlarim"
 @model AracParki.Web.Pages.Ilanlarim.IndexModel
+@using AracParki.Application.Listings
 @using AracParki.Domain.Listings
 @{
     Layout = "Shared/_AccountLayout";
+    var now = DateTimeOffset.Now;
 }
 <header class="page-account-head">
   <partial name="Shared/Partials/_AccountBreadcrumb" />
   <div class="page-account-title-row">
     <div>
       <h1>İlanlarım</h1>
-      <p class="page-account-lead">Yayındaki, incelemedeki ve reddedilen ilanların</p>
+      <p class="page-account-lead">Yayındaki, arşivdeki ve incelemedeki ilanların</p>
     </div>
     <div class="page-account-actions">
       <a class="btn btn-machine btn-sm" href="/ilan-ver">Ücretsiz İlan Ver</a>
     </div>
   </div>
 </header>
+
+@if (!string.IsNullOrWhiteSpace(Model.FormError))
+{
+  <p class="field-error" role="alert">@Model.FormError</p>
+}
 
 @if (Model.Items.Count == 0)
 {
@@ -33,16 +40,21 @@ else
     @foreach (var item in Model.Items)
     {
       var canEdit = ListingStatus.IsOwnerEditable(item.Status);
-      var canPreview = item.Status is ListingStatus.PendingReview or ListingStatus.Rejected;
       var isPublished = item.Status == ListingStatus.Published;
+      var isArchived = item.Status == ListingStatus.Archived;
+      var isPending = item.Status == ListingStatus.PendingReview;
       var isRejected = item.Status == ListingStatus.Rejected;
       var hasRejectReason = isRejected && !string.IsNullOrWhiteSpace(item.RejectionReason);
-      var detailHref = $"/ilan/{item.AdNo}";
+      var detailHref = ListingRoutes.Detail(item.AdNo);
       var editHref = $"/ilan-ver?duzenle={item.AdNo}";
+      var expiresSoon = isPublished && item.ExpiresAt is DateTimeOffset exp
+          && exp > now && exp <= now.AddDays(7);
+      var expiresPast = isPublished && item.ExpiresAt is DateTimeOffset past && past <= now;
+      var thumb = ListingImageUrlVariants.WithVariant(item.CoverImageUrl, ListingImageVariants.Thumb);
 
       <article class="admin-listing-row">
-        <a class="admin-listing-thumb" href="@detailHref">
-          <img src="@item.CoverImageUrl" alt="" width="120" height="90" loading="lazy" decoding="async" />
+        <a class="admin-listing-thumb img-shell is-loading" href="@detailHref">
+          <img src="@thumb" alt="" width="120" height="90" loading="lazy" decoding="async" />
         </a>
         <div class="admin-listing-body">
           <h2><a href="@detailHref">@item.Title</a></h2>
@@ -74,9 +86,15 @@ else
               </span>
             }
             <span>· @item.AdNo · @item.City@(string.IsNullOrWhiteSpace(item.District) ? "" : $" / {item.District}")</span>
+            @if (isPublished && item.ExpiresAt is DateTimeOffset expiresAt)
+            {
+              <span class="@(expiresPast ? "account-expiry is-past" : expiresSoon ? "account-expiry is-soon" : "account-expiry")">
+                · @(expiresPast ? "Süresi doldu" : $"Bitiş {expiresAt.ToLocalTime():dd.MM.yyyy}")
+              </span>
+            }
           </div>
         </div>
-        @if (canEdit || canPreview || isPublished)
+        @if (canEdit || isPublished || isArchived || isPending || isRejected)
         {
           <div class="account-listing-actions"
                x-data="accountPopover"
@@ -100,22 +118,38 @@ else
               {
                 <a class="account-action-item" role="menuitem" href="@editHref" @@click="close">
                   <ap-icon name="settings" size="14" class="ap-icon" aria-hidden="true" />
-                  <span>@(isPublished ? "Düzenle" : "Düzenle ve tekrar gönder")</span>
+                  <span>@(isPublished ? "Düzenle" : isArchived ? "Düzenle" : "Düzenle ve tekrar gönder")</span>
                 </a>
               }
-              @if (canPreview)
-              {
-                <a class="account-action-item" role="menuitem" href="@detailHref" @@click="close">
-                  <ap-icon name="eye" size="14" class="ap-icon" aria-hidden="true" />
-                  <span>Önizleme</span>
-                </a>
-              }
+              <a class="account-action-item" role="menuitem" href="@detailHref" @@click="close">
+                <ap-icon name="eye" size="14" class="ap-icon" aria-hidden="true" />
+                <span>@(isPublished ? "İlanı görüntüle" : "Önizleme")</span>
+              </a>
               @if (isPublished)
               {
-                <a class="account-action-item" role="menuitem" href="@detailHref" @@click="close">
-                  <ap-icon name="eye" size="14" class="ap-icon" aria-hidden="true" />
-                  <span>İlanı görüntüle</span>
-                </a>
+                <form method="post" asp-page-handler="Archive" role="none">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="adNo" value="@item.AdNo" />
+                  <button type="submit"
+                          class="account-action-item account-action-item--danger"
+                          role="menuitem"
+                          @@click="close"
+                          onclick="return confirm('İlan yayından kaldırılsın mı? Daha sonra yeniden yayınlayabilirsin.');">
+                    <ap-icon name="eye-off" size="14" class="ap-icon" aria-hidden="true" />
+                    <span>Yayından kaldır</span>
+                  </button>
+                </form>
+              }
+              @if (isArchived)
+              {
+                <form method="post" asp-page-handler="Republish" role="none">
+                  @Html.AntiForgeryToken()
+                  <input type="hidden" name="adNo" value="@item.AdNo" />
+                  <button type="submit" class="account-action-item" role="menuitem" @@click="close">
+                    <ap-icon name="refresh-cw" size="14" class="ap-icon" aria-hidden="true" />
+                    <span>Yeniden yayınla</span>
+                  </button>
+                </form>
               }
             </div>
           </div>

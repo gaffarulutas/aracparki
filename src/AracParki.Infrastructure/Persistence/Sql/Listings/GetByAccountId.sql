@@ -21,6 +21,7 @@ SELECT
     s.seller_type AS SellerType,
     CASE WHEN ca.id IS NOT NULL AND ca.status = 'approved' THEN TRUE ELSE s.is_verified END AS IsVerified,
     l.listed_at AS ListedAt,
+    l.expires_at AS ExpiresAt,
     l.status AS Status,
     l.rejection_reason AS RejectionReason
 FROM listings l

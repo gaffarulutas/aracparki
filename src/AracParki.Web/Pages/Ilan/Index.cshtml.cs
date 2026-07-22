@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Claims;
 using AracParki.Application.Catalog.Dtos;
 using AracParki.Application.Catalog.Services;
 using AracParki.Application.Listings;
@@ -12,7 +13,11 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace AracParki.Web.Pages.Ilan;
 
-public sealed class IndexModel(ListingService listingService, CatalogService catalog, SiteUrls siteUrls) : PageModel
+public sealed class IndexModel(
+    ListingService listingService,
+    CatalogService catalog,
+    SiteUrls siteUrls,
+    FavoriteService favorites) : PageModel
 {
     [BindProperty(SupportsGet = true)]
     public string AdNo { get; set; } = string.Empty;
@@ -22,6 +27,7 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
     public IReadOnlyList<ListingCardDto> Similar { get; private set; } = [];
     public IReadOnlyList<CategorySummaryDto> CategoryNav { get; private set; } = [];
     public IReadOnlyList<BreadcrumbItem> BreadcrumbTrail { get; private set; } = [];
+    public bool IsFavorite { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
@@ -40,6 +46,11 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
         if (Listing is null)
         {
             return NotFound();
+        }
+
+        if (access.AccountId is long accountId && Listing.Status == ListingStatus.Published)
+        {
+            IsFavorite = await favorites.IsFavoriteAsync(accountId, Listing.Id, cancellationToken);
         }
 
         if (Listing.CategoryId > 0)
@@ -102,6 +113,41 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
         return Page();
     }
 
+    public async Task<IActionResult> OnPostToggleFavoriteAsync(CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(AdNo))
+        {
+            return NotFound();
+        }
+
+        var raw = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(raw, out var accountId) || accountId <= 0)
+        {
+            return Challenge();
+        }
+
+        var access = ListingAccessContext.FromPrincipal(User);
+        var listing = await listingService.GetByAdNoAsync(AdNo, access, cancellationToken);
+        if (listing is null || listing.Status != ListingStatus.Published)
+        {
+            return NotFound();
+        }
+
+        try
+        {
+            var added = await favorites.ToggleAsync(accountId, listing.Id, cancellationToken);
+            TempData["AuthNotice"] = added
+                ? "İlan favorilerine eklendi."
+                : "İlan favorilerden çıkarıldı.";
+        }
+        catch (InvalidOperationException)
+        {
+            TempData["AuthNotice"] = "Favori işlemi yapılamadı.";
+        }
+
+        return RedirectToPage(new { adNo = listing.AdNo });
+    }
+
     public string CrumbIntent => Listing?.PrimaryIntent switch
     {
         ListingIntent.Kiralik => ListingIntent.Kiralik,
@@ -128,6 +174,95 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
             Intent = CrumbIntent,
             CategoryId = categoryId
         }, categorySlug: slug);
+    }
+
+    public string FilterIntentUrl()
+        => ListingRoutes.HubUrl(CrumbIntent);
+
+    public string FilterCategoryUrl()
+        => Listing is { CategoryId: > 0 }
+            ? CategoryNavUrl(Listing.CategoryId)
+            : ListingRoutes.HubUrl(CrumbIntent);
+
+    public string FilterBrandUrl()
+    {
+        if (Listing is null || Listing.BrandId <= 0)
+        {
+            return FilterCategoryUrl();
+        }
+
+        return ListingRoutes.ListUrl(new ListingSearchQuery
+        {
+            Intent = CrumbIntent,
+            CategoryId = Listing.CategoryId > 0 ? Listing.CategoryId : null,
+            BrandId = Listing.BrandId
+        }, categorySlug: Listing.CategoryId > 0 ? Listing.CategorySlug : null);
+    }
+
+    public string FilterModelUrl()
+    {
+        if (Listing is null || Listing.ModelId is not > 0)
+        {
+            return FilterBrandUrl();
+        }
+
+        return ListingRoutes.ListUrl(new ListingSearchQuery
+        {
+            Intent = CrumbIntent,
+            CategoryId = Listing.CategoryId > 0 ? Listing.CategoryId : null,
+            BrandId = Listing.BrandId > 0 ? Listing.BrandId : null,
+            ModelId = Listing.ModelId
+        }, categorySlug: Listing.CategoryId > 0 ? Listing.CategorySlug : null);
+    }
+
+    public string FilterConditionUrl()
+    {
+        if (Listing is null || string.IsNullOrWhiteSpace(Listing.Condition))
+        {
+            return FilterIntentUrl();
+        }
+
+        return ListingRoutes.ListUrl(new ListingSearchQuery
+        {
+            Intent = CrumbIntent,
+            CategoryId = Listing.CategoryId > 0 ? Listing.CategoryId : null,
+            Condition = Listing.Condition
+        }, categorySlug: Listing.CategoryId > 0 ? Listing.CategorySlug : null);
+    }
+
+    public string FilterCityUrl()
+    {
+        if (Listing is null || Listing.CityId <= 0)
+        {
+            return FilterIntentUrl();
+        }
+
+        return ListingRoutes.ListUrl(new ListingSearchQuery
+        {
+            Intent = CrumbIntent,
+            CategoryId = Listing.CategoryId > 0 ? Listing.CategoryId : null,
+            CityIds = [Listing.CityId]
+        },
+            categorySlug: Listing.CategoryId > 0 ? Listing.CategorySlug : null,
+            citySlug: Listing.CitySlug);
+    }
+
+    public string FilterDistrictUrl()
+    {
+        if (Listing is null || Listing.DistrictId <= 0)
+        {
+            return FilterCityUrl();
+        }
+
+        return ListingRoutes.ListUrl(new ListingSearchQuery
+        {
+            Intent = CrumbIntent,
+            CategoryId = Listing.CategoryId > 0 ? Listing.CategoryId : null,
+            CityIds = Listing.CityId > 0 ? [Listing.CityId] : [],
+            DistrictIds = [Listing.DistrictId]
+        },
+            categorySlug: Listing.CategoryId > 0 ? Listing.CategorySlug : null,
+            citySlug: Listing.CityId > 0 ? Listing.CitySlug : null);
     }
 
     private IReadOnlyList<BreadcrumbItem> BuildBreadcrumbTrail(ListingDetailDto listing)
@@ -251,24 +386,4 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
             ["name"] = name,
             ["value"] = value
         };
-
-    public string BackToListUrl()
-    {
-        if (Listing is null)
-        {
-            return ListingRoutes.List;
-        }
-
-        var intent = Listing.PrimaryIntent switch
-        {
-            ListingIntent.Kiralik => ListingIntent.Kiralik,
-            _ => ListingIntent.Satilik
-        };
-
-        return ListingRoutes.ListUrl(new()
-        {
-            Intent = intent,
-            Category = Listing.Category
-        });
-    }
 }

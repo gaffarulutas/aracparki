@@ -26,4 +26,5 @@ public sealed class ListingCardDto
     public DateTimeOffset ListedAt { get; init; }
     public string Status { get; init; } = Domain.Listings.ListingStatus.Published;
     public string? RejectionReason { get; init; }
+    public DateTimeOffset? ExpiresAt { get; init; }
 }

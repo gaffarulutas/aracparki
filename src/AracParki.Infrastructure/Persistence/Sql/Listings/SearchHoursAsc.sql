@@ -29,6 +29,7 @@ JOIN districts d ON d.id = l.district_id
 JOIN sellers s ON s.id = l.seller_id
 LEFT JOIN corporate_accounts ca ON ca.id = l.corporate_account_id
 WHERE l.status = 'published'
+  AND (l.expires_at IS NULL OR l.expires_at > NOW())
   AND (@Intent = 'all' OR l.intents @> ARRAY[@Intent]::text[])
   AND (@CategoryId IS NULL OR l.category_id = @CategoryId)
   AND (@Category IS NULL OR c.name = @Category OR c.slug = @Category)

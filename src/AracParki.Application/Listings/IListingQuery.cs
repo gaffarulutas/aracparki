@@ -14,6 +14,8 @@ public interface IListingQuery
     Task<IReadOnlyList<ListingCardDto>> GetFeaturedAsync(ListingSearchQuery query, int take, CancellationToken cancellationToken);
     Task<IReadOnlyList<ListingCardDto>> GetByAccountIdAsync(long accountId, int take, CancellationToken cancellationToken);
 
+    Task<int> CountByAccountIdAsync(long accountId, CancellationToken cancellationToken);
+
     Task<ListingEditDto?> GetOwnedForEditAsync(string adNo, long accountId, CancellationToken cancellationToken);
 
     Task<int> CountPublishedAsync(CancellationToken cancellationToken);

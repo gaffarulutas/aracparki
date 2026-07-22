@@ -50,7 +50,7 @@ public sealed class IndexModel(
             Sort = ListingSort.Newest
         }, cancellationToken);
 
-        ViewData["PageKey"] = "list";
+        ViewData["PageKey"] = "dealer";
         ViewData["Title"] = $"{Dealer.DisplayName} İş Makinesi İlanları | Araç Parkı";
         ViewData["Description"] =
             $"{Dealer.DisplayName} — {Dealer.CityName} / {Dealer.DistrictName}. Onaylı satıcı ilanlarını Araç Parkı’nda inceleyin.";

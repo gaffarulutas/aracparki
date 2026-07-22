@@ -17,12 +17,13 @@ public static class ListingStatus
         Archived
     ];
 
-    /// <summary>Statuses an owner may edit / resubmit for review (including unpublish).</summary>
+    /// <summary>Statuses an owner may edit / resubmit for review (including archived republish edit).</summary>
     public static readonly HashSet<string> OwnerEditable =
     [
         PendingReview,
         Rejected,
-        Published
+        Published,
+        Archived
     ];
 
     /// <summary>Statuses where the listing-image API may mutate rows (not silent published edits).</summary>

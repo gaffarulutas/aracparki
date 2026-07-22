@@ -1,46 +1,114 @@
 @page "/satici/{slug}"
 @model AracParki.Web.Pages.Satici.IndexModel
+@using AracParki.Application.Listings
+@using AracParki.Domain.Corporate
 @{
     var dealer = Model.Dealer!;
+    var initial = string.IsNullOrWhiteSpace(dealer.DisplayName)
+        ? "?"
+        : char.ToUpperInvariant(dealer.DisplayName.Trim()[0]).ToString();
+    var logoUrl = string.IsNullOrWhiteSpace(dealer.LogoUrl)
+        ? null
+        : ListingImageUrlVariants.WithVariant(dealer.LogoUrl, "thumb");
+    var listingCount = Model.Result.TotalCount;
 }
 
 @section CrumbBar {
-  <partial name="Shared/Partials/_SiteBreadcrumb" />
+  <partial name="Shared/Partials/_SiteBreadcrumb" model="null" />
 }
 
-<main class="container page-list" id="main">
-  <header class="list-head">
-    <h1>@dealer.DisplayName</h1>
-    <p class="list-lead">
-      @dealer.CityName / @dealer.DistrictName
-      @if (!string.IsNullOrWhiteSpace(dealer.AddressLine))
-      {
-        <span> · @dealer.AddressLine</span>
-      }
-    </p>
-    <div class="list-meta-row">
+<main class="container page-dealer" id="main">
+  <section class="dealer-hero" aria-labelledby="dealer-name">
+    <div class="dealer-hero-identity">
+      <div class="dealer-logo" aria-hidden="true">
+        @if (!string.IsNullOrWhiteSpace(logoUrl))
+        {
+          <img src="@logoUrl" alt="" width="96" height="96" loading="eager" decoding="async" />
+        }
+        else
+        {
+          <span class="dealer-logo-fallback">@initial</span>
+        }
+      </div>
+
+      <div class="dealer-hero-copy">
+        <div class="dealer-badges">
+          <span class="dealer-badge dealer-badge--verified">
+            <ap-icon name="badge-check" size="14" class="ap-icon" aria-hidden="true" />
+            Onaylı satıcı
+          </span>
+          <span class="dealer-badge">@CompanyType.Label(dealer.CompanyType)</span>
+        </div>
+        <h1 id="dealer-name">@dealer.DisplayName</h1>
+        <p class="dealer-location">
+          <ap-icon name="map-pin" size="16" class="ap-icon" aria-hidden="true" />
+          <span>
+            @dealer.CityName / @dealer.DistrictName
+            @if (!string.IsNullOrWhiteSpace(dealer.AddressLine))
+            {
+              <span class="dealer-address"> · @dealer.AddressLine</span>
+            }
+          </span>
+        </p>
+        <p class="dealer-count">
+          @(listingCount == 0
+              ? "Yayında ilan yok"
+              : listingCount == 1
+                  ? "1 yayındaki ilan"
+                  : $"{listingCount} yayındaki ilan")
+        </p>
+      </div>
+    </div>
+
+    <div class="dealer-hero-actions">
       @if (!string.IsNullOrWhiteSpace(dealer.Phone))
       {
-        <a class="btn btn-ghost btn-sm" href="tel:@dealer.Phone">@dealer.Phone</a>
+        <a class="btn btn-machine dealer-cta" href="tel:@dealer.Phone">
+          <ap-icon name="phone" size="18" class="ap-icon" aria-hidden="true" />
+          <span>Ara</span>
+        </a>
+        <a class="btn btn-ghost dealer-cta dealer-cta--secondary" href="tel:@dealer.Phone">@dealer.Phone</a>
       }
       @if (!string.IsNullOrWhiteSpace(dealer.Website))
       {
-        <a class="btn btn-ghost btn-sm" href="@dealer.Website" rel="noopener noreferrer" target="_blank">Web sitesi</a>
+        <a class="btn btn-ghost dealer-cta dealer-cta--secondary"
+           href="@dealer.Website"
+           rel="noopener noreferrer"
+           target="_blank">
+          <ap-icon name="external-link" size="18" class="ap-icon" aria-hidden="true" />
+          <span>Web sitesi</span>
+        </a>
       }
     </div>
-  </header>
+  </section>
 
-  @if (Model.Result.Items.Count == 0)
-  {
-    <p class="empty-state">Bu satıcının yayında ilanı yok.</p>
-  }
-  else
-  {
-    <div class="listing-grid">
-      @foreach (var item in Model.Result.Items)
+  <section class="dealer-listings" aria-labelledby="dealer-listings-heading">
+    <div class="dealer-listings-head">
+      <h2 id="dealer-listings-heading">İlanlar</h2>
+      @if (listingCount > 0)
       {
-        <partial name="Shared/Partials/_ListingCard" model="item" />
+        <p class="dealer-listings-lead">Bu satıcının yayındaki iş makinesi ilanları</p>
       }
     </div>
-  }
+
+    @if (Model.Result.Items.Count == 0)
+    {
+      <div class="empty-state">
+        <span class="empty-state-icon" aria-hidden="true"><ap-icon name="list" size="22" class="ap-icon" /></span>
+        <p>Bu satıcının yayında ilanı yok.</p>
+        <div class="empty-state-actions">
+          <a class="btn btn-ghost" href="/ilanlar">Tüm ilanlara göz at</a>
+        </div>
+      </div>
+    }
+    else
+    {
+      <div class="listing-grid">
+        @foreach (var item in Model.Result.Items)
+        {
+          <partial name="Shared/Partials/_ListingCard" model="item" />
+        }
+      </div>
+    }
+  </section>
 </main>

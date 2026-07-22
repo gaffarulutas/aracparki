@@ -27,24 +27,39 @@
         (ListingImageVariants.Lg, 1280),
         (ListingImageVariants.Xl, 1920));
     var isPreview = listing.Status != ListingStatus.Published;
-    var locationText = $"{listing.City} / {listing.District}" +
-        (string.IsNullOrWhiteSpace(listing.Neighborhood) ? "" : $" / {listing.Neighborhood}");
+    var isExpiredLive = listing.Status == ListingStatus.Published
+        && listing.ExpiresAt is DateTimeOffset exp
+        && exp <= DateTimeOffset.UtcNow;
     var hasTechSpecs = Model.SpecRows.Count > 0;
 }
 
 <main class="container page-detail" id="main" data-recent-id="@listing.Id">
-  @if (isPreview)
+  @if (isPreview || isExpiredLive)
   {
-    <div class="detail-status-banner @(listing.Status == ListingStatus.Rejected ? "is-rejected" : null)" role="status">
-      <strong>@ListingStatus.Label(listing.Status)</strong>
-      @if (listing.Status == ListingStatus.PendingReview)
+    <div class="detail-status-banner @(listing.Status == ListingStatus.Rejected ? "is-rejected" : listing.Status == ListingStatus.Archived || isExpiredLive ? "is-archived" : null)" role="status">
+      @if (isExpiredLive)
       {
-        <span> — Bu ilan henüz yayında değil; yalnızca sen ve yöneticiler görebilir.</span>
+        <strong>Yayın süresi doldu</strong>
+        <span> — İlan kısa süre içinde arşive alınacak. Yeniden yayınlamak için İlanlarım’dan işlem yapabilirsin.</span>
+        <a class="btn btn-ghost btn-sm" href="/ilanlarim" style="margin-left:8px">İlanlarım</a>
       }
-      else if (listing.Status == ListingStatus.Rejected)
+      else
       {
-        <span> — @listing.RejectionReason</span>
-        <a class="btn btn-ghost btn-sm" href="/ilan-ver?duzenle=@listing.AdNo" style="margin-left:8px">Düzenle</a>
+        <strong>@ListingStatus.Label(listing.Status)</strong>
+        @if (listing.Status == ListingStatus.PendingReview)
+        {
+          <span> — Bu ilan henüz yayında değil; yalnızca sen ve yöneticiler görebilir.</span>
+        }
+        else if (listing.Status == ListingStatus.Rejected)
+        {
+          <span> — @listing.RejectionReason</span>
+          <a class="btn btn-ghost btn-sm" href="/ilan-ver?duzenle=@listing.AdNo" style="margin-left:8px">Düzenle</a>
+        }
+        else if (listing.Status == ListingStatus.Archived)
+        {
+          <span> — İlan yayında değil. Yeniden yayınlamak için incelemeye gönderebilirsin.</span>
+          <a class="btn btn-ghost btn-sm" href="/ilanlarim" style="margin-left:8px">İlanlarım</a>
+        }
       }
     </div>
   }
@@ -52,14 +67,33 @@
   <header class="detail-head">
     <h1 class="detail-title">@listing.Title</h1>
     <div class="detail-utils" role="group" aria-label="İlan işlemleri">
-      <button type="button" class="detail-util" data-toast="Favori özelliği yakında">
-        <ap-icon name="heart" size="16" />
-        <span>Favorilerime Ekle</span>
-      </button>
+      @if (!isPreview && !isExpiredLive)
+      {
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+          <form method="post" asp-page-handler="ToggleFavorite" class="detail-util-form">
+            @Html.AntiForgeryToken()
+            <button type="submit"
+                    class="detail-util @(Model.IsFavorite ? "is-active" : null)"
+                    aria-pressed="@(Model.IsFavorite ? "true" : "false")"
+                    aria-label="@(Model.IsFavorite ? "Favorilerden çıkar" : "Favorilere ekle")">
+              <ap-icon name="heart" size="16" />
+              <span>@(Model.IsFavorite ? "Favorilerimde" : "Favorilerime Ekle")</span>
+            </button>
+          </form>
+        }
+        else
+        {
+          <a class="detail-util" href="/giris?returnUrl=@Uri.EscapeDataString($"/ilan/{listing.AdNo}")">
+            <ap-icon name="heart" size="16" />
+            <span>Favorilerime Ekle</span>
+          </a>
+        }
+      }
       <button type="button" class="detail-util" data-print-listing>
         <span>Yazdır</span>
       </button>
-      @if (!isPreview)
+      @if (!isPreview && !isExpiredLive)
       {
         <button type="button" class="detail-util" data-share-listing
                 data-share-title="@listing.Title"
@@ -94,7 +128,7 @@
                 data-gallery-open
                 aria-haspopup="dialog"
                 aria-label="Büyük galeriyi aç">
-          <ap-icon name="maximize" size="16" />
+          <ap-icon name="maximize-2" size="16" />
           <span>@(images.Count) fotoğraf</span>
         </button>
         @* lightGallery dynamic trigger (hidden; opened via API) *@
@@ -139,7 +173,16 @@
       <div class="detail-price">
         @Formatters.Price(listing.Price, listing.PrimaryIntent == ListingIntent.Kiralik ? listing.PriceUnit : null, listing.Currency)
       </div>
-      <div class="detail-loc">@locationText</div>
+      <div class="detail-loc">
+        <a class="detail-filter-link" href="@Model.FilterCityUrl()">@listing.City</a>
+        <span class="detail-loc-sep" aria-hidden="true">/</span>
+        <a class="detail-filter-link" href="@Model.FilterDistrictUrl()">@listing.District</a>
+        @if (!string.IsNullOrWhiteSpace(listing.Neighborhood))
+        {
+          <span class="detail-loc-sep" aria-hidden="true">/</span>
+          <a class="detail-filter-link" href="@Model.FilterDistrictUrl()" title="İlçe filtresiyle aç">@listing.Neighborhood</a>
+        }
+      </div>
 
       <table class="spec-table">
         <tbody>
@@ -153,15 +196,24 @@
           </tr>
           <tr>
             <th scope="row">Kategori</th>
-            <td>@listing.Category</td>
+            <td><a class="detail-filter-link" href="@Model.FilterCategoryUrl()">@listing.Category</a></td>
           </tr>
           <tr>
             <th scope="row">Marka</th>
-            <td>@listing.Brand</td>
+            <td><a class="detail-filter-link" href="@Model.FilterBrandUrl()">@listing.Brand</a></td>
           </tr>
           <tr>
             <th scope="row">Model</th>
-            <td>@listing.ModelName</td>
+            <td>
+              @if (listing.ModelId is > 0)
+              {
+                <a class="detail-filter-link" href="@Model.FilterModelUrl()">@listing.ModelName</a>
+              }
+              else
+              {
+                @listing.ModelName
+              }
+            </td>
           </tr>
           @if (!string.IsNullOrWhiteSpace(listing.SerialNo))
           {
@@ -172,11 +224,19 @@
           }
           <tr>
             <th scope="row">Tip</th>
-            <td><span class="@badgeClass">@badgeText</span></td>
+            <td>
+              <a class="detail-filter-link" href="@Model.FilterIntentUrl()">
+                <span class="@badgeClass">@badgeText</span>
+              </a>
+            </td>
           </tr>
           <tr>
             <th scope="row">Durum</th>
-            <td><span class="@EquipmentCondition.BadgeClass(listing.Condition)">@EquipmentCondition.Label(listing.Condition)</span></td>
+            <td>
+              <a class="detail-filter-link" href="@Model.FilterConditionUrl()">
+                <span class="@EquipmentCondition.BadgeClass(listing.Condition)">@EquipmentCondition.Label(listing.Condition)</span>
+              </a>
+            </td>
           </tr>
           <tr>
             <th scope="row">Model Yılı</th>
@@ -221,10 +281,6 @@
               <td>Dahil</td>
             </tr>
           }
-          <tr>
-            <th scope="row">Konum</th>
-            <td>@locationText</td>
-          </tr>
           @if (listing.Attachments.Count > 0)
           {
             <tr>
@@ -267,8 +323,6 @@
             </button>
           </div>
         }
-
-        <a class="detail-back" href="@Model.BackToListUrl()">← Benzer ilanlara dön</a>
       </div>
     </aside>
   </div>

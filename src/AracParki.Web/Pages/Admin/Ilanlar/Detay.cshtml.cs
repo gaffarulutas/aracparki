@@ -103,6 +103,33 @@ public sealed class DetayModel(
         }
     }
 
+    public async Task<IActionResult> OnPostArchiveAsync(CancellationToken cancellationToken)
+    {
+        if (!TryGetAdminId(out var adminId))
+        {
+            return Challenge();
+        }
+
+        try
+        {
+            await moderation.ArchiveAsync(AdNo, adminId, cancellationToken);
+            TempData["AuthNotice"] = $"{AdNo} yayından kaldırıldı.";
+            return RedirectToPage("/Admin/Ilanlar/Index", new { durum = ListingStatus.Published });
+        }
+        catch (InvalidOperationException)
+        {
+            FormError = "Yayından kaldırılacak ilan bulunamadı veya durumu uygun değil.";
+            await OnGetAsync(cancellationToken);
+            return Page();
+        }
+        catch (Exception)
+        {
+            FormError = "Yayından kaldırma başarısız. Lütfen tekrar dene.";
+            await OnGetAsync(cancellationToken);
+            return Page();
+        }
+    }
+
     private bool TryGetAdminId(out long adminId)
     {
         adminId = 0;

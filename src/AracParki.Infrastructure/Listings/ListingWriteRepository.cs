@@ -203,12 +203,13 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
                         rejection_reason = NULL,
                         reviewed_at = NULL,
                         reviewed_by_account_id = NULL,
-                        submitted_at = NOW()
+                        submitted_at = NOW(),
+                        expires_at = NULL
                     FROM sellers s
                     WHERE l.ad_no = @AdNo
                       AND l.seller_id = s.id
                       AND s.account_id = @AccountId
-                      AND l.status IN ('pending_review', 'rejected', 'published')
+                      AND l.status IN ('pending_review', 'rejected', 'published', 'archived')
                     RETURNING l.id
                     """,
                     new
@@ -344,8 +345,13 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
         }
     }
 
-    public async Task ApproveAsync(string adNo, long adminAccountId, CancellationToken cancellationToken)
+    public async Task ApproveAsync(
+        string adNo,
+        long adminAccountId,
+        int publishedDurationDays,
+        CancellationToken cancellationToken)
     {
+        var days = Math.Clamp(publishedDurationDays, 1, 365);
         await using var connection = (NpgsqlConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
         var rows = await connection.ExecuteAsync(
             new CommandDefinition(
@@ -355,7 +361,8 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
                     rejection_reason = NULL,
                     reviewed_at = NOW(),
                     reviewed_by_account_id = @AdminId,
-                    listed_at = NOW()
+                    listed_at = NOW(),
+                    expires_at = NOW() + (@Days * INTERVAL '1 day')
                 WHERE ad_no = @AdNo
                   AND status = @Pending
                 """,
@@ -363,6 +370,7 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
                 {
                     AdNo = adNo,
                     AdminId = adminAccountId,
+                    Days = days,
                     Status = ListingStatus.Published,
                     Pending = ListingStatus.PendingReview
                 },
@@ -384,7 +392,8 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
                 SET status = @Status,
                     rejection_reason = @Reason,
                     reviewed_at = NOW(),
-                    reviewed_by_account_id = @AdminId
+                    reviewed_by_account_id = @AdminId,
+                    expires_at = NULL
                 WHERE ad_no = @AdNo
                   AND status = @Pending
                 """,
@@ -402,6 +411,119 @@ public sealed class ListingWriteRepository(IDbConnectionFactory connectionFactor
         {
             throw new InvalidOperationException("Reddedilecek ilan bulunamadı.");
         }
+    }
+
+    public async Task ArchiveByOwnerAsync(string adNo, long accountId, CancellationToken cancellationToken)
+    {
+        await using var connection = (NpgsqlConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        var rows = await connection.ExecuteAsync(
+            new CommandDefinition(
+                """
+                UPDATE listings l
+                SET status = @Archived,
+                    expires_at = NULL
+                FROM sellers s
+                WHERE l.ad_no = @AdNo
+                  AND l.seller_id = s.id
+                  AND s.account_id = @AccountId
+                  AND l.status = @Published
+                """,
+                new
+                {
+                    AdNo = adNo,
+                    AccountId = accountId,
+                    Archived = ListingStatus.Archived,
+                    Published = ListingStatus.Published
+                },
+                cancellationToken: cancellationToken));
+
+        if (rows == 0)
+        {
+            throw new InvalidOperationException("Yayından kaldırılacak ilan bulunamadı.");
+        }
+    }
+
+    public async Task ArchiveByAdminAsync(string adNo, long adminAccountId, CancellationToken cancellationToken)
+    {
+        await using var connection = (NpgsqlConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        var rows = await connection.ExecuteAsync(
+            new CommandDefinition(
+                """
+                UPDATE listings
+                SET status = @Archived,
+                    expires_at = NULL,
+                    reviewed_at = NOW(),
+                    reviewed_by_account_id = @AdminId
+                WHERE ad_no = @AdNo
+                  AND status = @Published
+                """,
+                new
+                {
+                    AdNo = adNo,
+                    AdminId = adminAccountId,
+                    Archived = ListingStatus.Archived,
+                    Published = ListingStatus.Published
+                },
+                cancellationToken: cancellationToken));
+
+        if (rows == 0)
+        {
+            throw new InvalidOperationException("Yayından kaldırılacak ilan bulunamadı.");
+        }
+    }
+
+    public async Task RepublishByOwnerAsync(string adNo, long accountId, CancellationToken cancellationToken)
+    {
+        await using var connection = (NpgsqlConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        var rows = await connection.ExecuteAsync(
+            new CommandDefinition(
+                """
+                UPDATE listings l
+                SET status = @Pending,
+                    rejection_reason = NULL,
+                    reviewed_at = NULL,
+                    reviewed_by_account_id = NULL,
+                    submitted_at = NOW(),
+                    expires_at = NULL
+                FROM sellers s
+                WHERE l.ad_no = @AdNo
+                  AND l.seller_id = s.id
+                  AND s.account_id = @AccountId
+                  AND l.status = @Archived
+                """,
+                new
+                {
+                    AdNo = adNo,
+                    AccountId = accountId,
+                    Pending = ListingStatus.PendingReview,
+                    Archived = ListingStatus.Archived
+                },
+                cancellationToken: cancellationToken));
+
+        if (rows == 0)
+        {
+            throw new InvalidOperationException("Yeniden yayınlanacak ilan bulunamadı.");
+        }
+    }
+
+    public async Task<int> ExpirePublishedAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = (NpgsqlConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        return await connection.ExecuteAsync(
+            new CommandDefinition(
+                """
+                UPDATE listings
+                SET status = @Archived
+                WHERE status = @Published
+                  AND expires_at IS NOT NULL
+                  AND expires_at < NOW()
+                """,
+                new
+                {
+                    Archived = ListingStatus.Archived,
+                    Published = ListingStatus.Published
+                },
+                cancellationToken: cancellationToken));
     }
 
     public async Task<ModerationCountsDto> GetModerationCountsAsync(CancellationToken cancellationToken)

@@ -95,6 +95,22 @@ public sealed class ListingRepository(
         return items.AsList();
     }
 
+    public async Task<int> CountByAccountIdAsync(long accountId, CancellationToken cancellationToken)
+    {
+        await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        return await connection.ExecuteScalarAsync<int>(
+            new CommandDefinition(
+                """
+                SELECT COUNT(*)::int
+                FROM listings l
+                JOIN sellers s ON s.id = l.seller_id
+                WHERE s.account_id = @AccountId
+                  AND l.status IN ('pending_review', 'published', 'rejected', 'archived')
+                """,
+                new { AccountId = accountId },
+                cancellationToken: cancellationToken));
+    }
+
     public async Task<ListingEditDto?> GetOwnedForEditAsync(
         string adNo,
         long accountId,
@@ -245,6 +261,8 @@ public sealed class ListingRepository(
             CategoryId = row.CategoryId,
             CapacityMetric = row.CapacityMetric,
             Brand = row.Brand,
+            BrandId = row.BrandId,
+            ModelId = row.ModelId,
             ModelName = row.ModelName,
             SerialNo = row.SerialNo,
             PrimaryIntent = row.PrimaryIntent,
@@ -255,7 +273,10 @@ public sealed class ListingRepository(
             Tons = row.Tons,
             CapacityKg = row.CapacityKg,
             Horsepower = row.Horsepower,
+            CityId = row.CityId,
             City = row.City,
+            CitySlug = row.CitySlug,
+            DistrictId = row.DistrictId,
             District = row.District,
             Neighborhood = row.Neighborhood,
             Price = row.Price,
@@ -398,6 +419,8 @@ public sealed class ListingRepository(
         public int CategoryId { get; init; }
         public required string CapacityMetric { get; init; }
         public required string Brand { get; init; }
+        public int BrandId { get; init; }
+        public int? ModelId { get; init; }
         public required string ModelName { get; init; }
         public string? SerialNo { get; init; }
         public required string PrimaryIntent { get; init; }
@@ -408,7 +431,10 @@ public sealed class ListingRepository(
         public decimal Tons { get; init; }
         public int? CapacityKg { get; init; }
         public int? Horsepower { get; init; }
+        public int CityId { get; init; }
         public required string City { get; init; }
+        public required string CitySlug { get; init; }
+        public int DistrictId { get; init; }
         public required string District { get; init; }
         public string? Neighborhood { get; init; }
         public decimal Price { get; init; }

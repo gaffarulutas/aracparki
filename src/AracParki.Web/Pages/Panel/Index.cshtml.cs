@@ -9,7 +9,9 @@ namespace AracParki.Web.Pages.Panel;
 
 public sealed class IndexModel(
     ListingService listings,
-    CorporateAccountService corporate) : AccountPageModel
+    CorporateAccountService corporate,
+    FavoriteService favorites,
+    SavedSearchService savedSearches) : AccountPageModel
 {
     public string DisplayName { get; private set; } = string.Empty;
 
@@ -18,6 +20,8 @@ public sealed class IndexModel(
     public int ListingCount { get; private set; }
     public int PendingCount { get; private set; }
     public int RejectedCount { get; private set; }
+    public int FavoriteCount { get; private set; }
+    public int SavedSearchCount { get; private set; }
     public int CorporateApprovedCount { get; private set; }
     public int CorporatePendingCount { get; private set; }
 
@@ -40,7 +44,15 @@ public sealed class IndexModel(
         PendingCount = items.Count(i => i.Status == ListingStatus.PendingReview);
         RejectedCount = items.Count(i => i.Status == ListingStatus.Rejected);
 
-        var corporateAccounts = await corporate.ListMineAsync(accountId, cancellationToken);
+        var favTask = favorites.ListAsync(accountId, 100, cancellationToken);
+        var savedTask = savedSearches.ListAsync(accountId, cancellationToken);
+        var corporateTask = corporate.ListMineAsync(accountId, cancellationToken);
+        await Task.WhenAll(favTask, savedTask, corporateTask);
+
+        FavoriteCount = (await favTask).Count;
+        SavedSearchCount = (await savedTask).Count;
+
+        var corporateAccounts = await corporateTask;
         CorporateApprovedCount = corporateAccounts.Count(c => c.Status == CorporateStatus.Approved);
         CorporatePendingCount = corporateAccounts.Count(c => c.Status == CorporateStatus.Pending);
 

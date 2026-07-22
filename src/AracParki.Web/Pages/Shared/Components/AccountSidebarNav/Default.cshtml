@@ -1,3 +1,4 @@
+@model AracParki.Application.Accounts.Dtos.AccountNavCountsDto
 @{
     var path = ViewContext.HttpContext.Request.Path.Value ?? string.Empty;
     bool On(string prefix) => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
@@ -21,7 +22,7 @@
       <p class="account-nav-section-title">Özet</p>
       <ul class="account-nav-list" aria-label="Panel">
         <li>
-          <partial name="Shared/Partials/_AccountNavItem" model='("/panel", "Panel", "layout-dashboard", isPanel)' />
+          <partial name="Shared/Partials/_AccountNavItem" model='("/panel", "Panel", "layout-dashboard", isPanel, (int?)null)' />
         </li>
       </ul>
     </div>
@@ -30,7 +31,7 @@
       <p class="account-nav-section-title">İlanlar</p>
       <ul class="account-nav-list" aria-label="İlan işlemleri">
         <li>
-          <partial name="Shared/Partials/_AccountNavItem" model='("/ilanlarim", "İlanlarım", "list", isIlanlarim)' />
+          <partial name="Shared/Partials/_AccountNavItem" model='("/ilanlarim", "İlanlarım", "list", isIlanlarim, (int?)Model.Listings)' />
         </li>
       </ul>
     </div>
@@ -39,10 +40,10 @@
       <p class="account-nav-section-title">Takip</p>
       <ul class="account-nav-list" aria-label="Takip işlemleri">
         <li>
-          <partial name="Shared/Partials/_AccountNavItem" model='("/favorilerim", "Favorilerim", "heart", isFavorilerim)' />
+          <partial name="Shared/Partials/_AccountNavItem" model='("/favorilerim", "Favorilerim", "heart", isFavorilerim, (int?)Model.Favorites)' />
         </li>
         <li>
-          <partial name="Shared/Partials/_AccountNavItem" model='("/kayitli-aramalar", "Kayıtlı aramalar", "bookmark", isKayitli)' />
+          <partial name="Shared/Partials/_AccountNavItem" model='("/kayitli-aramalar", "Kayıtlı aramalar", "bookmark", isKayitli, (int?)Model.SavedSearches)' />
         </li>
       </ul>
     </div>
@@ -51,10 +52,10 @@
       <p class="account-nav-section-title">İletişim</p>
       <ul class="account-nav-list" aria-label="İletişim">
         <li>
-          <partial name="Shared/Partials/_AccountNavItem" model='("/mesajlarim", "Mesajlarım", "message-circle", isMesajlarim)' />
+          <partial name="Shared/Partials/_AccountNavItem" model='("/mesajlarim", "Mesajlarım", "message-circle", isMesajlarim, (int?)null)' />
         </li>
         <li>
-          <partial name="Shared/Partials/_AccountNavItem" model='("/bildirimler", "Bildirimler", "bell", isBildirimler)' />
+          <partial name="Shared/Partials/_AccountNavItem" model='("/bildirimler", "Bildirimler", "bell", isBildirimler, (int?)null)' />
         </li>
       </ul>
     </div>
@@ -63,13 +64,13 @@
       <p class="account-nav-section-title">Hesap</p>
       <ul class="account-nav-list" aria-label="Hesap işlemleri">
         <li>
-          <partial name="Shared/Partials/_AccountNavItem" model='("/bilgilerim", "Bilgilerim", "circle-user", isBilgilerim)' />
+          <partial name="Shared/Partials/_AccountNavItem" model='("/bilgilerim", "Bilgilerim", "circle-user", isBilgilerim, (int?)null)' />
         </li>
         <li>
-          <partial name="Shared/Partials/_AccountNavItem" model='("/kurumsal-hesap", "Kurumsal Hesap", "building-2", isKurumsal)' />
+          <partial name="Shared/Partials/_AccountNavItem" model='("/kurumsal-hesap", "Kurumsal Hesap", "building-2", isKurumsal, (int?)null)' />
         </li>
         <li>
-          <partial name="Shared/Partials/_AccountNavItem" model='("/ayarlar", "Ayarlar", "settings", isAyarlar)' />
+          <partial name="Shared/Partials/_AccountNavItem" model='("/ayarlar", "Ayarlar", "settings", isAyarlar, (int?)null)' />
         </li>
       </ul>
     </div>

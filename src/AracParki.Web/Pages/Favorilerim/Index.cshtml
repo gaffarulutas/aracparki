@@ -1,11 +1,68 @@
 @page "/favorilerim"
 @model AracParki.Web.Pages.Favorilerim.IndexModel
+@using AracParki.Application.Listings
 @{
     Layout = "Shared/_AccountLayout";
 }
 <header class="page-account-head">
   <partial name="Shared/Partials/_AccountBreadcrumb" />
-  <h1>Favorilerim</h1>
-  <p class="page-account-lead">Beğendiğin iş makinesi ilanları</p>
+  <div class="page-account-title-row">
+    <div>
+      <h1>Favorilerim</h1>
+      <p class="page-account-lead">
+        @(Model.Items.Count == 0
+            ? "Beğendiğin iş makinesi ilanları"
+            : $"{Model.Items.Count} favori ilan")
+      </p>
+    </div>
+  </div>
 </header>
-<partial name="Shared/Partials/_AccountComingSoon" model="@($"Favori ilanlar yakında eklenecek. Beğendiğin ilanları tek yerden takip edebileceksin.")" />
+
+@if (Model.Items.Count == 0)
+{
+  <div class="empty-state">
+    <span class="empty-state-icon" aria-hidden="true"><ap-icon name="heart" size="22" class="ap-icon" /></span>
+    <p>Henüz favori ilanın yok.</p>
+    <p class="empty-state-hint">İlan detayında kalp ile favorilerine ekleyebilirsin.</p>
+  </div>
+}
+else
+{
+  <div class="admin-listing-list">
+    @foreach (var item in Model.Items)
+    {
+      var detailHref = ListingRoutes.Detail(item.AdNo);
+      var thumb = ListingImageUrlVariants.WithVariant(item.CoverImageUrl, ListingImageVariants.Thumb);
+      <article class="admin-listing-row">
+        <a class="admin-listing-thumb img-shell is-loading" href="@detailHref">
+          <img src="@thumb"
+               alt=""
+               width="120"
+               height="90"
+               loading="lazy"
+               decoding="async" />
+        </a>
+        <div class="admin-listing-body">
+          <h2><a href="@detailHref">@item.Title</a></h2>
+          <div class="admin-listing-meta">
+            <span>@item.AdNo</span>
+            <span>· @item.City@(string.IsNullOrWhiteSpace(item.District) ? "" : $" / {item.District}")</span>
+            <span class="account-fav-price">@Formatters.Price(item.Price, item.PriceUnit, item.Currency)</span>
+          </div>
+        </div>
+        <div class="account-listing-actions account-listing-actions--inline">
+          <a class="btn btn-ghost btn-sm" href="@detailHref">Görüntüle</a>
+          <form method="post" asp-page-handler="Remove">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="listingId" value="@item.Id" />
+            <button type="submit"
+                    class="btn btn-ghost btn-sm account-fav-remove"
+                    aria-label="Favorilerden çıkar: @item.Title">
+              Favoriden çıkar
+            </button>
+          </form>
+        </div>
+      </article>
+    }
+  </div>
+}

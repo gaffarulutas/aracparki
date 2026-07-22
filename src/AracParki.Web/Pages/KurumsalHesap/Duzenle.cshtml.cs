@@ -6,6 +6,7 @@ using AracParki.Application.Corporate.Dtos;
 using AracParki.Application.Corporate.Services;
 using AracParki.Domain.Corporate;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace AracParki.Web.Pages.KurumsalHesap;
 
@@ -26,6 +27,10 @@ public sealed class DuzenleModel(
     public bool IsEditable => Account is null
         || Account.Status is CorporateStatus.Draft or CorporateStatus.Rejected;
 
+    /// <summary>Logo draft/rejected/approved iken değişir; pending kilitli.</summary>
+    public bool IsLogoEditable => Account is not null
+        && Account.Status is CorporateStatus.Draft or CorporateStatus.Rejected or CorporateStatus.Approved;
+
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
         if (!TryGetAccountId(out var accountId))
@@ -39,9 +44,7 @@ public sealed class DuzenleModel(
         }
 
         Notice = TempData["CorporateNotice"] as string;
-        SetAccountMeta(
-            Account is null ? "Yeni kurumsal hesap" : Account.DisplayName,
-            "Kurumsal hesap bilgileri ve evraklar");
+        SetPageMeta();
         return Page();
     }
 
@@ -90,12 +93,83 @@ public sealed class DuzenleModel(
         {
             FormError = error;
             await LoadAsync(accountId, cancellationToken);
-            SetAccountMeta("Kurumsal hesap", "Kurumsal hesap bilgileri ve evraklar");
+            SetPageMeta();
             return Page();
         }
 
-        TempData["CorporateNotice"] = "Firma bilgileri kaydedildi. Şimdi evraklarını yükleyebilirsin.";
+        TempData["CorporateNotice"] = "Firma bilgileri kaydedildi. Şimdi logo ve evraklarını yükleyebilirsin.";
         return RedirectToPage("/KurumsalHesap/Duzenle", new { id });
+    }
+
+    [EnableRateLimiting("listing-wizard-upload")]
+    public async Task<IActionResult> OnPostUploadLogoJsonAsync(IFormFile? file, CancellationToken cancellationToken)
+    {
+        if (!TryGetAccountId(out var accountId))
+        {
+            return Challenge();
+        }
+
+        if (Id is null or 0)
+        {
+            return new JsonResult(new { ok = false, error = "Önce firma bilgilerini kaydet." })
+            {
+                StatusCode = StatusCodes.Status400BadRequest
+            };
+        }
+
+        if (file is null || file.Length == 0)
+        {
+            return new JsonResult(new { ok = false, error = "Dosya seçilmedi." })
+            {
+                StatusCode = StatusCodes.Status400BadRequest
+            };
+        }
+
+        await using var stream = file.OpenReadStream();
+        var (ok, error, logoUrl) = await corporate.UploadLogoAsync(
+            Id.Value,
+            accountId,
+            stream,
+            file.ContentType ?? "",
+            file.FileName,
+            file.Length,
+            cancellationToken);
+
+        if (!ok)
+        {
+            return new JsonResult(new { ok = false, error = error ?? "Logo yüklenemedi." })
+            {
+                StatusCode = StatusCodes.Status400BadRequest
+            };
+        }
+
+        return new JsonResult(new
+        {
+            ok = true,
+            deliveryUrl = logoUrl,
+            count = 1,
+            maxCount = 1
+        });
+    }
+
+    public async Task<IActionResult> OnPostRemoveLogoAsync(CancellationToken cancellationToken)
+    {
+        if (!TryGetAccountId(out var accountId))
+        {
+            return Challenge();
+        }
+
+        if (Id is null or 0)
+        {
+            return RedirectToPage("/KurumsalHesap/Index");
+        }
+
+        var (ok, error) = await corporate.RemoveLogoAsync(Id.Value, accountId, cancellationToken);
+        TempData["CorporateNotice"] = ok
+            ? "Logo kaldırıldı."
+            : (error ?? "Logo kaldırılamadı.");
+
+        return RedirectToPage("/KurumsalHesap/Duzenle", new { id = Id });
     }
 
     public async Task<IActionResult> OnPostUploadDocAsync(
@@ -144,7 +218,7 @@ public sealed class DuzenleModel(
             return NotFound();
         }
 
-        SetAccountMeta("Kurumsal hesap", "Kurumsal hesap bilgileri ve evraklar");
+        SetPageMeta();
         return Page();
     }
 
@@ -173,7 +247,7 @@ public sealed class DuzenleModel(
             return NotFound();
         }
 
-        SetAccountMeta("Kurumsal hesap", "Kurumsal hesap bilgileri ve evraklar");
+        SetPageMeta();
         return Page();
     }
 
@@ -202,7 +276,7 @@ public sealed class DuzenleModel(
             return NotFound();
         }
 
-        SetAccountMeta("Kurumsal hesap", "Kurumsal hesap bilgileri ve evraklar");
+        SetPageMeta();
         return Page();
     }
 
@@ -222,6 +296,17 @@ public sealed class DuzenleModel(
 
         var (content, document) = opened.Value;
         return File(content, document.ContentType, document.FileName);
+    }
+
+    private void SetPageMeta()
+    {
+        SetAccountMeta(
+            Account is null ? "Yeni kurumsal hesap" : Account.DisplayName,
+            "Kurumsal hesap bilgileri ve evraklar");
+        if (IsLogoEditable)
+        {
+            ViewData["NeedCropper"] = true;
+        }
     }
 
     private async Task<bool> LoadAsync(long accountId, CancellationToken cancellationToken)

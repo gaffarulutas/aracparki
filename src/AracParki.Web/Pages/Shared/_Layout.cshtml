@@ -150,11 +150,24 @@
         <link rel="stylesheet" href="~/css/pages/ilan-ver.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/lib/quill/quill.snow.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/lib/cropperjs/cropper.min.css" asp-append-version="true" />
+        @* Step 5 reuses detail gallery markup + lightGallery lightbox *@
+        <link rel="stylesheet" href="~/css/pages/detail.css" asp-append-version="true" />
+        <link rel="stylesheet" href="~/lib/lightgallery/lightgallery-bundle.min.css" asp-append-version="true" />
     }
     else if (pageKey is "account")
     {
         <link rel="stylesheet" href="~/css/pages/account.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/css/components/cards.css" asp-append-version="true" />
+        @if (ViewData["NeedCropper"] as bool? == true)
+        {
+            <link rel="stylesheet" href="~/lib/cropperjs/cropper.min.css" asp-append-version="true" />
+        }
+    }
+    else if (pageKey is "dealer")
+    {
+        <link rel="stylesheet" href="~/css/components/breadcrumb.css" asp-append-version="true" />
+        <link rel="stylesheet" href="~/css/components/cards.css" asp-append-version="true" />
+        <link rel="stylesheet" href="~/css/pages/dealer.css" asp-append-version="true" />
     }
     else if (pageKey is "legal")
     {
@@ -186,7 +199,9 @@
         }
     }
 </head>
-<body data-page="@pageKey" x-data="siteChrome">
+<body data-page="@pageKey"
+      data-authenticated="@(User.Identity?.IsAuthenticated == true ? "1" : "0")"
+      x-data="siteChrome">
     <a class="skip-link" href="#main">İçeriğe geç</a>
     <div id="route-progress" class="route-progress" role="presentation" aria-hidden="true"></div>
 

@@ -215,7 +215,14 @@ try
 
     app.UseSerilogRequestLogging();
     app.UseSecurityHeaders();
-    app.UseResponseCompression();
+    // Dev: ASP.NET browser-refresh injects into HTML. Compressing first yields
+    // Content-Encoding: br that the injector cannot rewrite → Chrome
+    // net::ERR_CONTENT_DECODING_FAILED (blank white page / endless spinner).
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseResponseCompression();
+    }
+
     app.UseHttpsRedirection();
     var contentTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider
     {
