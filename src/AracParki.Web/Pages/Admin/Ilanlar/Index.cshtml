@@ -5,22 +5,35 @@
     Layout = "Shared/_AccountLayout";
 }
 <header class="page-account-head">
-  <p class="page-account-kicker">
+  <nav class="page-account-kicker" aria-label="Breadcrumb">
     <a class="link-quiet" href="/admin">Admin</a>
     <span class="account-kicker-sep" aria-hidden="true">/</span>
-    <span>İlanlar</span>
-  </p>
-  <h1>İlan moderasyonu</h1>
-  <p class="page-account-lead">İnceleme kuyruğundaki ilanları onayla veya reddet.</p>
+    <span aria-current="page">İlanlar</span>
+  </nav>
+  <div class="page-account-title-row">
+    <div>
+      <h1>İlan moderasyonu</h1>
+      <p class="page-account-lead">İnceleme kuyruğundaki ilanları onayla veya reddet.</p>
+    </div>
+  </div>
 </header>
 
 <nav class="account-filter-tabs" aria-label="Durum filtresi">
   <a class="@(Model.Status == ListingStatus.PendingReview ? "is-active" : null)"
-     href="/admin/ilanlar?durum=@ListingStatus.PendingReview">İncelemede</a>
+     href="/admin/ilanlar?durum=@ListingStatus.PendingReview"
+     aria-current="@(Model.Status == ListingStatus.PendingReview ? "page" : null)">
+    <span>İncelemede</span>
+  </a>
   <a class="@(Model.Status == ListingStatus.Published ? "is-active" : null)"
-     href="/admin/ilanlar?durum=@ListingStatus.Published">Yayında</a>
+     href="/admin/ilanlar?durum=@ListingStatus.Published"
+     aria-current="@(Model.Status == ListingStatus.Published ? "page" : null)">
+    <span>Yayında</span>
+  </a>
   <a class="@(Model.Status == ListingStatus.Rejected ? "is-active" : null)"
-     href="/admin/ilanlar?durum=@ListingStatus.Rejected">Reddedilen</a>
+     href="/admin/ilanlar?durum=@ListingStatus.Rejected"
+     aria-current="@(Model.Status == ListingStatus.Rejected ? "page" : null)">
+    <span>Reddedilen</span>
+  </a>
 </nav>
 
 @if (Model.Items.Count == 0)

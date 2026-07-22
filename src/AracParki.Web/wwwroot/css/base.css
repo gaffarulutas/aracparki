@@ -77,6 +77,14 @@ h3 {
   border: 0;
 }
 
+[x-cloak] {
+  display: none !important;
+}
+
+body.no-scroll {
+  overflow: hidden;
+}
+
 .skip-link {
   position: absolute;
   left: var(--space-2);

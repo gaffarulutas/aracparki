@@ -2,21 +2,80 @@
     Layout = "_Layout";
     var path = Context.Request.Path.Value ?? string.Empty;
     var isAdminArea = path.StartsWith("/admin", StringComparison.OrdinalIgnoreCase);
+    string CurrentLabel()
+    {
+        if (path.StartsWith("/admin/ilanlar", StringComparison.OrdinalIgnoreCase)) return "İlanlar";
+        if (path.StartsWith("/admin/kurumsal", StringComparison.OrdinalIgnoreCase)) return "Kurumsal";
+        if (path.Equals("/admin", StringComparison.OrdinalIgnoreCase)) return "Admin";
+        if (path.StartsWith("/ilanlarim", StringComparison.OrdinalIgnoreCase)) return "İlanlarım";
+        if (path.StartsWith("/ilan-ver", StringComparison.OrdinalIgnoreCase)) return "İlan ver";
+        if (path.StartsWith("/favorilerim", StringComparison.OrdinalIgnoreCase)) return "Favorilerim";
+        if (path.StartsWith("/kayitli-aramalar", StringComparison.OrdinalIgnoreCase)) return "Kayıtlı aramalar";
+        if (path.StartsWith("/mesajlarim", StringComparison.OrdinalIgnoreCase)) return "Mesajlarım";
+        if (path.StartsWith("/bildirimler", StringComparison.OrdinalIgnoreCase)) return "Bildirimler";
+        if (path.StartsWith("/bilgilerim", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/hesabim", StringComparison.OrdinalIgnoreCase)) return "Bilgilerim";
+        if (path.StartsWith("/kurumsal-hesap", StringComparison.OrdinalIgnoreCase)) return "Kurumsal Hesap";
+        if (path.StartsWith("/ayarlar", StringComparison.OrdinalIgnoreCase)) return "Ayarlar";
+        if (path.StartsWith("/panel", StringComparison.OrdinalIgnoreCase)) return "Panel";
+        return isAdminArea ? "Admin" : "Hesabım";
+    }
+    var navLabel = isAdminArea ? "Admin menüsü" : "Hesap menüsü";
+    var currentLabel = CurrentLabel();
 }
-<main class="container page-account" id="main">
-  <div class="account-layout">
-    <aside class="account-aside" aria-label="@(isAdminArea ? "Admin menüsü" : "Hesap menüsü")">
-      <nav class="account-nav" data-account-nav>
-        @if (isAdminArea)
-        {
-          <partial name="Shared/Partials/_AdminNav" />
-        }
-        else
-        {
-          <partial name="Shared/Partials/_AccountNav" />
-        }
-      </nav>
+<main class="container page-account" id="main"
+      x-data="accountShell"
+      @@keydown.escape.window="closeNav()">
+  <div class="account-layout" :class="layoutClass">
+    <div class="account-mobile-bar" data-account-mobile-bar>
+      <div class="account-mobile-bar-copy">
+        <span class="account-mobile-bar-kicker">@(isAdminArea ? "Admin" : "Hesabım")</span>
+        <strong class="account-mobile-bar-title">@currentLabel</strong>
+      </div>
+      <button type="button"
+              class="btn btn-ghost btn-sm account-mobile-menu-btn"
+              @@click="openNav()"
+              :aria-expanded="navExpandedAria"
+              aria-controls="account-nav-drawer">
+        <ap-icon name="menu" size="18" class="ap-icon" aria-hidden="true" />
+        <span>Menü</span>
+      </button>
+    </div>
+
+    <div class="account-nav-backdrop"
+         x-cloak
+         x-show="navOpen"
+         x-transition.opacity
+         @@click="closeNav()"
+         aria-hidden="true"></div>
+
+    <aside class="account-aside"
+           id="account-nav-drawer"
+           aria-label="@navLabel"
+           :aria-hidden="asideHiddenAria"
+           :inert="asideInert">
+      <div class="account-aside-inner">
+        <div class="account-nav-drawer-head">
+          <span class="account-nav-drawer-title">@navLabel</span>
+          <button type="button"
+                  class="btn btn-ghost btn-sm account-nav-close"
+                  @@click="closeNav()"
+                  aria-label="Menüyü kapat">
+            <ap-icon name="x" size="18" class="ap-icon" aria-hidden="true" />
+          </button>
+        </div>
+        <nav class="account-nav" data-account-nav>
+          @if (isAdminArea)
+          {
+            <partial name="Shared/Partials/_AdminNav" />
+          }
+          else
+          {
+            <partial name="Shared/Partials/_AccountNav" />
+          }
+        </nav>
+      </div>
     </aside>
+
     <div class="account-main">
       @RenderBody()
     </div>

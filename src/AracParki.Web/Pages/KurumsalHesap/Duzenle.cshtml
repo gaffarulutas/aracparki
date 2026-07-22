@@ -12,22 +12,26 @@
         .ToDictionary(g => g.Key, g => g.OrderByDescending(d => d.UploadedAt).First());
 }
 <header class="page-account-head">
-  <p class="page-account-kicker">
+  <nav class="page-account-kicker" aria-label="Breadcrumb">
     <a class="link-quiet" href="/kurumsal-hesap">Kurumsal hesaplar</a>
     <span class="account-kicker-sep" aria-hidden="true">/</span>
-    <span>@(isNew ? "Yeni" : "Düzenle")</span>
-  </p>
-  <h1>@(isNew ? "Yeni kurumsal hesap" : account!.DisplayName)</h1>
-  @if (!isNew)
-  {
-    <p class="page-account-lead">
-      <span class="@CorporateStatus.BadgeClass(account!.Status)">@CorporateStatus.Label(account.Status)</span>
-    </p>
-  }
-  else
-  {
-    <p class="page-account-lead">Firma bilgilerini ve zorunlu evrakları ekle, ardından onaya gönder.</p>
-  }
+    <span aria-current="page">@(isNew ? "Yeni" : "Düzenle")</span>
+  </nav>
+  <div class="page-account-title-row">
+    <div>
+      <h1>@(isNew ? "Yeni kurumsal hesap" : account!.DisplayName)</h1>
+      @if (!isNew)
+      {
+        <p class="page-account-lead">
+          <span class="@CorporateStatus.BadgeClass(account!.Status)">@CorporateStatus.Label(account.Status)</span>
+        </p>
+      }
+      else
+      {
+        <p class="page-account-lead">Firma bilgilerini ve zorunlu evrakları ekle, ardından onaya gönder.</p>
+      }
+    </div>
+  </div>
 </header>
 
 @if (!string.IsNullOrWhiteSpace(Model.Notice))

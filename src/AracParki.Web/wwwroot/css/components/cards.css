@@ -536,19 +536,48 @@
 .listing-empty {
   display: grid;
   gap: var(--space-2);
-  justify-items: start;
-  padding: var(--space-5) var(--space-3);
+  justify-items: center;
+  align-content: center;
+  padding: clamp(36px, 5vw, 64px) clamp(20px, 4vw, 48px);
+  min-height: 240px;
   grid-column: 1 / -1;
-  background: var(--raised);
-  border: 1px dashed var(--line-strong);
+  width: 100%;
+  background:
+    linear-gradient(180deg, var(--surface) 0%, var(--raised) 48%, var(--raised) 100%);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
+  text-align: center;
+  box-shadow: var(--shadow);
 }
 
 .empty-state p,
 .listing-empty p {
   margin: 0;
+  max-width: 36rem;
   color: var(--muted);
   font-size: 15px;
+  line-height: 1.55;
+  text-wrap: balance;
+}
+
+.empty-state-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--raised);
+  color: var(--muted);
+  box-shadow: var(--shadow);
+}
+
+.empty-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
 }
 
 .toast {

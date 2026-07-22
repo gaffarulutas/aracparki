@@ -11,32 +11,39 @@
     };
 }
 <header class="page-account-head">
-  <p class="page-account-kicker">
+  <nav class="page-account-kicker" aria-label="Breadcrumb">
     <a class="link-quiet" href="/admin">Admin</a>
     <span class="account-kicker-sep" aria-hidden="true">/</span>
-    <span>Kurumsal hesaplar</span>
-  </p>
-  <h1>Kurumsal moderasyon</h1>
-  <p class="page-account-lead">Bayi ve galeri başvurularını incele, onayla veya reddet.</p>
+    <span aria-current="page">Kurumsal hesaplar</span>
+  </nav>
+  <div class="page-account-title-row">
+    <div>
+      <h1>Kurumsal moderasyon</h1>
+      <p class="page-account-lead">Bayi ve galeri başvurularını incele, onayla veya reddet.</p>
+    </div>
+  </div>
 </header>
 
-<div class="admin-corp-stats" aria-label="Özet">
-  <a class="admin-corp-stat @(Model.Status == CorporateStatus.Pending ? "is-active" : null)"
-     href="/admin/kurumsal?durum=@CorporateStatus.Pending">
-    <span class="admin-corp-stat-value">@Model.Counts.Pending</span>
-    <span class="admin-corp-stat-label">Onay bekliyor</span>
+<nav class="account-filter-tabs" aria-label="Durum filtresi">
+  <a class="@(Model.Status == CorporateStatus.Pending ? "is-active" : null)"
+     href="/admin/kurumsal?durum=@CorporateStatus.Pending"
+     aria-current="@(Model.Status == CorporateStatus.Pending ? "page" : null)">
+    <span>Onay bekliyor</span>
+    <span class="account-filter-count">@Model.Counts.Pending</span>
   </a>
-  <a class="admin-corp-stat @(Model.Status == CorporateStatus.Approved ? "is-active" : null)"
-     href="/admin/kurumsal?durum=@CorporateStatus.Approved">
-    <span class="admin-corp-stat-value">@Model.Counts.Approved</span>
-    <span class="admin-corp-stat-label">Onaylı</span>
+  <a class="@(Model.Status == CorporateStatus.Approved ? "is-active" : null)"
+     href="/admin/kurumsal?durum=@CorporateStatus.Approved"
+     aria-current="@(Model.Status == CorporateStatus.Approved ? "page" : null)">
+    <span>Onaylı</span>
+    <span class="account-filter-count">@Model.Counts.Approved</span>
   </a>
-  <a class="admin-corp-stat @(Model.Status == CorporateStatus.Rejected ? "is-active" : null)"
-     href="/admin/kurumsal?durum=@CorporateStatus.Rejected">
-    <span class="admin-corp-stat-value">@Model.Counts.Rejected</span>
-    <span class="admin-corp-stat-label">Reddedilen</span>
+  <a class="@(Model.Status == CorporateStatus.Rejected ? "is-active" : null)"
+     href="/admin/kurumsal?durum=@CorporateStatus.Rejected"
+     aria-current="@(Model.Status == CorporateStatus.Rejected ? "page" : null)">
+    <span>Reddedilen</span>
+    <span class="account-filter-count">@Model.Counts.Rejected</span>
   </a>
-</div>
+</nav>
 
 @if (Model.Items.Count == 0)
 {

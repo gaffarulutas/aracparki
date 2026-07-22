@@ -1574,6 +1574,56 @@
       },
     }));
 
+    // Account / admin shell — mobile off-canvas nav (desktop sticky sidebar).
+    Alpine.data("accountShell", () => ({
+      navOpen: false,
+      init() {
+        this.$watch("navOpen", (open) => {
+          document.body.classList.toggle("no-scroll", !!open);
+        });
+        const mq = window.matchMedia("(min-width: 980px)");
+        const onChange = () => {
+          if (mq.matches) this.closeNav();
+        };
+        if (typeof mq.addEventListener === "function") {
+          mq.addEventListener("change", onChange);
+        } else {
+          mq.addListener(onChange);
+        }
+      },
+      destroy() {
+        document.body.classList.remove("no-scroll");
+      },
+      get layoutClass() {
+        return this.navOpen ? "is-nav-open" : "";
+      },
+      get navExpandedAria() {
+        return this.navOpen ? "true" : "false";
+      },
+      get asideHiddenAria() {
+        if (typeof window !== "undefined" && window.matchMedia("(min-width: 980px)").matches) {
+          return "false";
+        }
+        return this.navOpen ? "false" : "true";
+      },
+      get asideInert() {
+        if (typeof window !== "undefined" && window.matchMedia("(min-width: 980px)").matches) {
+          return false;
+        }
+        return !this.navOpen;
+      },
+      openNav() {
+        this.navOpen = true;
+        this.$nextTick(() => {
+          document.querySelector("#account-nav-drawer .account-nav-link.is-current")
+            ?.focus?.();
+        });
+      },
+      closeNav() {
+        this.navOpen = false;
+      },
+    }));
+
     Alpine.data("listLocationFilter", () => ({
       open: null,
       citySearch: "",

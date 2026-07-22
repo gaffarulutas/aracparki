@@ -3,7 +3,6 @@
     bool On(string prefix) => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
     var isPanel = On("/panel");
     var isIlanlarim = On("/ilanlarim");
-    var isIlanVer = On("/ilan-ver");
     var isFavorilerim = On("/favorilerim");
     var isKayitli = On("/kayitli-aramalar");
     var isMesajlarim = On("/mesajlarim");
@@ -32,9 +31,6 @@
       <ul class="account-nav-list" aria-label="İlan işlemleri">
         <li>
           <partial name="Shared/Partials/_AccountNavItem" model='("/ilanlarim", "İlanlarım", "list", isIlanlarim)' />
-        </li>
-        <li>
-          <partial name="Shared/Partials/_AccountNavItem" model='("/ilan-ver", "İlan ver", "plus", isIlanVer)' />
         </li>
       </ul>
     </div>
