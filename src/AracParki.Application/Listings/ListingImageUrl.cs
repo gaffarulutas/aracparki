@@ -6,6 +6,8 @@ namespace AracParki.Application.Listings;
 public static class ListingImageUrl
 {
     public const string UploadPrefix = "/uploads/listings/";
+    /// <summary>Static fallback shown when a listing has no uploaded image.</summary>
+    public const string Placeholder = "/assets/images/landscape-placeholder.svg";
     public const int MaxCount = 30;
     public const long MaxUploadBytes = 10 * 1024 * 1024;
     public const int MaxWidthPx = 8000;

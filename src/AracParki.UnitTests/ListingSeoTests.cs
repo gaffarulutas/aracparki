@@ -100,4 +100,15 @@ public sealed class ListingImageUrlVariantsTests
         var url = "/assets/hero/banner.jpg";
         Assert.Equal(url, ListingImageUrlVariants.WithVariant(url, ListingImageVariants.Card));
     }
+
+    [Fact]
+    public void WithVariant_empty_uses_placeholder()
+    {
+        Assert.Equal(
+            ListingImageUrl.Placeholder,
+            ListingImageUrlVariants.WithVariant(null, ListingImageVariants.Card));
+        Assert.Equal(
+            ListingImageUrl.Placeholder,
+            ListingImageUrlVariants.WithVariant("  ", ListingImageVariants.Thumb));
+    }
 }

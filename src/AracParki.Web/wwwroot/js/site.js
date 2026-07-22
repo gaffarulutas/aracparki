@@ -2,6 +2,7 @@
   "use strict";
 
   const STORAGE_RECENT = "ap:recent";
+  const LISTING_IMAGE_PLACEHOLDER = "/assets/images/landscape-placeholder.svg";
 
   /** Parents that can host the lazy-load spinner (must be position:relative capable). */
   const IMG_SHELL_SEL = [
@@ -58,9 +59,21 @@
       setLoading(true);
     };
 
+    const usePlaceholder = () => {
+      if (img.dataset.placeholderApplied === "1") {
+        setLoading(false);
+        return;
+      }
+      img.dataset.placeholderApplied = "1";
+      img.removeAttribute("srcset");
+      img.removeAttribute("sizes");
+      img.src = LISTING_IMAGE_PLACEHOLDER;
+      setLoading(false);
+    };
+
     if (img.dataset.spinnerBound !== "1") {
       img.addEventListener("load", () => setLoading(false));
-      img.addEventListener("error", () => setLoading(false));
+      img.addEventListener("error", usePlaceholder);
       img.dataset.spinnerBound = "1";
     }
 

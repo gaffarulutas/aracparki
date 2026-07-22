@@ -12,9 +12,14 @@ public static partial class ListingImageUrlVariants
     /// </summary>
     public static string WithVariant(string? url, string variant)
     {
-        if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(variant))
+        if (string.IsNullOrWhiteSpace(url))
         {
-            return url ?? string.Empty;
+            return ListingImageUrl.Placeholder;
+        }
+
+        if (string.IsNullOrWhiteSpace(variant))
+        {
+            return url;
         }
 
         var match = MediaPathRegex().Match(url);

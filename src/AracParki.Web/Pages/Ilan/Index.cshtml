@@ -4,8 +4,7 @@
 @using AracParki.Application.Listings
 @{
     var listing = Model.Listing!;
-    var badgeClass = ListingIntent.BadgeClass(listing.PrimaryIntent);
-    var badgeText = ListingIntent.Label(listing.PrimaryIntent);
+    var intentLabel = ListingIntent.Label(listing.PrimaryIntent);
     var isCorporateListing = listing.CorporateAccountId is > 0;
     var sellerDisplayName = !string.IsNullOrWhiteSpace(listing.CorporateDisplayName)
         ? listing.CorporateDisplayName
@@ -273,17 +272,13 @@
           <tr>
             <th scope="row">Tip</th>
             <td>
-              <a class="detail-filter-link" href="@Model.FilterIntentUrl()">
-                <span class="@badgeClass">@badgeText</span>
-              </a>
+              <a class="detail-filter-link" href="@Model.FilterIntentUrl()">@intentLabel</a>
             </td>
           </tr>
           <tr>
             <th scope="row">Durum</th>
             <td>
-              <a class="detail-filter-link" href="@Model.FilterConditionUrl()">
-                <span class="@EquipmentCondition.BadgeClass(listing.Condition)">@EquipmentCondition.Label(listing.Condition)</span>
-              </a>
+              <a class="detail-filter-link" href="@Model.FilterConditionUrl()">@EquipmentCondition.Label(listing.Condition)</a>
             </td>
           </tr>
           <tr>

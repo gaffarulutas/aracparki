@@ -524,16 +524,6 @@ a.detail-util {
   font-weight: 700;
 }
 
-/* Card badges are position:absolute; reset them inside the specs table. */
-.spec-table .badge {
-  position: static;
-  display: inline-block;
-  top: auto;
-  left: auto;
-  z-index: auto;
-  vertical-align: baseline;
-}
-
 .detail-report {
   display: inline-block;
   margin-top: 12px;
