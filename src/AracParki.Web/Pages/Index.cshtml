@@ -1,4 +1,5 @@
 @page
+@using System.Text.Json
 @using AracParki.Application.Listings.Queries
 @using AracParki.Domain.Listings
 @model IndexModel
@@ -89,56 +90,181 @@
           <p class="promo-lead">Satılık veya kiralık, kategori ve il seçerek doğru makineye ulaş.</p>
         </div>
         <form class="promo-filters" method="get" action="/ilanlar">
-          <label class="sr-only" for="filter-intent">İlan tipi</label>
-          <select id="filter-intent" name="tip" aria-label="İlan tipi seç">
-            <option value="">Satılık / Kiralık</option>
-            @if (Model.Filter.Intent == ListingIntent.Satilik)
+          @{
+            var tipValue = Model.Filter.Intent is ListingIntent.Satilik or ListingIntent.Kiralik
+                ? Model.Filter.Intent
+                : "";
+            var tipLabel = tipValue == ListingIntent.Satilik
+                ? "Satılık"
+                : tipValue == ListingIntent.Kiralik
+                    ? "Kiralık"
+                    : "Satılık / Kiralık";
+            var categoryValue = Model.Filter.Category ?? "";
+            var categoryLabel = string.IsNullOrEmpty(categoryValue) ? "Kategori" : categoryValue;
+            var cityValue = Model.Filter.City ?? "";
+            var cityLabel = string.IsNullOrEmpty(cityValue) ? "İl" : cityValue;
+
+            var tipOptionsJson = JsonSerializer.Serialize(new[]
             {
-              <option value="@ListingIntent.Satilik" selected>Satılık</option>
-            }
-            else
-            {
-              <option value="@ListingIntent.Satilik">Satılık</option>
-            }
-            @if (Model.Filter.Intent == ListingIntent.Kiralik)
-            {
-              <option value="@ListingIntent.Kiralik" selected>Kiralık</option>
-            }
-            else
-            {
-              <option value="@ListingIntent.Kiralik">Kiralık</option>
-            }
-          </select>
-          <label class="sr-only" for="filter-category">Kategori</label>
-          <select id="filter-category" name="kategori" aria-label="Kategori seç">
-            <option value="">Kategori</option>
-            @foreach (var cat in Model.CategoryOptions)
-            {
-              if (Model.Filter.Category == cat.Name)
-              {
-                <option value="@cat.Name" selected>@cat.Name</option>
-              }
-              else
-              {
-                <option value="@cat.Name">@cat.Name</option>
-              }
-            }
-          </select>
-          <label class="sr-only" for="filter-city">İl</label>
-          <select id="filter-city" name="il" aria-label="İl seç">
-            <option value="">İl</option>
-            @foreach (var city in Model.CityOptions)
-            {
-              if (Model.Filter.City == city.Name)
-              {
-                <option value="@city.Name" selected>@city.Name</option>
-              }
-              else
-              {
-                <option value="@city.Name">@city.Name</option>
-              }
-            }
-          </select>
+                new { value = "", label = "Satılık / Kiralık" },
+                new { value = ListingIntent.Satilik, label = "Satılık" },
+                new { value = ListingIntent.Kiralik, label = "Kiralık" },
+            });
+            var categoryOptionsJson = JsonSerializer.Serialize(
+                new[] { new { value = "", label = "Kategori" } }
+                    .Concat(Model.CategoryOptions.Select(c => new { value = c.Name, label = c.Name })));
+            var cityOptionsJson = JsonSerializer.Serialize(
+                new[] { new { value = "", label = "İl" } }
+                    .Concat(Model.CityOptions.Select(c => new { value = c.Name, label = c.Name })));
+          }
+
+          <div class="promo-dd"
+               x-data="promoSelect"
+               data-value="@tipValue"
+               data-label="@tipLabel"
+               data-placeholder="Satılık / Kiralık"
+               data-options='@Html.Raw(tipOptionsJson)'
+               @@keydown.escape.window="close"
+               @@click.outside="close">
+            <input type="hidden" name="tip" value="@tipValue" :value="value" />
+            <button type="button"
+                    class="promo-dd-trigger"
+                    :class="triggerClass"
+                    id="filter-intent"
+                    x-ref="trigger"
+                    @@click="toggle"
+                    :aria-expanded="openAria"
+                    aria-haspopup="listbox"
+                    aria-controls="filter-intent-menu"
+                    aria-label="İlan tipi seç">
+              <span class="promo-dd-label" :class="labelClass" x-text="label"></span>
+              <ap-icon name="chevron-down" size="16" class="ap-icon promo-dd-chevron" aria-hidden="true" />
+            </button>
+            <div class="promo-dd-menu"
+                 id="filter-intent-menu"
+                 role="listbox"
+                 aria-labelledby="filter-intent"
+                 x-show="open"
+                 x-cloak
+                 x-transition:enter="promo-dd-enter"
+                 x-transition:enter-start="promo-dd-enter-start"
+                 x-transition:enter-end="promo-dd-enter-end"
+                 x-transition:leave="promo-dd-leave"
+                 x-transition:leave-start="promo-dd-leave-start"
+                 x-transition:leave-end="promo-dd-leave-end">
+              <template x-for="opt in optionsView" :key="opt.value">
+                <button type="button"
+                        role="option"
+                        class="promo-dd-option"
+                        :class="opt.itemClass"
+                        :aria-selected="opt.ariaSelected"
+                        :data-value="opt.value"
+                        :data-label="opt.label"
+                        @@click="pick">
+                  <span x-text="opt.label"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <div class="promo-dd"
+               x-data="promoSelect"
+               data-value="@categoryValue"
+               data-label="@categoryLabel"
+               data-placeholder="Kategori"
+               data-options='@Html.Raw(categoryOptionsJson)'
+               @@keydown.escape.window="close"
+               @@click.outside="close">
+            <input type="hidden" name="kategori" value="@categoryValue" :value="value" />
+            <button type="button"
+                    class="promo-dd-trigger"
+                    :class="triggerClass"
+                    id="filter-category"
+                    x-ref="trigger"
+                    @@click="toggle"
+                    :aria-expanded="openAria"
+                    aria-haspopup="listbox"
+                    aria-controls="filter-category-menu"
+                    aria-label="Kategori seç">
+              <span class="promo-dd-label" :class="labelClass" x-text="label"></span>
+              <ap-icon name="chevron-down" size="16" class="ap-icon promo-dd-chevron" aria-hidden="true" />
+            </button>
+            <div class="promo-dd-menu"
+                 id="filter-category-menu"
+                 role="listbox"
+                 aria-labelledby="filter-category"
+                 x-show="open"
+                 x-cloak
+                 x-transition:enter="promo-dd-enter"
+                 x-transition:enter-start="promo-dd-enter-start"
+                 x-transition:enter-end="promo-dd-enter-end"
+                 x-transition:leave="promo-dd-leave"
+                 x-transition:leave-start="promo-dd-leave-start"
+                 x-transition:leave-end="promo-dd-leave-end">
+              <template x-for="opt in optionsView" :key="opt.value">
+                <button type="button"
+                        role="option"
+                        class="promo-dd-option"
+                        :class="opt.itemClass"
+                        :aria-selected="opt.ariaSelected"
+                        :data-value="opt.value"
+                        :data-label="opt.label"
+                        @@click="pick">
+                  <span x-text="opt.label"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <div class="promo-dd"
+               x-data="promoSelect"
+               data-value="@cityValue"
+               data-label="@cityLabel"
+               data-placeholder="İl"
+               data-options='@Html.Raw(cityOptionsJson)'
+               @@keydown.escape.window="close"
+               @@click.outside="close">
+            <input type="hidden" name="il" value="@cityValue" :value="value" />
+            <button type="button"
+                    class="promo-dd-trigger"
+                    :class="triggerClass"
+                    id="filter-city"
+                    x-ref="trigger"
+                    @@click="toggle"
+                    :aria-expanded="openAria"
+                    aria-haspopup="listbox"
+                    aria-controls="filter-city-menu"
+                    aria-label="İl seç">
+              <span class="promo-dd-label" :class="labelClass" x-text="label"></span>
+              <ap-icon name="chevron-down" size="16" class="ap-icon promo-dd-chevron" aria-hidden="true" />
+            </button>
+            <div class="promo-dd-menu"
+                 id="filter-city-menu"
+                 role="listbox"
+                 aria-labelledby="filter-city"
+                 x-show="open"
+                 x-cloak
+                 x-transition:enter="promo-dd-enter"
+                 x-transition:enter-start="promo-dd-enter-start"
+                 x-transition:enter-end="promo-dd-enter-end"
+                 x-transition:leave="promo-dd-leave"
+                 x-transition:leave-start="promo-dd-leave-start"
+                 x-transition:leave-end="promo-dd-leave-end">
+              <template x-for="opt in optionsView" :key="opt.value">
+                <button type="button"
+                        role="option"
+                        class="promo-dd-option"
+                        :class="opt.itemClass"
+                        :aria-selected="opt.ariaSelected"
+                        :data-value="opt.value"
+                        :data-label="opt.label"
+                        @@click="pick">
+                  <span x-text="opt.label"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+
           <button class="btn btn-machine" type="submit">İlanları Göster</button>
         </form>
       </section>

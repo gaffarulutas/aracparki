@@ -16,6 +16,23 @@
   border-radius: var(--radius);
 }
 
+.home-aside .aside-card {
+  border-top: 3px solid var(--machine);
+}
+
+.home-aside .aside-title {
+  padding: 14px var(--space-2) 8px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  text-transform: none;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+}
+
 .aside-list,
 .aside-cities {
   list-style: none;
@@ -80,6 +97,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
   border-top: 3px solid var(--machine);
+  overflow: visible;
 }
 
 .promo-title {

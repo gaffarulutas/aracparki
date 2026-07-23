@@ -189,9 +189,18 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
     private bool TryApplyPathSegments(out int errorStatus)
     {
         errorStatus = StatusCodes.Status404NotFound;
-        var tip = Tip?.Trim();
-        var catSlug = KategoriSlug?.Trim();
-        var citySlugPath = SehirSlug?.Trim();
+        // Path hubs only: /ilanlar/{satilik|kiralik}/...
+        // Do not use the Tip bind property here — query ?tip= also binds to it
+        // (filter form), and tip=all must not 404.
+        var tip = RouteData.Values.TryGetValue("tip", out var tipRv)
+            ? tipRv?.ToString()?.Trim()
+            : null;
+        var catSlug = RouteData.Values.TryGetValue("kategoriSlug", out var catRv)
+            ? catRv?.ToString()?.Trim()
+            : null;
+        var citySlugPath = RouteData.Values.TryGetValue("sehirSlug", out var cityRv)
+            ? cityRv?.ToString()?.Trim()
+            : null;
 
         if (string.IsNullOrEmpty(tip) && string.IsNullOrEmpty(catSlug) && string.IsNullOrEmpty(citySlugPath))
         {

@@ -1116,6 +1116,69 @@
       },
     }));
 
+    const parseJsonAttr = (el, name, fallback) => {
+      try {
+        const raw = el.getAttribute(name);
+        if (!raw) return fallback;
+        return JSON.parse(raw);
+      } catch {
+        return fallback;
+      }
+    };
+
+    // Homepage "İlanları daralt" — Tailwind UI–style single select (CSP-safe).
+    Alpine.data("promoSelect", () => ({
+      open: false,
+      value: "",
+      label: "",
+      placeholder: "",
+      options: [],
+      init() {
+        this.placeholder = String(this.$el.dataset.placeholder || "");
+        this.value = String(this.$el.dataset.value || "");
+        this.label = String(this.$el.dataset.label || this.placeholder);
+        this.options = parseJsonAttr(this.$el, "data-options", []) || [];
+      },
+      get openAria() {
+        return this.open ? "true" : "false";
+      },
+      get triggerClass() {
+        return this.open ? "is-open" : "";
+      },
+      get labelClass() {
+        return this.value ? "is-selected" : "is-placeholder";
+      },
+      get optionsView() {
+        const selected = this.value;
+        return this.options.map((o) => {
+          const value = String(o && o.value != null ? o.value : "");
+          const label = String(o && o.label != null ? o.label : "");
+          const on = value === selected;
+          return {
+            value,
+            label,
+            itemClass: on ? "is-selected" : "",
+            ariaSelected: on ? "true" : "false",
+          };
+        });
+      },
+      toggle() {
+        this.open = !this.open;
+      },
+      close() {
+        this.open = false;
+      },
+      pick(event) {
+        const btn = event && event.currentTarget;
+        const value = String((btn && btn.dataset && btn.dataset.value) || "");
+        const label = String((btn && btn.dataset && btn.dataset.label) || "");
+        this.value = value;
+        this.label = value ? label : this.placeholder;
+        this.open = false;
+        this.$nextTick(() => this.$refs.trigger?.focus({ preventScroll: true }));
+      },
+    }));
+
     // Price history popover on listing detail (fixed layer, collision-aware).
     Alpine.data("priceHistoryPopover", () => ({
       open: false,
@@ -1920,16 +1983,6 @@
         }
       },
     }));
-
-    const parseJsonAttr = (el, name, fallback) => {
-      try {
-        const raw = el.getAttribute(name);
-        if (!raw) return fallback;
-        return JSON.parse(raw);
-      } catch {
-        return fallback;
-      }
-    };
 
     Alpine.data("ilanVerCascader", () => ({
       groups: [],
@@ -4414,6 +4467,9 @@
 
     document.body.addEventListener("htmx:afterSwap", (evt) => {
       if (!evt.detail || !evt.detail.target || evt.detail.target.id !== "list-shell") return;
+      if (window.Alpine && typeof window.Alpine.initTree === "function") {
+        window.Alpine.initTree(evt.detail.target);
+      }
       announceResults();
       initSaveSearch();
       initLazyImageSpinners(evt.detail.target);

@@ -3,7 +3,6 @@ using AracParki.Application.Conversations.Dtos;
 using AracParki.Application.Conversations.Services;
 using AracParki.Application.Listings;
 using AracParki.Application.Listings.Dtos;
-using AracParki.Application.Listings.Queries;
 using AracParki.Application.Notifications;
 using AracParki.Domain.Listings;
 using AracParki.Domain.Notifications;

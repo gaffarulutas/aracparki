@@ -33,7 +33,10 @@
             hx-include="#sort-select">
         <h2 class="aside-title">Arama Seçenekleri</h2>
 
-        <input type="hidden" name="tip" value="@Model.Filter.Intent" />
+        @if (Model.Filter.Intent is ListingIntent.Satilik or ListingIntent.Kiralik)
+        {
+          <input type="hidden" name="tip" value="@Model.Filter.Intent" />
+        }
         @if (Model.Filter.CategoryId is > 0)
         {
           <input type="hidden" name="kategoriId" value="@Model.Filter.CategoryId" />
