@@ -198,6 +198,120 @@ a.detail-util {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%230c0c0c' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18l6-6-6-6'/%3E%3C/svg%3E");
 }
 
+/* Compact open control (wizard review / admin moderation) */
+.gallery-expand {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  appearance: none;
+}
+
+.gallery-expand:hover {
+  background: #fff;
+}
+
+.gallery-expand:focus-visible {
+  outline: var(--focus);
+  outline-offset: 2px;
+}
+
+/* Client detail gallery — same pattern as /ilan-ver?adim=5 review */
+.detail-review-gallery.detail-gallery {
+  padding: 8px;
+}
+
+.detail-review-gallery .gallery-main-wrap {
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+}
+
+.detail-review-gallery .gallery-thumbs {
+  grid-template-columns: repeat(auto-fill, minmax(4rem, 1fr));
+}
+
+.detail-review-gallery .gallery-expand {
+  bottom: auto;
+  top: 10px;
+  right: 10px;
+}
+
+.detail-gallery-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: grid;
+  gap: 6px;
+  padding: 56px 14px 14px;
+  background: linear-gradient(
+    to top,
+    rgba(12, 12, 12, 0.82) 0%,
+    rgba(12, 12, 12, 0.45) 55%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.detail-gallery-overlay-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.detail-gallery-overlay-price {
+  margin: 0;
+  font-size: clamp(1.2rem, 2vw, 1.4rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.detail-gallery-overlay-place {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.4;
+}
+
+.detail-gallery-overlay-place .ap-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 720px) {
+  .detail-review-gallery .gallery-thumbs {
+    grid-template-columns: repeat(auto-fill, minmax(3.25rem, 1fr));
+  }
+}
+
 .gallery-toolbar {
   display: flex;
   align-items: stretch;

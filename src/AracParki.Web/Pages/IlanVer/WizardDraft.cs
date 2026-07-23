@@ -125,7 +125,7 @@ public sealed class WizardDraft
         {
             var urls = ImageUrls.Where(u => !string.IsNullOrWhiteSpace(u)).Select(u => u.Trim()).ToArray();
             return urls.Length is >= 1 and <= ListingImageUrl.MaxCount
-                   && urls.All(u => ListingImageUrl.IsAllowed(u));
+                   && urls.All(ListingImageUrl.IsUploadDerived);
         }
     }
 

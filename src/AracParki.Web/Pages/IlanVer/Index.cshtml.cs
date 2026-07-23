@@ -163,7 +163,13 @@ public sealed class IndexModel(
         }
 
         await LoadDraftAsync(cancellationToken);
-        Step = ResolveStep(adim, Draft, RequirePhoneVerification);
+        var resolved = ResolveStep(adim, Draft, RequirePhoneVerification);
+        if (adim is >= 1 and <= 5 && resolved != adim.Value)
+        {
+            return RedirectToPage(new { adim = resolved });
+        }
+
+        Step = resolved;
         await LoadLookupsAsync(cancellationToken);
         PublishToken = EnsurePublishToken();
         SetMeta();

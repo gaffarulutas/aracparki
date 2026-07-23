@@ -1864,16 +1864,34 @@ button.account-action-item {
   }
 }
 
-.admin-mod-gallery-panel {
-  padding: 12px;
+/* Public /ilan detail gallery markup + detail.css; keep host for empty state */
+.admin-mod-gallery-host {
+  min-width: 0;
+  max-width: 560px;
 }
 
-.admin-mod-gallery {
-  max-width: none;
+.admin-mod-gallery-empty {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  min-height: 220px;
+  aspect-ratio: 1 / 1;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.admin-mod-gallery .gallery-main-wrap {
-  max-width: 520px;
+.admin-mod-gallery-empty img {
+  opacity: 0.85;
+}
+
+@media (max-width: 959px) {
+  .admin-mod-gallery-host {
+    max-width: none;
+  }
 }
 
 .admin-mod-aside-dl {
@@ -1939,12 +1957,6 @@ button.account-action-item {
 
 .admin-mod-desc :is(p, ul, ol):last-child {
   margin-bottom: 0;
-}
-
-@media (max-width: 959px) {
-  .admin-mod-gallery .gallery-main-wrap {
-    max-width: none;
-  }
 }
 
 /* —— Corporate logo uploader —— */

@@ -38,6 +38,7 @@ public sealed class DetayModel(
         }
 
         ViewData["PageKey"] = "account";
+        ViewData["NeedDetailGallery"] = true;
         ViewData["Title"] = $"Moderasyon · {Listing.AdNo} | Araç Parkı";
         ViewData["Robots"] = "noindex, nofollow";
         return Page();

@@ -27,6 +27,29 @@ public static class ListingImageUrl
         => !string.IsNullOrWhiteSpace(contentType) && AllowedContentTypes.Contains(contentType);
 
     /// <summary>
+    /// Draft/step gating only: true for local upload paths or media Worker delivery URLs
+    /// (<c>/m/masters/…</c>). Host allowlisting is enforced at form post / publish via
+    /// <see cref="ListingImageUrlPolicy"/>.
+    /// </summary>
+    public static bool IsUploadDerived(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return false;
+        }
+
+        var trimmed = url.Trim();
+        if (trimmed.StartsWith(UploadPrefix, StringComparison.OrdinalIgnoreCase)
+            && !trimmed.Contains("..", StringComparison.Ordinal)
+            && trimmed.Length < 500)
+        {
+            return true;
+        }
+
+        return TryGetStorageKey(trimmed, out _);
+    }
+
+    /// <summary>
     /// Allowed delivery URLs from our upload pipeline only:
     /// local <c>/uploads/listings/…</c> (dev) or HTTPS on the configured media public host under <c>/m/…</c>.
     /// Arbitrary external image URLs are never accepted.

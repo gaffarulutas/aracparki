@@ -8,6 +8,9 @@
 @{
     var pageKey = ViewData["PageKey"] as string ?? "home";
     var isAuth = pageKey == "auth";
+    var requestPath = Context.Request.Path.Value ?? string.Empty;
+    var needDetailGallery = ViewData["NeedDetailGallery"] is true
+        || requestPath.StartsWith("/admin/ilanlar/", StringComparison.OrdinalIgnoreCase);
     var title = ViewData["Title"] as string ?? "Araç Parkı";
     var description = ViewData["Description"] as string
         ?? "Araç Parkı — Türkiye genelinde satılık, kiralık ve ikinci el iş makineleri.";
@@ -160,6 +163,11 @@
         <link rel="stylesheet" href="~/css/pages/account.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/css/components/cards.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/css/components/badges.css" asp-append-version="true" />
+        @if (needDetailGallery)
+        {
+            <link rel="stylesheet" href="~/css/pages/detail.css" asp-append-version="true" />
+            <link rel="stylesheet" href="~/lib/lightgallery/lightgallery-bundle.min.css" asp-append-version="true" />
+        }
         @if (ViewData["NeedCropper"] as bool? == true)
         {
             <link rel="stylesheet" href="~/lib/cropperjs/cropper.min.css" asp-append-version="true" />

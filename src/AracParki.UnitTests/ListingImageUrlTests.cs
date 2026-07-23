@@ -21,11 +21,24 @@ public sealed class ListingImageUrlTests
     }
 
     [Fact]
+    public void IsUploadDerived_accepts_local_and_media_delivery_paths()
+    {
+        Assert.True(ListingImageUrl.IsUploadDerived("/uploads/listings/1/a.jpg"));
+        Assert.True(ListingImageUrl.IsUploadDerived(
+            "https://media.aracparki.com/m/masters/1/abc/v1?v=card"));
+        Assert.False(ListingImageUrl.IsUploadDerived("https://images.unsplash.com/photo-1"));
+        Assert.False(ListingImageUrl.IsUploadDerived("https://cdn.example.com/a.jpg"));
+    }
+
+    [Fact]
     public void When_media_not_configured_rejects_external_https()
     {
         Assert.False(ListingImageUrl.IsAllowed("https://cdn.example.com/a.jpg"));
         Assert.False(ListingImageUrl.IsAllowed("https://images.unsplash.com/photo-1"));
         Assert.True(ListingImageUrl.IsAllowed("/uploads/listings/1/a.jpg"));
+        // CDN delivery URLs need media settings for IsAllowed, but still count as uploaded for drafts.
+        Assert.True(ListingImageUrl.IsUploadDerived(
+            "https://aracparki-media.dry-meadow-d8d8.workers.dev/m/masters/1/abc/v1"));
     }
 
     [Fact]

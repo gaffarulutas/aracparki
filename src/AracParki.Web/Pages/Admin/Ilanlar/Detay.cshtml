@@ -8,7 +8,13 @@
         : string.IsNullOrWhiteSpace(listing.CoverImageUrl)
             ? Array.Empty<string>()
             : new[] { listing.CoverImageUrl };
-    var mainImage = images.Count > 0 ? images[0] : "/assets/logo/icon-512.png";
+    var mainImage = images.Count > 0 ? images[0] : ListingImageUrl.Placeholder;
+    var mainDisplay = ListingImageUrlVariants.WithVariant(mainImage, ListingImageVariants.Lg);
+    var mainSrcSet = ListingImageUrlVariants.SrcSet(
+        mainImage,
+        (ListingImageVariants.Md, 768),
+        (ListingImageVariants.Lg, 1280),
+        (ListingImageVariants.Xl, 1920));
     var locationText = $"{listing.City} / {listing.District}" +
         (string.IsNullOrWhiteSpace(listing.Neighborhood) ? "" : $" / {listing.Neighborhood}");
     var isCorporate = listing.CorporateAccountId is > 0;
@@ -27,6 +33,7 @@
     var isPending = listing.Status == ListingStatus.PendingReview;
     var isRejected = listing.Status == ListingStatus.Rejected;
     var isPublished = listing.Status == ListingStatus.Published;
+    ViewData["NeedDetailGallery"] = true;
     ViewData[Breadcrumbs.ViewDataKey] = Breadcrumbs.Create(
         new BreadcrumbItem("Admin", "/admin"),
         new BreadcrumbItem("İlanlar", $"/admin/ilanlar?durum={listing.Status}"),
@@ -78,59 +85,108 @@
 
 <div class="admin-mod-grid">
   <div class="admin-mod-main">
-    <section class="admin-corp-panel admin-mod-gallery-panel" aria-label="İlan görselleri">
-      <div class="detail-gallery admin-mod-gallery" data-detail-gallery tabindex="0">
-        <div class="gallery-main-wrap">
-          <img class="gallery-main"
-               src="@mainImage"
-               alt="@listing.Title"
-               width="900"
-               height="900"
-               loading="eager"
-               decoding="async"
-               data-gallery-main
-               data-gallery-src="@mainImage" />
-          @if (images.Count > 1)
-          {
-            <button type="button" class="gallery-hit gallery-hit--prev" data-gallery-prev aria-label="Önceki görsel"></button>
-            <button type="button" class="gallery-hit gallery-hit--next" data-gallery-next aria-label="Sonraki görsel"></button>
-          }
-          @if (images.Count > 0)
-          {
-            <button type="button"
-                    class="gallery-expand"
-                    data-gallery-open
-                    aria-haspopup="dialog"
-                    aria-label="Büyük galeriyi aç">
-              <ap-icon name="maximize-2" size="16" />
-              <span>@(images.Count) fotoğraf</span>
-            </button>
-            <button type="button" class="sr-only" data-gallery-lg-trigger id="gallery-lg-admin-@listing.Id" tabindex="-1">Galeri</button>
-          }
-        </div>
-
-        @if (images.Count > 0)
-        {
-          <div class="gallery-thumbs" role="list">
-            @for (var i = 0; i < images.Count; i++)
+    <section class="admin-mod-gallery-host" aria-label="İlan görselleri">
+      @if (images.Count > 0)
+      {
+        var thumbsPerPage = 10;
+        var thumbPageCount = Math.Max(1, (int)Math.Ceiling(images.Count / (double)thumbsPerPage));
+        <div class="detail-gallery" data-detail-gallery data-thumbs-per-page="10" tabindex="0" aria-label="İlan görselleri">
+          <div class="gallery-main-wrap">
+            <img class="gallery-main"
+                 src="@mainDisplay"
+                 srcset="@mainSrcSet"
+                 sizes="(max-width:900px) 100vw, 640px"
+                 alt="@listing.Title"
+                 width="900"
+                 height="900"
+                 loading="eager"
+                 decoding="async"
+                 data-gallery-main
+                 data-gallery-src="@mainDisplay" />
+            @if (images.Count > 1)
             {
-              <button type="button"
-                      role="listitem"
-                      class="@(i == 0 ? "is-active" : null)"
-                      data-gallery-thumb
-                      data-src="@images[i]"
-                      data-index="@i"
-                      aria-label="Görsel @(i + 1)"
-                      aria-current="@(i == 0 ? "true" : "false")">
-                <img src="@images[i]" alt="" width="88" height="88" loading="lazy" decoding="async" />
-              </button>
+              <button type="button" class="gallery-hit gallery-hit--prev" data-gallery-prev aria-label="Önceki görsel"></button>
+              <button type="button" class="gallery-hit gallery-hit--next" data-gallery-next aria-label="Sonraki görsel"></button>
+            }
+            <button type="button" class="sr-only" data-gallery-lg-trigger id="gallery-lg-admin-@listing.Id" tabindex="-1">Galeri</button>
+          </div>
+
+          <div class="gallery-toolbar">
+            <button type="button"
+                    class="gallery-tool"
+                    data-gallery-open
+                    aria-haspopup="dialog">
+              <ap-icon name="search" size="16" class="ap-icon" aria-hidden="true" />
+              <span>Büyük Fotoğraf</span>
+            </button>
+          </div>
+
+          <div class="gallery-thumbs-viewport">
+            <div class="gallery-thumbs-track" data-gallery-track>
+              @for (var pageIdx = 0; pageIdx < thumbPageCount; pageIdx++)
+              {
+                <div class="gallery-thumbs-page" role="list">
+                  @for (var i = pageIdx * thumbsPerPage; i < Math.Min(images.Count, (pageIdx + 1) * thumbsPerPage); i++)
+                  {
+                    <button type="button"
+                            role="listitem"
+                            class="@(i == 0 ? "is-active" : null)"
+                            data-gallery-thumb
+                            data-src="@ListingImageUrlVariants.WithVariant(images[i], ListingImageVariants.Lg)"
+                            data-srcset="@ListingImageUrlVariants.SrcSet(
+                                images[i],
+                                (ListingImageVariants.Md, 768),
+                                (ListingImageVariants.Lg, 1280),
+                                (ListingImageVariants.Xl, 1920))"
+                            data-index="@i"
+                            aria-label="Görsel @(i + 1)"
+                            aria-current="@(i == 0 ? "true" : "false")">
+                      <img src="@ListingImageUrlVariants.WithVariant(images[i], ListingImageVariants.Thumb)"
+                           alt="@(listing.Title) — görsel @(i + 1)"
+                           width="88"
+                           height="88"
+                           loading="lazy"
+                           decoding="async" />
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="gallery-footer">
+            <span class="gallery-counter" data-gallery-counter>1/@images.Count Fotoğraf</span>
+            @if (thumbPageCount > 1)
+            {
+              <div class="gallery-pager" data-gallery-pager>
+                <button type="button" class="gallery-page-btn" data-gallery-page-prev aria-label="Önceki fotoğraf grubu">
+                  <ap-icon name="arrow-left" size="16" class="ap-icon" aria-hidden="true" />
+                </button>
+                <div class="gallery-dots" data-gallery-dots role="tablist" aria-label="Fotoğraf grupları">
+                  @for (var pageIdx = 0; pageIdx < thumbPageCount; pageIdx++)
+                  {
+                    <button type="button"
+                            class="gallery-dot @(pageIdx == 0 ? "is-active" : null)"
+                            data-gallery-page="@pageIdx"
+                            aria-label="Grup @(pageIdx + 1)"
+                            aria-selected="@(pageIdx == 0 ? "true" : "false")"></button>
+                  }
+                </div>
+                <button type="button" class="gallery-page-btn" data-gallery-page-next aria-label="Sonraki fotoğraf grubu">
+                  <ap-icon name="arrow-right" size="16" class="ap-icon" aria-hidden="true" />
+                </button>
+              </div>
             }
           </div>
-          <div class="gallery-meta">
-            <span data-gallery-counter>1 / @images.Count Fotoğraf</span>
-          </div>
-        }
-      </div>
+        </div>
+      }
+      else
+      {
+        <div class="admin-mod-gallery-empty" role="img" aria-label="Fotoğraf yok">
+          <img src="@ListingImageUrl.Placeholder" alt="" width="120" height="120" />
+          <span>Fotoğraf yok</span>
+        </div>
+      }
     </section>
 
     <section class="admin-corp-panel">
