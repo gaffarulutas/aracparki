@@ -153,7 +153,7 @@
   }
 
   .promo-filters {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(7.5rem, 0.85fr) minmax(0, 1.15fr) minmax(0, 1fr) auto;
     gap: 12px;
     align-items: stretch;
   }

@@ -1,10 +1,10 @@
-using AracParki.Application.Accounts;
 using AracParki.Application.Accounts.Services;
 using AracParki.Application.Catalog.Services;
 using AracParki.Application.Corporate.Services;
 using AracParki.Application.Listings;
 using AracParki.Application.Listings.Services;
 using AracParki.Application.Listings.Validation;
+using AracParki.Application.Site.Services;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -26,6 +26,7 @@ public static class DependencyInjection
         services.AddScoped<AccountService>();
         services.AddScoped<AccountNavCountsService>();
         services.AddScoped<CorporateAccountService>();
+        services.AddScoped<SiteSettingsService>();
         return services;
     }
 }

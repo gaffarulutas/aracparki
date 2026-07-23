@@ -1,0 +1,118 @@
+@page "/admin/ayarlar"
+@model AracParki.Web.Pages.Admin.Ayarlar.IndexModel
+@{
+    Layout = "Shared/_AccountLayout";
+}
+<header class="page-account-head">
+  <h1>Site ayarları</h1>
+  <p class="page-account-lead">İletişim, WhatsApp, adres ve sosyal medya — public sayfalarda görünür.</p>
+</header>
+
+@if (!string.IsNullOrWhiteSpace(Model.FormError))
+{
+  <p class="field-error" role="alert">@Model.FormError</p>
+}
+
+<form method="post" class="corp-form" novalidate>
+  @Html.AntiForgeryToken()
+
+  <section class="corp-section" aria-labelledby="site-contact-heading">
+    <h2 class="corp-section-title" id="site-contact-heading">İletişim</h2>
+    <div class="corp-grid">
+      <div class="ap-field">
+        <label class="ap-label" asp-for="Input.SupportEmail"></label>
+        <input class="ap-input" asp-for="Input.SupportEmail" type="email" autocomplete="email" />
+        <span asp-validation-for="Input.SupportEmail" class="field-error"></span>
+      </div>
+      <div class="ap-field">
+        <label class="ap-label" asp-for="Input.AdsEmail"></label>
+        <input class="ap-input" asp-for="Input.AdsEmail" type="email" autocomplete="email" placeholder="Boşsa destek e-postası kullanılır" />
+        <span asp-validation-for="Input.AdsEmail" class="field-error"></span>
+      </div>
+      <div class="ap-field">
+        <label class="ap-label" asp-for="Input.SupportPhone"></label>
+        <input class="ap-input" asp-for="Input.SupportPhone" type="tel" inputmode="tel" placeholder="0532 123 45 67" />
+        <p class="ap-hint">İletişim ve footer’da gösterilir.</p>
+      </div>
+      <div class="ap-field">
+        <label class="ap-label" asp-for="Input.WhatsAppPhone"></label>
+        <input class="ap-input" asp-for="Input.WhatsAppPhone" type="tel" inputmode="tel" placeholder="0532 123 45 67" />
+        <p class="ap-hint">wa.me bağlantısı için kullanılır (OTP hattından ayrı).</p>
+      </div>
+      <div class="ap-field corp-field-wide">
+        <label class="ap-label" asp-for="Input.WorkingHours"></label>
+        <input class="ap-input" asp-for="Input.WorkingHours" />
+      </div>
+      <div class="ap-field corp-field-wide">
+        <label class="ap-label" asp-for="Input.ResponseNote"></label>
+        <input class="ap-input" asp-for="Input.ResponseNote" />
+      </div>
+    </div>
+  </section>
+
+  <section class="corp-section" aria-labelledby="site-company-heading">
+    <h2 class="corp-section-title" id="site-company-heading">Şirket / adres</h2>
+    <div class="corp-grid">
+      <div class="ap-field">
+        <label class="ap-label" asp-for="Input.CompanyDisplayName"></label>
+        <input class="ap-input" asp-for="Input.CompanyDisplayName" />
+        <span asp-validation-for="Input.CompanyDisplayName" class="field-error"></span>
+      </div>
+      <div class="ap-field">
+        <label class="ap-label" asp-for="Input.LegalCompanyName"></label>
+        <input class="ap-input" asp-for="Input.LegalCompanyName" placeholder="Opsiyonel resmi ünvan" />
+      </div>
+      <div class="ap-field corp-field-wide">
+        <label class="ap-label" asp-for="Input.AddressLine"></label>
+        <input class="ap-input" asp-for="Input.AddressLine" />
+      </div>
+      <div class="ap-field">
+        <label class="ap-label" asp-for="Input.City"></label>
+        <input class="ap-input" asp-for="Input.City" />
+      </div>
+      <div class="ap-field">
+        <label class="ap-label" asp-for="Input.PostalCode"></label>
+        <input class="ap-input" asp-for="Input.PostalCode" />
+      </div>
+      <div class="ap-field corp-field-wide">
+        <label class="ap-label" asp-for="Input.FooterTagline"></label>
+        <textarea class="ap-input corp-textarea" asp-for="Input.FooterTagline" rows="3"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <section class="corp-section" aria-labelledby="site-social-heading">
+    <h2 class="corp-section-title" id="site-social-heading">Sosyal medya</h2>
+    <p class="ap-hint" style="margin-top:-6px;margin-bottom:14px">Boş bırakılanlar gizlenir. Tam URL girin (https://…).</p>
+    <div class="corp-grid">
+      <div class="ap-field">
+        <label class="ap-label" asp-for="Input.InstagramUrl"></label>
+        <input class="ap-input" asp-for="Input.InstagramUrl" type="url" placeholder="https://instagram.com/…" />
+      </div>
+      <div class="ap-field">
+        <label class="ap-label" asp-for="Input.FacebookUrl"></label>
+        <input class="ap-input" asp-for="Input.FacebookUrl" type="url" placeholder="https://facebook.com/…" />
+      </div>
+      <div class="ap-field">
+        <label class="ap-label" asp-for="Input.TwitterUrl"></label>
+        <input class="ap-input" asp-for="Input.TwitterUrl" type="url" placeholder="https://x.com/…" />
+      </div>
+      <div class="ap-field">
+        <label class="ap-label" asp-for="Input.YoutubeUrl"></label>
+        <input class="ap-input" asp-for="Input.YoutubeUrl" type="url" placeholder="https://youtube.com/…" />
+      </div>
+      <div class="ap-field">
+        <label class="ap-label" asp-for="Input.LinkedInUrl"></label>
+        <input class="ap-input" asp-for="Input.LinkedInUrl" type="url" placeholder="https://linkedin.com/…" />
+      </div>
+      <div class="ap-field">
+        <label class="ap-label" asp-for="Input.TikTokUrl"></label>
+        <input class="ap-input" asp-for="Input.TikTokUrl" type="url" placeholder="https://tiktok.com/…" />
+      </div>
+    </div>
+  </section>
+
+  <div class="ap-actions">
+    <button class="btn btn-machine" type="submit">Kaydet</button>
+  </div>
+</form>

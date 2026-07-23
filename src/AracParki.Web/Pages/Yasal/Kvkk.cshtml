@@ -1,60 +1,139 @@
 @page "/kvkk"
+@using AracParki.Application.Site.Services
 @inject SiteUrls SiteUrls
+@inject SiteSettingsService SiteSettings
 @{
+    var site = await SiteSettings.GetAsync();
+    var brand = site.CompanyDisplayName;
+    var controllerName = string.IsNullOrWhiteSpace(site.LegalCompanyName) ? brand : site.LegalCompanyName;
     ViewData["PageKey"] = "legal";
-    ViewData["Title"] = "KVKK Aydınlatma Metni | Araç Parkı";
-    ViewData["Description"] = "6698 sayılı KVKK kapsamında Araç Parkı aydınlatma metni: veri sorumlusu, işlenen veriler, amaçlar ve haklarınız.";
+    ViewData["Title"] = $"KVKK Aydınlatma Metni | {brand}";
+    ViewData["Description"] = $"6698 sayılı KVKK m.10 kapsamında {brand} aydınlatma metni: veri sorumlusu, amaçlar, aktarım, hukuki sebep, toplama yöntemi ve haklarınız.";
     ViewData["CanonicalUrl"] = SiteUrls.Absolute("/kvkk");
-    ViewData["OgTitle"] = "KVKK Aydınlatma | Araç Parkı";
-    var crumbs = Breadcrumbs.Create(
-        new BreadcrumbItem("Anasayfa", "/"),
-        new BreadcrumbItem("KVKK aydınlatma metni", "/kvkk"));
-    Breadcrumbs.Set(ViewData, SiteUrls, crumbs);
-}
-
-@section CrumbBar {
-  <partial name="Shared/Partials/_SiteBreadcrumb" model="crumbs" />
+    ViewData["OgTitle"] = $"KVKK Aydınlatma | {brand}";
 }
 
 <main class="legal-page" id="main">
   <article class="legal-article container">
-    <h1>KVKK aydınlatma metni</h1>
-    <p class="legal-updated">Son güncelleme: 19 Temmuz 2026</p>
+    <header class="legal-hero legal-hero--compact">
+      <p class="legal-eyebrow">Yasal · KVKK</p>
+      <h1>KVKK aydınlatma metni</h1>
+      <p class="legal-meta">Son güncelleme: 23 Temmuz 2026</p>
+      <p class="legal-lead">
+        6698 sayılı Kişisel Verilerin Korunması Kanunu’nun 10. maddesi ve Aydınlatma
+        Yükümlülüğünün Yerine Getirilmesinde Uyulacak Usul ve Esaslar Hakkında Tebliğ
+        kapsamında hazırlanmıştır.
+      </p>
+    </header>
 
+    <aside class="legal-note" aria-label="Bilgilendirme">
+      <strong>Bilgilendirme</strong>
+      Bu metin yasal aydınlatma yükümlülüğünü yerine getirmek içindir; hukuki danışmanlık
+      yerine geçmez. Genel uygulamalar için <a href="/gizlilik">gizlilik bildirimi</a>ne bakın.
+    </aside>
+
+    <h2>1. Veri sorumlusunun kimliği</h2>
     <p>
-      6698 sayılı Kişisel Verilerin Korunması Kanunu’nun 10. maddesi uyarınca, Araç Parkı
-      (“Veri Sorumlusu”) olarak kişisel verilerinizin işlenmesine ilişkin bilgilendirme aşağıdadır.
-      Bu metin bilgilendirme amaçlıdır; hukuki danışmanlık yerine geçmez.
+      <strong>Veri sorumlusu:</strong> @controllerName<br />
+      <strong>Marka / platform:</strong> @brand (aracparki.com)<br />
+      <strong>E-posta:</strong> <a href="mailto:@site.SupportEmail">@site.SupportEmail</a><br />
+      @if (site.SupportPhoneTel is not null)
+      {
+        <text><strong>Telefon:</strong> <a href="tel:@site.SupportPhoneTel">@site.SupportPhoneDisplay</a><br /></text>
+      }
+      @if (site.FormattedAddress is not null)
+      {
+        <text><strong>Adres:</strong> @site.FormattedAddress<br /></text>
+      }
+      <strong>İletişim sayfası:</strong> <a href="/iletisim">/iletisim</a>
     </p>
 
-    <h2>1. Veri sorumlusu</h2>
-    <p>
-      Araç Parkı — aracparki.com. İletişim için site üzerinden yayınlanan destek kanallarını kullanın.
-    </p>
-
-    <h2>2. İşlenen veriler ve amaçlar</h2>
+    <h2>2. İşlenen kişisel veriler</h2>
     <ul>
-      <li>Kimlik ve iletişim: üyelik, doğrulama, bildirim</li>
-      <li>İşlem güvenliği: oturum, dolandırıcılık önleme, log kayıtları</li>
-      <li>İlan verileri: pazar yeri hizmetinin sunulması</li>
+      <li><strong>Kimlik:</strong> ad, soyad</li>
+      <li><strong>İletişim:</strong> e-posta, telefon numarası</li>
+      <li><strong>Müşteri işlem:</strong> üyelik, ilan, favori, kayıtlı arama, destek talepleri</li>
+      <li><strong>İşlem güvenliği:</strong> oturum, IP, tarayıcı / cihaz bilgisi, log kayıtları</li>
+      <li><strong>Görsel / içerik:</strong> yüklediğiniz ilan fotoğrafları ve açıklamalar</li>
+      <li><strong>Kurumsal (varsa):</strong> şirket unvanı, vergi / belge bilgileri</li>
     </ul>
 
-    <h2>3. Hukuki sebepler</h2>
+    <h2>3. Kişisel verilerin işlenme amaçları</h2>
+    <ul class="legal-check">
+      <li>Üyelik sözleşmesinin kurulması ve ifası; hesap yönetimi</li>
+      <li>İlan yayınlama, moderasyon, arama ve satıcı / mağaza görünümü</li>
+      <li>Telefon doğrulama, dolandırıcılık ve kötüye kullanımın önlenmesi</li>
+      <li>Destek, şikayet ve bilgilendirme süreçlerinin yürütülmesi</li>
+      <li>Yasal yükümlülüklerin yerine getirilmesi ve yetkili mercilere bilgi verilmesi</li>
+      <li>Hizmet güvenliği, performans ve (yapılandırıldığında) sınırlı analitik</li>
+    </ul>
+
+    <h2>4. Aktarım: kimlere ve hangi amaçla?</h2>
     <p>
-      Sözleşmenin kurulması/ifası, meşru menfaat, hukuki yükümlülük ve açık rıza (gerektiğinde)
-      kapsamında işleme yapılır.
+      Kişisel verileriniz, yukarıdaki amaçlarla sınırlı olarak şu alıcılara aktarılabilir:
+    </p>
+    <ul>
+      <li>Barındırma, e-posta, medya depolama ve güvenlik hizmeti sağlayıcıları</li>
+      <li>Yetkili kamu kurum ve kuruluşları (yasal zorunluluk halinde)</li>
+      <li>
+        İlanın kamuya açık alanları kapsamında diğer kullanıcılar
+        (ör. ilan başlığı, fiyat, fotoğraf; telefon talep üzerine)
+      </li>
+    </ul>
+    <p>
+      Verilerin yurt dışına aktarılması söz konusu olursa, KVKK’nın ilgili hükümlerine
+      uygun güvenceler sağlanır.
     </p>
 
-    <h2>4. Haklarınız</h2>
+    <h2>5. Toplama yöntemi ve hukuki sebep</h2>
     <p>
-      Kanun’un 11. maddesi kapsamında verilerinize erişme, düzeltme, silme, itiraz ve şikâyet
-      haklarınızı kullanabilirsiniz. Taleplerinizi yazılı olarak iletebilirsiniz.
+      Veriler; üyelik / ilan / iletişim formları, telefon doğrulama, çerezler ve otomatik
+      log kayıtları yoluyla elektronik ortamda toplanır.
+    </p>
+    <p>
+      İşlemenin hukuki sebepleri (KVKK m.5):
+    </p>
+    <ul>
+      <li>Sözleşmenin kurulması veya ifası ile doğrudan ilgili olması</li>
+      <li>Veri sorumlusunun hukuki yükümlülüğünü yerine getirebilmesi</li>
+      <li>İlgili kişinin temel hak ve özgürlüklerine zarar vermemek kaydıyla meşru menfaat</li>
+      <li>Bir hakkın tesisi, kullanılması veya korunması</li>
+      <li>Gerektiğinde açık rıza (ör. zorunlu olmayan çerez / pazarlama tercihi)</li>
+    </ul>
+
+    <h2>6. İlgili kişinin hakları (KVKK m.11)</h2>
+    <p>Kanun’un 11. maddesi uyarınca:</p>
+    <ul>
+      <li>Kişisel verilerinizin işlenip işlenmediğini öğrenme</li>
+      <li>İşlenmişse buna ilişkin bilgi talep etme</li>
+      <li>İşleme amacını ve amaca uygun kullanılıp kullanılmadığını öğrenme</li>
+      <li>Yurt içinde / yurt dışında aktarıldığı üçüncü kişileri bilme</li>
+      <li>Eksik veya yanlış işlenmişse düzeltilmesini isteme</li>
+      <li>KVKK m.7 koşullarında silinmesini / yok edilmesini isteme</li>
+      <li>Aktarılan üçüncü kişilere bildirilmesini isteme</li>
+      <li>Münhasıran otomatik sistemlerle analiz sonucu aleyhinize bir sonucun çıkmasına itiraz</li>
+      <li>Kanuna aykırı işleme nedeniyle zarara uğramanız hâlinde zararın giderilmesini talep etme</li>
+    </ul>
+
+    <h2>7. Başvuru yöntemi</h2>
+    <p>
+      Haklarınızı kullanmak için kimliğinizi tevsik eden bir taleple
+      <a href="mailto:@site.SupportEmail?subject=@Uri.EscapeDataString("KVKK başvurusu")">@site.SupportEmail</a>
+      adresine veya <a href="/iletisim">iletişim</a> kanallarımıza başvurabilirsiniz.
+      Başvurular, KVKK ve ilgili tebliğlerdeki usule göre en geç otuz gün içinde sonuçlandırılır;
+      işlemin ayrıca bir maliyeti gerektirmesi hâlinde Kurulca belirlenen tarifedeki ücret
+      alınabilir.
+    </p>
+    <p>
+      Başvurunuzun reddedilmesi, verilen cevabın yetersiz bulunması veya süresinde
+      cevap verilmemesi hâlinde Kişisel Verileri Koruma Kurulu’na şikâyette bulunabilirsiniz.
     </p>
 
     <nav class="legal-related" aria-label="İlgili sayfalar">
-      <a href="/gizlilik">Gizlilik</a>
+      <a href="/gizlilik">Gizlilik bildirimi</a>
       <a href="/cerez-politikasi">Çerez politikası</a>
       <a href="/kullanim-kosullari">Kullanım koşulları</a>
+      <a href="/iletisim">İletişim</a>
     </nav>
   </article>
 </main>

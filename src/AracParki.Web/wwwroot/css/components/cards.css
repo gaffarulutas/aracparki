@@ -390,6 +390,25 @@
   gap: 12px;
 }
 
+a.proof-item {
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+a.proof-item:hover {
+  border-color: color-mix(in srgb, var(--machine) 35%, var(--line));
+  background: color-mix(in srgb, var(--machine) 5%, var(--raised));
+}
+
+a.proof-item:focus-visible {
+  outline: 2px solid var(--machine);
+  outline-offset: 2px;
+}
+
 .proof-item-copy {
   display: grid;
   gap: 2px;
@@ -411,9 +430,12 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 10px 16px;
-  padding: 12px 16px 12px 14px;
-  background: var(--raised);
+  gap: 12px 18px;
+  padding: 14px 16px 14px 15px;
+  background:
+    linear-gradient(120deg,
+      color-mix(in srgb, var(--machine) 8%, var(--raised)),
+      var(--raised) 42%);
   border: 1px solid var(--line);
   border-left: 3px solid var(--machine);
   border-radius: var(--radius);
@@ -421,23 +443,13 @@
 }
 
 .partner-banner-copy {
-  flex: 1 1 220px;
+  flex: 1 1 240px;
   min-width: 0;
 }
 
-.partner-banner-eyebrow {
-  margin: 0 0 2px;
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
 .partner-banner-title {
-  margin: 0 0 2px;
-  font-size: 15px;
+  margin: 0 0 4px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--ink);
   letter-spacing: -0.015em;
@@ -447,16 +459,16 @@
 .partner-banner-lead {
   margin: 0;
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.45;
   color: var(--muted);
-  max-width: 48ch;
 }
 
 .partner-banner-cta {
   flex: 0 0 auto;
-  min-height: 36px;
-  padding-inline: 14px;
+  min-height: 38px;
+  padding-inline: 16px;
   font-size: 12px;
+  font-weight: 700;
 }
 
 .seller-cta {

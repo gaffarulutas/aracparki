@@ -11,14 +11,14 @@ public sealed class SpecsJsonBuilderTests
         string dataType = "enum",
         bool required = false,
         string? enumJson = null) => new()
-    {
-        Id = 1,
-        Key = key,
-        Label = label,
-        DataType = dataType,
-        IsRequired = required,
-        EnumOptionsJson = enumJson
-    };
+        {
+            Id = 1,
+            Key = key,
+            Label = label,
+            DataType = dataType,
+            IsRequired = required,
+            EnumOptionsJson = enumJson
+        };
 
     [Fact]
     public void Empty_raw_ok_when_no_required_attributes()

@@ -9,7 +9,6 @@ using AracParki.Application.Corporate.Dtos;
 using AracParki.Application.Corporate.Services;
 using AracParki.Application.Listings;
 using AracParki.Application.Listings.Commands;
-using AracParki.Application.Listings.Dtos;
 using AracParki.Application.Listings.Services;
 using AracParki.Domain.Listings;
 using AracParki.Web.Infrastructure;

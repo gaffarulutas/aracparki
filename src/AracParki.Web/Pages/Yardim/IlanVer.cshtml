@@ -1,5 +1,4 @@
 @page "/yardim/ilan-ver"
-@using System.Text.Json
 @inject SiteUrls SiteUrls
 @{
     ViewData["PageKey"] = "legal";
@@ -7,11 +6,6 @@
     ViewData["Description"] = "Araç Parkı’nda ücretsiz satılık veya kiralık iş makinesi ilanı nasıl verilir? Hesap, telefon doğrulama, fotoğraf ve moderasyon adımları.";
     ViewData["CanonicalUrl"] = SiteUrls.Absolute("/yardim/ilan-ver");
     ViewData["OgTitle"] = "Nasıl İlan Verilir? | Araç Parkı";
-    var crumbs = Breadcrumbs.Create(
-        new BreadcrumbItem("Anasayfa", "/"),
-        new BreadcrumbItem("Yardım merkezi", "/yardim"),
-        new BreadcrumbItem("Nasıl ilan verilir", "/yardim/ilan-ver"));
-    Breadcrumbs.Set(ViewData, SiteUrls, crumbs);
     ViewData["JsonLd"] = JsonSerializer.Serialize(new Dictionary<string, object?>
     {
         ["@context"] = "https://schema.org",
@@ -35,10 +29,6 @@
         ["name"] = name,
         ["text"] = text
     };
-}
-
-@section CrumbBar {
-  <partial name="Shared/Partials/_SiteBreadcrumb" model="crumbs" />
 }
 
 <main class="legal-page" id="main">

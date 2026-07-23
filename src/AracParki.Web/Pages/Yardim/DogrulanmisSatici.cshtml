@@ -1,0 +1,213 @@
+@page "/dogrulanmis-satici"
+@inject SiteUrls SiteUrls
+@{
+    ViewData["PageKey"] = "legal";
+    ViewData["Title"] = "Doğrulanmış Satıcı Nedir? | Bayi ve Sahibi Rozetleri";
+    ViewData["Description"] = "Araç Parkı’nda Doğrulanmış etiketi onaylı kurumsal satıcıyı gösterir. Bayi ve Sahibi farkı, telefon doğrulama (yayın şartı) ve mağaza sayfası süreci.";
+    ViewData["CanonicalUrl"] = SiteUrls.Absolute("/dogrulanmis-satici");
+    ViewData["OgTitle"] = "Doğrulanmış Satıcı | Araç Parkı";
+    ViewData["OgType"] = "article";
+
+    var faqEntities = new object[]
+    {
+        Qa("Doğrulanmış satıcı ne demek?", "İlandaki “Doğrulanmış” etiketi, ilanın onaylı kurumsal (bayi) hesabına bağlı olduğunu gösterir. Telefon doğrulaması ile aynı şey değildir."),
+        Qa("Bayi ile sahibi farkı nedir?", "Bayi: onaylı kurumsal hesapla yayınlanan ticari satıcı. Sahibi: bireysel / sahibinden ilan. İlan verirken kurumsal mağaza seçilirse Bayi, seçilmezse Sahibi olur."),
+        Qa("Telefon doğrulaması Doğrulanmış rozeti midir?", "Hayır. Telefon (ve e-posta) doğrulaması tüm satıcılar için ilan yayın şartıdır; kartta “Doğrulanmış” rozeti açmaz."),
+        Qa("Doğrulanmış filtresi neyi listeler?", "İlan listesinde “Sadece doğrulanmış satıcı” filtresi onaylı kurumsal hesaba bağlı ilanları gösterir.")
+    };
+    ViewData["JsonLd"] = JsonSerializer.Serialize(new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "WebPage",
+        ["name"] = "Doğrulanmış satıcı — Araç Parkı",
+        ["url"] = SiteUrls.Absolute("/dogrulanmis-satici"),
+        ["description"] = ViewData["Description"],
+        ["isPartOf"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "WebSite",
+            ["name"] = "Araç Parkı",
+            ["url"] = SiteUrls.Origin + "/"
+        },
+        ["mainEntity"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "FAQPage",
+            ["mainEntity"] = faqEntities
+        }
+    });
+
+    static Dictionary<string, object?> Qa(string q, string a) => new()
+    {
+        ["@type"] = "Question",
+        ["name"] = q,
+        ["acceptedAnswer"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "Answer",
+            ["text"] = a
+        }
+    };
+}
+
+<main class="legal-page" id="main">
+  <article class="legal-article legal-article--wide container">
+    <header class="legal-hero">
+      <p class="legal-eyebrow">Güven · Satıcı etiketleri</p>
+      <h1>Doğrulanmış satıcı, bayi ve sahibi</h1>
+      <p class="legal-lead">
+        İlan kartında gördüğünüz etiketler farklı süreçleri anlatır.
+        <strong>Doğrulanmış</strong> onaylı kurumsal satıcıyı;
+        <strong>Bayi</strong> / <strong>Sahibi</strong> ise satıcı tipini gösterir.
+        Telefon doğrulaması ise ayrı bir adımdır: ilan yayınlamak için zorunludur, rozet değildir.
+      </p>
+      <div class="legal-hero-actions">
+        <a class="btn btn-machine" href="/ilanlar?dogrulanmis=1">Doğrulanmış ilanları gör</a>
+        <a class="btn btn-ghost" href="/bayi-ortakligi">Bayi ortaklığı</a>
+      </div>
+    </header>
+
+    <div class="legal-highlights" role="list">
+      <div class="legal-highlight" role="listitem">
+        <strong>Doğrulanmış</strong>
+        <span>Onaylı kurumsal hesaba bağlı ilan. Admin kurumsal onayı sonrası görünür.</span>
+      </div>
+      <div class="legal-highlight" role="listitem">
+        <strong>Bayi</strong>
+        <span>Kurumsal mağaza seçilerek verilen ilan; mağaza sayfası ve logo açılabilir.</span>
+      </div>
+      <div class="legal-highlight" role="listitem">
+        <strong>Sahibi</strong>
+        <span>Bireysel (sahibinden) ilan; kurumsal hesap seçilmeden yayınlanır.</span>
+      </div>
+    </div>
+
+    <h2>Etiketler neyi gösterir — neyi göstermez?</h2>
+    <p>
+      Yaygın görünüm: <em>Doğrulanmış · Bayi</em>.
+      “Doğrulanmış” ile “Bayi” çoğu zaman birlikte gelir; çünkü rozet, onaylı kurumsal
+      hesaba bağlı ilanlarda açılır ve bu yolda satıcı tipi Bayi olarak kaydedilir.
+    </p>
+    <ul class="legal-check">
+      <li><strong>Doğrulanmış</strong> — kurumsal hesap admin tarafından onaylanmış ve ilan o hesaba bağlı</li>
+      <li><strong>Bayi</strong> — kurumsal / ticari satıcı tipi (onaylı kurumsal ile yayın)</li>
+      <li><strong>Sahibi</strong> — bireysel satıcı tipi (kurumsal seçilmeden yayın)</li>
+      <li><strong>Onaylı satıcı</strong> — kurumsal mağaza sayfasında görünen vitrin etiketi</li>
+    </ul>
+    <aside class="legal-note" aria-label="Sık karıştırılan nokta">
+      <strong>Sık karıştırılan nokta</strong>
+      Telefon doğrulaması (WhatsApp kodu) ve e-posta onayı <em>ilan yayın şartıdır</em>.
+      Bunlar tamamlandığında kartta otomatik “Doğrulanmış” yazmaz. Bireysel satıcılar da
+      telefon doğrular; yine de “Sahibi” olarak kalırlar.
+    </aside>
+
+    <h2>Süreç nasıl işler?</h2>
+    <ol class="legal-steps">
+      <li>
+        <strong>Üyelik</strong>
+        <span><a href="/kayit">Kayıt</a> ve e-posta onayı. Yayın için e-posta doğrulanmış olmalıdır.</span>
+      </li>
+      <li>
+        <strong>Telefon doğrulama</strong>
+        <span>İlan vermeden önce WhatsApp ile numara doğrulanır. Bu adım yayın kapısıdır; rozet değildir.</span>
+      </li>
+      <li>
+        <strong>Kurumsal başvuru (bayi)</strong>
+        <span>
+          <a href="/kurumsal-hesap">Kurumsal hesap</a> ile şirket bilgisi ve evrak gönderilir.
+          Admin onayı sonrası durum <em>approved</em> olur; mağaza sayfası ve Doğrulanmış görünümü açılır.
+        </span>
+      </li>
+      <li>
+        <strong>İlan yayınlama</strong>
+        <span>
+          Sihirbazda onaylı kurumsal mağaza seçilirse satıcı tipi Bayi ve Doğrulanmış görünür;
+          “Sahibinden” seçilirse Sahibi olur. İlan ayrıca moderasyona girer (<em>incelemede</em>).
+        </span>
+      </li>
+    </ol>
+
+    <h2>Alıcı için pratik anlam</h2>
+    <p>
+      Doğrulanmış / Bayi etiketi, satıcının kurumsal incelemeden geçtiğini ve mağaza
+      profilinin yayında olabileceğini gösterir. Makinenin teknik durumu, mülkiyet veya
+      ödeme güvencesi anlamına gelmez. Her işlemde
+      <a href="/guvenli-alisveris">güvenli alışveriş</a> kontrol listesini uygulayın:
+      yerinde kontrol, belge teyidi, kapora riski.
+    </p>
+    <p>
+      Listeyi daraltmak için
+      <a href="/ilanlar?dogrulanmis=1">doğrulanmış satıcı filtresi</a>ni kullanabilirsiniz;
+      bu filtre onaylı kurumsal ilanları listeler.
+    </p>
+
+    <h2>Satıcı için net beklenti</h2>
+    <ul class="legal-check">
+      <li>Bireysel ilan: telefon + e-posta doğrula → ilan ver → moderasyon → yayın (Sahibi)</li>
+      <li>Kurumsal bayi: kurumsal başvuru → admin onayı → ilanda mağaza seç → Doğrulanmış · Bayi</li>
+      <li>Yalnızca telefon doğrulamak Doğrulanmış rozeti vermez</li>
+    </ul>
+
+    <aside class="legal-note" aria-label="Önemli not">
+      <strong>Önemli</strong>
+      Araç Parkı ilan platformudur; aracı veya mal sahibi değildir. Etiketler platform içi
+      kimlik sinyalleridir. Anlaşmazlıklarda taraflar kendi hukuki yollarını kullanır.
+    </aside>
+
+    <h2>Sık sorulanlar</h2>
+    <div class="legal-faq">
+      <details>
+        <summary>Doğrulanmış satıcı ne demek?</summary>
+        <p>
+          İlandaki “Doğrulanmış” etiketi, ilanın <strong>onaylı kurumsal (bayi) hesabına</strong>
+          bağlı olduğunu gösterir. Telefon doğrulaması ile aynı şey değildir.
+        </p>
+      </details>
+      <details>
+        <summary>Bayi ile sahibi farkı nedir?</summary>
+        <p>
+          <strong>Bayi:</strong> onaylı kurumsal hesapla yayınlanan ticari satıcı.
+          <strong>Sahibi:</strong> bireysel / sahibinden ilan.
+          İlan verirken kurumsal mağaza seçilirse Bayi, seçilmezse Sahibi olur.
+        </p>
+      </details>
+      <details>
+        <summary>Telefon doğrulaması Doğrulanmış rozeti midir?</summary>
+        <p>
+          Hayır. Telefon (ve e-posta) doğrulaması tüm satıcılar için ilan yayın şartıdır;
+          kartta “Doğrulanmış” rozeti açmaz. Rozet için kurumsal hesabın admin onayı gerekir.
+        </p>
+      </details>
+      <details>
+        <summary>Doğrulanmış filtresi neyi listeler?</summary>
+        <p>
+          <a href="/ilanlar?dogrulanmis=1">Sadece doğrulanmış satıcı</a> filtresi,
+          onaylı kurumsal hesaba bağlı ilanları gösterir.
+        </p>
+      </details>
+      <details>
+        <summary>Kurumsal onay nasıl alınır?</summary>
+        <p>
+          <a href="/bayi-ortakligi">Bayi ortaklığı</a> sürecini izleyin veya
+          <a href="/kurumsal-hesap">kurumsal hesap</a> başvurusu yapın. Evraklar eksiksizse
+          admin incelemesi sonrası mağaza sayfası açılır.
+        </p>
+      </details>
+    </div>
+
+    <div class="legal-cta-band">
+      <div>
+        <strong>Onaylı kurumsal ilanlara bakın</strong>
+        <p>Doğrulanmış filtresiyle kurumsal satıcıları listeleyin veya bayi başvurusu yapın.</p>
+      </div>
+      <div class="legal-cta-band-actions">
+        <a class="btn btn-machine" href="/ilanlar?dogrulanmis=1">İlanları gör</a>
+        <a class="btn btn-ghost" href="/kurumsal-hesap">Kurumsal başvuru</a>
+      </div>
+    </div>
+
+    <nav class="legal-related" aria-label="İlgili sayfalar">
+      <a href="/net-fiyat">Net fiyat</a>
+      <a href="/turkiye-geneli">Türkiye geneli</a>
+      <a href="/bayi-ortakligi">Bayi ortaklığı</a>
+      <a href="/guvenli-alisveris">Güvenli alışveriş</a>
+    </nav>
+  </article>
+</main>

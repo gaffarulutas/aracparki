@@ -1,100 +1,227 @@
 @page "/iletisim"
-@using System.Text.Json
+@using AracParki.Application.Site.Services
 @inject SiteUrls SiteUrls
+@inject SiteSettingsService SiteSettings
 @{
+    var site = await SiteSettings.GetAsync();
+    var brand = string.IsNullOrWhiteSpace(site.CompanyDisplayName) ? "Araç Parkı" : site.CompanyDisplayName;
+    var lead = string.IsNullOrWhiteSpace(site.ResponseNote)
+        ? "Hesap, ilan ve güvenlik konularında resmi kanallarımız burası. Doğru kanalı seç, hızlı dönüş al."
+        : site.ResponseNote;
     ViewData["PageKey"] = "legal";
-    ViewData["Title"] = "İletişim | Araç Parkı Destek ve İş Birliği";
-    ViewData["Description"] = "Araç Parkı iletişim: hesap ve ilan desteği, şikayet bildirimi, reklam ve kurumsal iş birliği. İş günlerinde hızlı dönüş.";
+    ViewData["Title"] = $"İletişim | {brand}";
+    ViewData["Description"] = $"{brand} iletişim: destek e-postası, telefon, WhatsApp, ilan şikayeti ve reklam iş birliği.";
     ViewData["CanonicalUrl"] = SiteUrls.Absolute("/iletisim");
-    ViewData["OgTitle"] = "İletişim | Araç Parkı";
-    var crumbs = Breadcrumbs.Create(
-        new BreadcrumbItem("Anasayfa", "/"),
-        new BreadcrumbItem("Yardım", "/yardim"),
-        new BreadcrumbItem("İletişim", "/iletisim"));
-    Breadcrumbs.Set(ViewData, SiteUrls, crumbs);
+    ViewData["OgTitle"] = $"İletişim | {brand}";
+
+    var org = new Dictionary<string, object?>
+    {
+        ["@type"] = "Organization",
+        ["name"] = brand,
+        ["url"] = SiteUrls.Origin + "/",
+        ["email"] = site.SupportEmail,
+        ["contactPoint"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "ContactPoint",
+            ["contactType"] = "customer support",
+            ["email"] = site.SupportEmail,
+            ["availableLanguage"] = new[] { "Turkish" }
+        }
+    };
+    if (site.SupportPhoneTel is not null)
+    {
+        org["telephone"] = site.SupportPhoneTel;
+        ((Dictionary<string, object?>)org["contactPoint"]!)["telephone"] = site.SupportPhoneTel;
+    }
+    if (site.FormattedAddress is not null)
+    {
+        org["address"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "PostalAddress",
+            ["streetAddress"] = site.AddressLine,
+            ["addressLocality"] = site.City,
+            ["postalCode"] = site.PostalCode,
+            ["addressCountry"] = "TR"
+        };
+    }
+    if (site.HasAnySocial)
+    {
+        org["sameAs"] = site.SocialLinks.Select(l => l.Url).ToArray();
+    }
+
     ViewData["JsonLd"] = JsonSerializer.Serialize(new Dictionary<string, object?>
     {
         ["@context"] = "https://schema.org",
         ["@type"] = "ContactPage",
-        ["name"] = "İletişim — Araç Parkı",
+        ["name"] = $"İletişim — {brand}",
         ["url"] = SiteUrls.Absolute("/iletisim"),
         ["description"] = ViewData["Description"],
-        ["mainEntity"] = new Dictionary<string, object?>
-        {
-            ["@type"] = "Organization",
-            ["name"] = "Araç Parkı",
-            ["url"] = SiteUrls.Origin + "/",
-            ["email"] = "destek@aracparki.com",
-            ["contactPoint"] = new Dictionary<string, object?>
-            {
-                ["@type"] = "ContactPoint",
-                ["contactType"] = "customer support",
-                ["email"] = "destek@aracparki.com",
-                ["availableLanguage"] = new[] { "Turkish" }
-            }
-        }
+        ["mainEntity"] = org
     });
 }
 
-@section CrumbBar {
-  <partial name="Shared/Partials/_SiteBreadcrumb" model="crumbs" />
-}
-
 <main class="legal-page" id="main">
-  <article class="legal-article legal-article--wide container">
-    <header class="legal-hero">
-      <p class="legal-eyebrow">Yardım · Destek</p>
-      <h1>Size nasıl yardımcı olabiliriz?</h1>
-      <p class="legal-lead">
-        Hesap, ilan yayınlama, güvenlik bildirimi veya iş birliği taleplerinizi doğru
-        kanaldan iletin. İş günlerinde genellikle 1–2 gün içinde dönüş sağlarız.
-      </p>
+  <article class="legal-article legal-article--contact container">
+    <header class="legal-hero legal-hero--compact">
+      <p class="legal-eyebrow">İletişim</p>
+      <h1>Bize ulaşın</h1>
+      <p class="legal-lead">@lead</p>
+      @if (!string.IsNullOrWhiteSpace(site.WorkingHours))
+      {
+        <p class="legal-meta legal-meta--hours">
+          <ap-icon name="clock" size="14" class="ap-icon" aria-hidden="true" />
+          <span>@site.WorkingHours</span>
+        </p>
+      }
+      <div class="legal-hero-actions">
+        <a class="btn btn-machine"
+           href="mailto:@site.SupportEmail?subject=@Uri.EscapeDataString("Destek talebi")">
+          E-posta gönder
+        </a>
+        <a class="btn btn-ghost" href="/yardim">Yardım merkezi</a>
+      </div>
     </header>
 
-    <div class="legal-cards" role="list">
-      <section class="legal-card" role="listitem">
-        <p class="legal-card-kicker">Destek</p>
-        <h2>Genel destek</h2>
-        <p>Giriş, telefon doğrulama, ilan durumu ve teknik sorunlar için yazın.</p>
-        <a class="btn btn-machine" href="mailto:destek@aracparki.com?subject=@Uri.EscapeDataString("Destek talebi")">
-          destek@aracparki.com
-        </a>
+    <div class="legal-contact-layout">
+      <section class="legal-contact-main" aria-labelledby="channels-heading">
+        <h2 id="channels-heading">İletişim bilgileri</h2>
+        <ul class="legal-contact-rows">
+          <li>
+            <a class="legal-contact-row"
+               href="mailto:@site.SupportEmail?subject=@Uri.EscapeDataString("Destek talebi")">
+              <span class="legal-contact-ico" aria-hidden="true">
+                <ap-icon name="mail" size="18" class="ap-icon" />
+              </span>
+              <span class="legal-contact-text">
+                <span class="legal-contact-label">E-posta</span>
+                <span class="legal-contact-value">@site.SupportEmail</span>
+              </span>
+            </a>
+          </li>
+          @if (site.SupportPhoneTel is not null)
+          {
+            <li>
+              <a class="legal-contact-row" href="tel:@site.SupportPhoneTel">
+                <span class="legal-contact-ico" aria-hidden="true">
+                  <ap-icon name="phone" size="18" class="ap-icon" />
+                </span>
+                <span class="legal-contact-text">
+                  <span class="legal-contact-label">Telefon</span>
+                  <span class="legal-contact-value">@site.SupportPhoneDisplay</span>
+                </span>
+              </a>
+            </li>
+          }
+          @if (site.WhatsAppChatUrl is not null)
+          {
+            <li>
+              <a class="legal-contact-row"
+                 href="@site.WhatsAppChatUrl"
+                 target="_blank"
+                 rel="noopener noreferrer">
+                <span class="legal-contact-ico" aria-hidden="true">
+                  <ap-icon name="message-circle" size="18" class="ap-icon" />
+                </span>
+                <span class="legal-contact-text">
+                  <span class="legal-contact-label">WhatsApp</span>
+                  <span class="legal-contact-value">@site.WhatsAppPhoneDisplay</span>
+                </span>
+              </a>
+            </li>
+          }
+          @if (site.FormattedAddress is not null)
+          {
+            <li>
+              <div class="legal-contact-row legal-contact-row--static">
+                <span class="legal-contact-ico" aria-hidden="true">
+                  <ap-icon name="map-pin" size="18" class="ap-icon" />
+                </span>
+                <span class="legal-contact-text">
+                  <span class="legal-contact-label">Adres</span>
+                  <span class="legal-contact-value">@(site.LegalCompanyName ?? brand)</span>
+                  <span class="legal-contact-hint">@site.FormattedAddress</span>
+                </span>
+              </div>
+            </li>
+          }
+        </ul>
+
+        @if (site.HasAnySocial)
+        {
+          <div class="legal-contact-social">
+            <p class="legal-contact-social-label">Sosyal medya</p>
+            <ul class="legal-social">
+              @foreach (var link in site.SocialLinks)
+              {
+                <li>
+                  <a href="@link.Url" target="_blank" rel="noopener noreferrer">
+                    <ap-icon name="@link.Icon" size="16" class="ap-icon" aria-hidden="true" />
+                    @link.Label
+                  </a>
+                </li>
+              }
+            </ul>
+          </div>
+        }
       </section>
-      <section class="legal-card" role="listitem">
-        <p class="legal-card-kicker">Güvenlik</p>
-        <h2>İlan şikayeti</h2>
-        <p>Yanıltıcı içerik, kural ihlali veya dolandırıcılık şüphesini bildirin.</p>
-        <a class="btn btn-ghost" href="mailto:destek@aracparki.com?subject=@Uri.EscapeDataString("İlan şikayeti")">
-          Şikayet e-postası gönder
-        </a>
-      </section>
-      <section class="legal-card" role="listitem">
-        <p class="legal-card-kicker">Kurumsal</p>
-        <h2>Reklam ve iş birliği</h2>
-        <p>Sponsorlu görünürlük, bayi tanıtımı ve kurumsal kampanya talepleri.</p>
-        <a class="btn btn-ghost" href="/reklam">Reklam sayfasına git</a>
-      </section>
+
+      <aside class="legal-contact-side" aria-labelledby="topics-heading">
+        <h2 id="topics-heading">Konuya göre yaz</h2>
+        <ul class="legal-contact-topics">
+          <li>
+            <a href="mailto:@site.SupportEmail?subject=@Uri.EscapeDataString("Destek talebi")">
+              <strong>Hesap &amp; teknik</strong>
+              <span>Giriş, doğrulama, ilan durumu</span>
+            </a>
+          </li>
+          <li>
+            <a href="mailto:@site.SupportEmail?subject=@Uri.EscapeDataString("İlan şikayeti")">
+              <strong>İlan şikayeti</strong>
+              <span>Yanıltıcı içerik veya kural ihlali</span>
+            </a>
+          </li>
+          <li>
+            <a href="mailto:@site.EffectiveAdsEmail?subject=@Uri.EscapeDataString("Reklam teklifi")">
+              <strong>Reklam &amp; iş birliği</strong>
+              <span>@site.EffectiveAdsEmail</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="legal-note" role="note">
+          <strong>Acil güvenlik</strong>
+          Araç Parkı aracı veya hukuki taraf değildir. Acil dolandırıcılık şüphesinde
+          yetkili mercilere de başvur.
+        </div>
+      </aside>
     </div>
 
-    <aside class="legal-note" aria-label="Önemli bilgi">
-      <strong>Acil güvenlik durumu:</strong>
-      Platform hukuki bir taraf veya aracı değildir. Acil dolandırıcılık veya güvenlik
-      şüphesinde yetkili mercilere de başvurun.
-    </aside>
+    <section class="legal-contact-help" aria-labelledby="help-heading">
+      <h2 id="help-heading">Önce buraya bak</h2>
+      <nav class="legal-toc" aria-label="Yardım sayfaları">
+        <a href="/yardim">Sık sorulan sorular</a>
+        <a href="/yardim/ilan-ver">Nasıl ilan verilir?</a>
+        <a href="/guvenli-alisveris">Güvenli alışveriş</a>
+        <a href="/ilan-kurallari">İlan kuralları</a>
+      </nav>
+    </section>
 
-    <h2>Önce buraya bakın</h2>
-    <ul class="legal-link-list">
-      <li><a href="/yardim">Sık sorulan sorular</a> — hesap, ilan ve güvenlik</li>
-      <li><a href="/yardim/ilan-ver">Nasıl ilan verilir?</a> — adım adım yayın rehberi</li>
-      <li><a href="/guvenli-alisveris">Güvenli alışveriş</a> — alıcı ve satıcı kontrol listesi</li>
-      <li><a href="/ilan-kurallari">İlan kuralları</a> — moderasyon ve yasaklı içerikler</li>
-    </ul>
+    <div class="legal-cta-band">
+      <div>
+        <strong>Kurumsal iş birliği</strong>
+        <p>Reklam yerleşimleri veya bayi / çözüm ortaklığı için ilgili sayfalara geçin.</p>
+      </div>
+      <div class="legal-cta-band-actions">
+        <a class="btn btn-machine" href="/reklam">Reklam ver</a>
+        <a class="btn btn-ghost" href="/bayi-ortakligi">Bayi ortaklığı</a>
+      </div>
+    </div>
 
     <nav class="legal-related" aria-label="İlgili sayfalar">
-      <a href="/yardim">Yardım merkezi</a>
       <a href="/hakkimizda">Hakkımızda</a>
-      <a href="/kvkk">KVKK</a>
-      <a href="/gizlilik">Gizlilik</a>
+      <a href="/yardim">Yardım merkezi</a>
+      <a href="/reklam">Reklam</a>
+      <a href="/kullanim-kosullari">Kullanım koşulları</a>
     </nav>
   </article>
 </main>

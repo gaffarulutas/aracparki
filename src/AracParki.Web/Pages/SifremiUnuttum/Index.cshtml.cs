@@ -1,3 +1,4 @@
+using AracParki.Application.Abstractions;
 using AracParki.Application.Accounts.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -6,7 +7,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace AracParki.Web.Pages.SifremiUnuttum;
 
-public sealed class IndexModel(AccountService accounts, ILogger<IndexModel> logger) : PageModel
+public sealed class IndexModel(AccountService accounts, ITurnstileVerifier turnstile, ILogger<IndexModel> logger) : PageModel
 {
     [BindProperty]
     public ForgotInput Input { get; set; } = new();
@@ -32,6 +33,13 @@ public sealed class IndexModel(AccountService accounts, ILogger<IndexModel> logg
 
         if (!ModelState.IsValid)
         {
+            return Page();
+        }
+
+        var turnstileToken = Request.Form["cf-turnstile-response"].ToString();
+        if (!await turnstile.VerifyAsync(turnstileToken, HttpContext.Connection.RemoteIpAddress?.ToString(), cancellationToken))
+        {
+            FormError = "Bot doğrulaması başarısız. Lütfen tekrar dene.";
             return Page();
         }
 

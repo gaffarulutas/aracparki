@@ -1,5 +1,4 @@
 @page "/yardim"
-@using System.Text.Json
 @inject SiteUrls SiteUrls
 @{
     ViewData["PageKey"] = "legal";
@@ -7,10 +6,6 @@
     ViewData["Description"] = "Araç Parkı yardım merkezi: üyelik, ücretsiz ilan verme, moderasyon, telefon güvenliği, şikayet ve reklam hakkında sık sorulan sorular.";
     ViewData["CanonicalUrl"] = SiteUrls.Absolute("/yardim");
     ViewData["OgTitle"] = "Yardım Merkezi | Araç Parkı";
-    var crumbs = Breadcrumbs.Create(
-        new BreadcrumbItem("Anasayfa", "/"),
-        new BreadcrumbItem("Yardım merkezi", "/yardim"));
-    Breadcrumbs.Set(ViewData, SiteUrls, crumbs);
 
     var faqEntities = new object[]
     {
@@ -40,10 +35,6 @@
             ["text"] = a
         }
     };
-}
-
-@section CrumbBar {
-  <partial name="Shared/Partials/_SiteBreadcrumb" model="crumbs" />
 }
 
 <main class="legal-page" id="main">
@@ -169,6 +160,9 @@
 
     <nav class="legal-related" aria-label="İlgili sayfalar">
       <a href="/yardim/ilan-ver">Nasıl ilan verilir</a>
+      <a href="/dogrulanmis-satici">Doğrulanmış satıcı</a>
+      <a href="/net-fiyat">Net fiyat</a>
+      <a href="/turkiye-geneli">Türkiye geneli</a>
       <a href="/guvenli-alisveris">Güvenli alışveriş</a>
       <a href="/ilan-kurallari">İlan kuralları</a>
     </nav>

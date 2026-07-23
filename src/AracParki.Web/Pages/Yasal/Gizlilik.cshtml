@@ -1,56 +1,131 @@
 @page "/gizlilik"
+@using AracParki.Application.Site.Services
 @inject SiteUrls SiteUrls
+@inject SiteSettingsService SiteSettings
 @{
+    var site = await SiteSettings.GetAsync();
+    var brand = site.CompanyDisplayName;
+    var controllerName = string.IsNullOrWhiteSpace(site.LegalCompanyName) ? brand : site.LegalCompanyName;
     ViewData["PageKey"] = "legal";
-    ViewData["Title"] = "Gizlilik Bildirimi | Araç Parkı";
-    ViewData["Description"] = "Araç Parkı gizlilik bildirimi: hangi kişisel verileri topladığımız, çerezler, paylaşım ilkeleri ve haklarınız.";
+    ViewData["Title"] = $"Gizlilik Bildirimi | {brand}";
+    ViewData["Description"] = $"{brand} gizlilik bildirimi: hangi verileri topladığımız, nasıl kullandığımız, saklama, paylaşım, çerezler ve haklarınız.";
     ViewData["CanonicalUrl"] = SiteUrls.Absolute("/gizlilik");
-    ViewData["OgTitle"] = "Gizlilik Bildirimi | Araç Parkı";
-    var crumbs = Breadcrumbs.Create(
-        new BreadcrumbItem("Anasayfa", "/"),
-        new BreadcrumbItem("Gizlilik bildirimi", "/gizlilik"));
-    Breadcrumbs.Set(ViewData, SiteUrls, crumbs);
-}
-
-@section CrumbBar {
-  <partial name="Shared/Partials/_SiteBreadcrumb" model="crumbs" />
+    ViewData["OgTitle"] = $"Gizlilik Bildirimi | {brand}";
 }
 
 <main class="legal-page" id="main">
   <article class="legal-article container">
-    <h1>Gizlilik bildirimi</h1>
-    <p class="legal-updated">Son güncelleme: 19 Temmuz 2026</p>
+    <header class="legal-hero legal-hero--compact">
+      <p class="legal-eyebrow">Yasal · Gizlilik</p>
+      <h1>Gizlilik bildirimi</h1>
+      <p class="legal-meta">Son güncelleme: 23 Temmuz 2026</p>
+      <p class="legal-lead">
+        Bu bildirim, @brand olarak kişisel verilerinizi nasıl topladığımızı, kullandığımızı
+        ve koruduğumuzu özetler. 6698 sayılı KVKK kapsamında zorunlu aydınlatma için
+        <a href="/kvkk">KVKK aydınlatma metni</a>ne bakın; iki metin birbirini tamamlar.
+      </p>
+    </header>
 
+    <aside class="legal-note" aria-label="Ayrım">
+      <strong>Gizlilik bildirimi ≠ KVKK aydınlatma</strong>
+      Gizlilik bildirimi genel uygulamaları anlatır. KVKK Madde 10 aydınlatması ise
+      veri toplama anında yerine getirilmesi gereken yasal bilgilendirmedir.
+    </aside>
+
+    <h2>1. Veri sorumlusu</h2>
     <p>
-      Araç Parkı olarak kişisel verilerinizi yalnızca hizmeti sunmak, güvenliği sağlamak ve yasal
-      yükümlülükleri yerine getirmek için işleriz. Detaylı haklarınız için
-      <a href="/kvkk">KVKK aydınlatma metni</a>ne bakın.
+      Veri sorumlusu: <strong>@controllerName</strong> (@brand — aracparki.com).
+      İletişim: <a href="mailto:@site.SupportEmail">@site.SupportEmail</a>
+      @if (site.FormattedAddress is not null)
+      {
+        <text>· @site.FormattedAddress</text>
+      }
+      · <a href="/iletisim">İletişim sayfası</a>
     </p>
 
-    <h2>Topladığımız veriler</h2>
+    <h2>2. Topladığımız veriler</h2>
     <ul>
-      <li>Hesap: ad soyad, e-posta, şifre özeti, isteğe bağlı telefon</li>
-      <li>İlan ve kullanım: ilan içerikleri, arama tercihleri, teknik loglar</li>
-      <li>İletişim: destek talepleri ve site içi mesajlaşma (yakında)</li>
+      <li>
+        <strong>Hesap:</strong> ad soyad, e-posta, şifre özeti (hash), isteğe bağlı veya
+        doğrulanmış telefon.
+      </li>
+      <li>
+        <strong>İlan ve kullanım:</strong> ilan içerikleri, fotoğraflar, arama / favori /
+        kayıtlı arama tercihleri, teknik loglar (IP, tarayıcı, erişim zamanı).
+      </li>
+      <li>
+        <strong>Kurumsal başvuru:</strong> şirket bilgileri ve yüklenen resmi belgeler
+        (başvuru halinde).
+      </li>
+      <li>
+        <strong>İletişim:</strong> destek, şikayet ve iş birliği taleplerinizde paylaştığınız bilgiler.
+      </li>
     </ul>
 
-    <h2>Çerezler</h2>
+    <h2>3. Verileri neden kullanırız?</h2>
+    <ul class="legal-check">
+      <li>Üyelik, giriş, telefon doğrulama ve hesap güvenliği</li>
+      <li>İlan yayınlama, moderasyon, arama ve mağaza / satıcı görünümü</li>
+      <li>Dolandırıcılık, spam ve kötüye kullanımın önlenmesi</li>
+      <li>Destek taleplerinin yanıtlanması ve yasal yükümlülüklerin yerine getirilmesi</li>
+      <li>Hizmet kalitesi ve (yapılandırıldığında) sınırlı analitik ölçüm</li>
+    </ul>
+
+    <h2>4. Çerezler ve benzeri teknolojiler</h2>
     <p>
-      Oturum (giriş), güvenlik ve temel analitik için zorunlu çerezler kullanılır.
-      Ayrıntılar için <a href="/cerez-politikasi">çerez politikası</a>na bakın.
-      Pazarlama çerezleri için ileride ayrı tercih yönetimi sunulacaktır.
+      Oturum, güvenlik (antiforgery) ve temel işlevler için zorunlu çerezler kullanılır.
+      İşlevsel veya analitik çerezler yalnızca gerekli olduğunda ve mümkünse tercih
+      mekanizmasıyla yönetilir. Ayrıntı:
+      <a href="/cerez-politikasi">çerez politikası</a>.
     </p>
 
-    <h2>Paylaşım</h2>
+    <h2>5. Paylaşım ve aktarım</h2>
     <p>
-      Verilerinizi yasal zorunluluk olmadıkça veya hizmetin çalışması için gerekli altyapı
-      sağlayıcıları dışında üçüncü taraflarla satmayız / pazarlamayız.
+      Kişisel verilerinizi pazarlama amacıyla satmayız. Veriler yalnızca şu durumlarda
+      üçüncü taraflarla paylaşılabilir:
+    </p>
+    <ul>
+      <li>Hizmetin çalışması için gerekli altyapı sağlayıcıları (barındırma, e-posta, medya)</li>
+      <li>Yasal zorunluluk, yetkili mercilerin talebi veya hukuki süreçler</li>
+      <li>İlanınızın doğası gereği kamuya açık alanlar (başlık, fiyat, fotoğraf vb.)</li>
+    </ul>
+    <p>
+      Telefon numarası ilan detayında varsayılan olarak herkese açık gösterilmez;
+      talep üzerine açılabilir.
+    </p>
+
+    <h2>6. Saklama süresi</h2>
+    <p>
+      Veriler, işleme amacının gerektirdiği süre ve ilgili mevzuattaki zamanaşımı /
+      saklama yükümlülükleri boyunca tutulur. Hesap silme veya talep halinde,
+      yasal zorunluluklar saklı kalmak kaydıyla silme veya anonimleştirme uygulanır.
+    </p>
+
+    <h2>7. Güvenlik</h2>
+    <p>
+      Şifreler hash’lenerek saklanır; iletişimde HTTPS kullanılır; yetkisiz erişime karşı
+      teknik ve idari tedbirler alınır. Hiçbir yöntem %100 risksiz değildir; şüpheli
+      durumda destek kanallarımıza bildirin.
+    </p>
+
+    <h2>8. Haklarınız</h2>
+    <p>
+      KVKK Madde 11 kapsamındaki haklarınız (erişim, düzeltme, silme, itiraz vb.) ve
+      başvuru yöntemi <a href="/kvkk">aydınlatma metni</a>nde açıklanmıştır.
+      Taleplerinizi <a href="mailto:@site.SupportEmail">@site.SupportEmail</a> adresine iletebilirsiniz.
+    </p>
+
+    <h2>9. Güncellemeler</h2>
+    <p>
+      Bu bildirim güncellenebilir. Yürürlükteki sürüm her zaman bu sayfada yayımlanır;
+      “Son güncelleme” tarihi metnin güncelliğini gösterir.
     </p>
 
     <nav class="legal-related" aria-label="İlgili sayfalar">
-      <a href="/kullanim-kosullari">Kullanım koşulları</a>
-      <a href="/kvkk">KVKK</a>
+      <a href="/kvkk">KVKK aydınlatma</a>
       <a href="/cerez-politikasi">Çerez politikası</a>
+      <a href="/kullanim-kosullari">Kullanım koşulları</a>
+      <a href="/iletisim">İletişim</a>
     </nav>
   </article>
 </main>

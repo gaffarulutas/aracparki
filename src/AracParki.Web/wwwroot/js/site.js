@@ -608,6 +608,278 @@
       return parts.join(" ");
     }
 
+    Alpine.data("accountPhoneVerify", () => ({
+      step: "phone",
+      phone: "",
+      otp: "",
+      error: "",
+      info: "",
+      devCode: "",
+      busy: false,
+      cooldown: 0,
+      sendUrl: "",
+      verifyUrl: "",
+      isVerified: false,
+      open: false,
+      serverPhone: "",
+      _maskedFromServer: "",
+      _timer: null,
+
+      get canSubmit() {
+        if (this.step === "phone") {
+          return String(this.phone || "").replace(/\D/g, "").length >= 10;
+        }
+        return /^\d{6}$/.test(String(this.otp || "").trim());
+      },
+
+      get submitDisabled() {
+        return this.busy || !this.canSubmit;
+      },
+
+      get resendDisabled() {
+        return this.busy || this.cooldown > 0;
+      },
+
+      get showInfo() {
+        return !!(this.info && !this.error);
+      },
+
+      get busyAria() {
+        return this.busy ? "true" : "false";
+      },
+
+      get modalTitle() {
+        return this.isVerified ? "Numarayı değiştir" : "Telefonunu doğrula";
+      },
+
+      get submitLabel() {
+        return this.step === "phone" ? "WhatsApp’a kod gönder" : "Doğrula ve kaydet";
+      },
+
+      get ctaLabel() {
+        if (this.busy) {
+          return this.step === "phone" ? "Gönderiliyor…" : "Kaydediliyor…";
+        }
+        return this.submitLabel;
+      },
+
+      get headerDesc() {
+        if (this.step === "otp") {
+          return (
+            "WhatsApp’tan gelen 6 haneli kod " +
+            this.maskedPhone +
+            " numarasına gönderildi."
+          );
+        }
+        return this.isVerified
+          ? "Yeni cep numaranı WhatsApp ile doğrula; eski numara değişir."
+          : "Cep numaranı WhatsApp ile doğrula ve kaydet.";
+      },
+
+      get resendLabel() {
+        return this.cooldown > 0
+          ? "Tekrar gönder (" + this.cooldown + "s)"
+          : "Tekrar gönder";
+      },
+
+      get maskedPhone() {
+        return this._maskedFromServer || maskTrPhone(this.serverPhone || this.phone);
+      },
+
+      init() {
+        this.sendUrl = this.$el.dataset.sendUrl || "";
+        this.verifyUrl = this.$el.dataset.verifyUrl || "";
+        this.isVerified = this.$el.dataset.verified === "1";
+        if (this.$el.dataset.startOpen === "1") {
+          this.openModal();
+        }
+      },
+
+      resetState() {
+        this.step = "phone";
+        this.phone = "";
+        this.otp = "";
+        this.error = "";
+        this.info = "";
+        this.devCode = "";
+        this.serverPhone = "";
+        this._maskedFromServer = "";
+        this.busy = false;
+        this.cooldown = 0;
+        if (this._timer) {
+          clearInterval(this._timer);
+          this._timer = null;
+        }
+      },
+
+      openModal() {
+        this.resetState();
+        this.open = true;
+        this.$nextTick(() => {
+          document.getElementById("account-phone-modal-input")?.focus();
+        });
+      },
+
+      closeModal() {
+        if (this.busy) return;
+        this.open = false;
+        this.resetState();
+      },
+
+      antiforgeryToken() {
+        return (
+          this.$el.querySelector('input[name="__RequestVerificationToken"]')?.value ||
+          document.querySelector('input[name="__RequestVerificationToken"]')?.value ||
+          ""
+        );
+      },
+
+      onPhoneInput(event) {
+        const el = event && event.target;
+        if (!el) return;
+        const formatted = formatTrPhoneInput(el.value);
+        this.phone = formatted;
+        if (el.value !== formatted) el.value = formatted;
+      },
+
+      onOtpInput(event) {
+        const el = event && event.target;
+        if (!el) return;
+        const digits = String(el.value || "")
+          .replace(/\D/g, "")
+          .slice(0, 6);
+        this.otp = digits;
+        if (el.value !== digits) el.value = digits;
+      },
+
+      editPhone() {
+        this.step = "phone";
+        this.otp = "";
+        this.error = "";
+        this.info = "";
+        this.devCode = "";
+        this.serverPhone = "";
+        this._maskedFromServer = "";
+        this.$nextTick(() => {
+          document.getElementById("account-phone-modal-input")?.focus();
+        });
+      },
+
+      startCooldown(seconds) {
+        this.cooldown = seconds;
+        if (this._timer) clearInterval(this._timer);
+        this._timer = setInterval(() => {
+          if (this.cooldown <= 1) {
+            this.cooldown = 0;
+            clearInterval(this._timer);
+            this._timer = null;
+            return;
+          }
+          this.cooldown -= 1;
+        }, 1000);
+      },
+
+      async post(url, fields) {
+        const token = this.antiforgeryToken();
+        const fd = new FormData();
+        fd.append("__RequestVerificationToken", token);
+        Object.keys(fields).forEach((key) => {
+          if (fields[key] != null) fd.append(key, fields[key]);
+        });
+        const res = await fetch(url, {
+          method: "POST",
+          body: fd,
+          headers: {
+            RequestVerificationToken: token,
+            Accept: "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          credentials: "same-origin",
+        });
+        let data = null;
+        try {
+          data = await res.json();
+        } catch {
+          data = null;
+        }
+        return { res, data };
+      },
+
+      async onSubmit() {
+        if (this.busy || !this.canSubmit) return;
+        if (this.step === "phone") {
+          await this.sendCode();
+          return;
+        }
+        await this.verifyCode();
+      },
+
+      async resend() {
+        if (this.busy || this.cooldown > 0) return;
+        await this.sendCode();
+      },
+
+      async sendCode() {
+        this.busy = true;
+        this.error = "";
+        this.info = "";
+        this.devCode = "";
+        try {
+          const { res, data } = await this.post(this.sendUrl, { phone: this.phone });
+          if (res.status === 429 || res.status === 503) {
+            this.error = "Çok fazla deneme. Biraz sonra tekrar dene.";
+            return;
+          }
+          if (data?.alreadyVerified) {
+            window.location.reload();
+            return;
+          }
+          if (!res.ok || !data?.ok) {
+            this.error = data?.error || "Kod gönderilemedi.";
+            return;
+          }
+          this.serverPhone = this.phone;
+          this._maskedFromServer = data.maskedPhone || maskTrPhone(this.phone);
+          this.step = "otp";
+          this.info = data.message || "Kod WhatsApp’a gönderildi.";
+          this.devCode = data.devCode || "";
+          this.startCooldown(60);
+          this.$nextTick(() => {
+            document.getElementById("account-phone-modal-otp")?.focus();
+          });
+        } catch {
+          this.error = "Bağlantı hatası. Tekrar dene.";
+        } finally {
+          this.busy = false;
+        }
+      },
+
+      async verifyCode() {
+        this.busy = true;
+        this.error = "";
+        this.info = "";
+        try {
+          const { res, data } = await this.post(this.verifyUrl, {
+            phone: this.serverPhone || this.phone,
+            otpCode: this.otp,
+          });
+          if (res.status === 429 || res.status === 503) {
+            this.error = "Çok fazla deneme. Biraz sonra tekrar dene.";
+            return;
+          }
+          if (!res.ok || !data?.ok) {
+            this.error = data?.error || "Doğrulama başarısız.";
+            return;
+          }
+          window.location.reload();
+        } catch {
+          this.error = "Bağlantı hatası. Tekrar dene.";
+        } finally {
+          this.busy = false;
+        }
+      },
+    }));
+
     Alpine.data("phoneVerifyModal", () => ({
       step: "phone",
       phone: "",
@@ -3562,6 +3834,28 @@
     });
   };
 
+  /** Gallery overlay H1: ellipsis + native title tooltip only when truncated. */
+  const initOverlayTitleTooltip = () => {
+    document.querySelectorAll(".detail-gallery-overlay-title").forEach((el) => {
+      if (!(el instanceof HTMLElement) || el.dataset.titleTipReady === "1") return;
+      const full = (el.textContent || "").replace(/\s+/g, " ").trim();
+      if (!full) return;
+
+      const sync = () => {
+        const truncated = el.scrollWidth > el.clientWidth + 1;
+        if (truncated) el.setAttribute("title", full);
+        else el.removeAttribute("title");
+      };
+
+      sync();
+      window.addEventListener("resize", sync, { passive: true });
+      if (document.fonts?.ready) {
+        document.fonts.ready.then(sync).catch(() => {});
+      }
+      el.dataset.titleTipReady = "1";
+    });
+  };
+
   document.addEventListener("DOMContentLoaded", () => {
     trackRecent();
     initVerifyBanner();
@@ -3569,6 +3863,7 @@
     initQuillDescriptions();
     initLazyImageSpinners();
     initDetailGallery();
+    initOverlayTitleTooltip();
     initShareListing();
     initPrintListing();
     const toastEl = document.getElementById("toast");

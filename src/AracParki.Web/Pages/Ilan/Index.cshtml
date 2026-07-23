@@ -1,6 +1,9 @@
 @page "/ilan/{adNo}"
 @model AracParki.Web.Pages.Ilan.IndexModel
+@using AracParki.Application.Site.Services
+@inject SiteSettingsService SiteSettings
 @{
+    var site = await SiteSettings.GetAsync();
     var listing = Model.Listing!;
     var intentLabel = ListingIntent.Label(listing.PrimaryIntent);
     var isCorporateListing = listing.CorporateAccountId is > 0;
@@ -309,7 +312,7 @@
         </tbody>
       </table>
 
-      <a class="detail-report" href="mailto:destek@aracparki.com?subject=İlan%20şikayeti%20@Uri.EscapeDataString(listing.AdNo)">
+      <a class="detail-report" href="mailto:@site.SupportEmail?subject=İlan%20şikayeti%20@Uri.EscapeDataString(listing.AdNo)">
         <ap-icon name="circle-alert" size="14" class="ap-icon" aria-hidden="true" />
         <span>İlan ile ilgili şikayetim var</span>
       </a>

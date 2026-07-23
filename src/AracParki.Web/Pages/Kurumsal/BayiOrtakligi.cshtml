@@ -1,0 +1,224 @@
+@page "/bayi-ortakligi"
+@using AracParki.Application.Site.Services
+@inject SiteUrls SiteUrls
+@inject SiteSettingsService SiteSettings
+@{
+    var site = await SiteSettings.GetAsync();
+    var adsEmail = site.EffectiveAdsEmail;
+    ViewData["PageKey"] = "legal";
+    ViewData["Title"] = "Bayi ve Çözüm Ortaklığı | Araç Parkı Kurumsal";
+    ViewData["Description"] = "Araç Parkı bayi ve çözüm ortaklığı: onaylı kurumsal mağaza, doğrulanmış satıcı rozeti, stok görünürlüğü; finansman, servis ve yedek parça iş birliği.";
+    ViewData["CanonicalUrl"] = SiteUrls.Absolute("/bayi-ortakligi");
+    ViewData["OgTitle"] = "Bayi ve Çözüm Ortaklığı | Araç Parkı";
+
+    var faqEntities = new object[]
+    {
+        Qa("Kurumsal bayi hesabı ücretsiz mi?", "Kurumsal hesap başvurusu ve temel mağaza görünümü ücretsizdir. Sponsorlu yerleşimler için ayrı reklam paketleri sunulur."),
+        Qa("Başvuru sonrası ne kadar sürede onaylanır?", "Evraklar eksiksizse başvurular genellikle birkaç iş günü içinde incelenir. Eksik belgelerde size dönüş yapılır."),
+        Qa("Çözüm ortaklığı ile bayi hesabı aynı mı?", "Hayır. Bayi hesabı stok ve mağaza için; çözüm ortaklığı finansman, servis, yedek parça veya reklam iş birlikleri içindir."),
+        Qa("Bireysel satıcılar da başvurabilir mi?", "Bireysel satıcılar ücretsiz ilan verebilir. Bayi rozeti ve mağaza sayfası ticari / kurumsal başvuru gerektirir.")
+    };
+    ViewData["JsonLd"] = JsonSerializer.Serialize(new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "WebPage",
+        ["name"] = "Bayi ve çözüm ortaklığı — Araç Parkı",
+        ["url"] = SiteUrls.Absolute("/bayi-ortakligi"),
+        ["description"] = ViewData["Description"],
+        ["mainEntity"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "FAQPage",
+            ["mainEntity"] = faqEntities
+        }
+    });
+
+    static Dictionary<string, object?> Qa(string q, string a) => new()
+    {
+        ["@type"] = "Question",
+        ["name"] = q,
+        ["acceptedAnswer"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "Answer",
+            ["text"] = a
+        }
+    };
+}
+
+<main class="legal-page" id="main">
+  <article class="legal-article legal-article--wide container">
+    <header class="legal-hero">
+      <p class="legal-eyebrow">Kurumsal · Ortaklık</p>
+      <h1>Stoğunuzu ve çözümünüzü, satın alma niyeti yüksek bir kitleye taşıyın</h1>
+      <p class="legal-lead">
+        Araç Parkı; iş makinesi bayi, galeri ve çözüm ortaklarını alıcılarla buluşturur.
+        Onaylı kurumsal görünüm, mağaza sayfası ve sektör odaklı trafik ile büyüyün —
+        ya da finansman, servis ve yedek parça ile ekosisteme katılın.
+      </p>
+      <div class="legal-hero-actions">
+        <a class="btn btn-machine" href="/kurumsal-hesap">Kurumsal bayi başvurusu</a>
+        <a class="btn btn-ghost"
+           href="mailto:@adsEmail?subject=@Uri.EscapeDataString("Çözüm ortaklığı başvurusu")&amp;body=@Uri.EscapeDataString("Merhaba,\n\nÇözüm ortaklığı / iş birliği için ön görüşme talep ediyorum.\n\nŞirket:\nFaaliyet alanı:\nŞehir:\nKısa açıklama:\n\n")">
+          Çözüm ortaklığı yazın
+        </a>
+      </div>
+    </header>
+
+    <div class="legal-highlights" role="list">
+      <div class="legal-highlight" role="listitem">
+        <strong>Niyetli trafik</strong>
+        <span>Alım ve kiralama araştırması yapan ziyaretçilere doğrudan görünürlük.</span>
+      </div>
+      <div class="legal-highlight" role="listitem">
+        <strong>Güven sinyali</strong>
+        <span>Onaylı kurumsal rozet (“Doğrulanmış · Bayi”), mağaza sayfası ve logo.</span>
+      </div>
+      <div class="legal-highlight" role="listitem">
+        <strong>Net süreç</strong>
+        <span>Başvuru → evrak → onay → yayın. Gereksiz sürtünme yok.</span>
+      </div>
+    </div>
+
+    <h2 id="modeller">İki ortaklık modeli</h2>
+    <div class="legal-cards legal-cards--2" role="list">
+      <section class="legal-card legal-card--accent" role="listitem" id="bayi">
+        <p class="legal-card-kicker">Model 1</p>
+        <h2>Kurumsal bayi / galeri</h2>
+        <p>
+          Satılık veya kiralık stok yayınlayan bayiler için. Mağaza sayfası, logo,
+          doğrulanmış satıcı görünümü ve ilan yönetimi.
+        </p>
+        <ul class="legal-check legal-check--compact">
+          <li>Onaylı “Bayi” rozeti</li>
+          <li>Genel mağaza / satıcı sayfası</li>
+          <li>Telefon doğrulama ve kurumsal profil</li>
+          <li>İlanlarınızı tek panelden yönetme</li>
+        </ul>
+        <a class="btn btn-machine" href="/kurumsal-hesap">Bayi başvurusuna git</a>
+      </section>
+      <section class="legal-card" role="listitem" id="cozum">
+        <p class="legal-card-kicker">Model 2</p>
+        <h2>Çözüm ortaklığı</h2>
+        <p>
+          Alıcı yolculuğuna değer katan firmalar için: finansman, yedek parça,
+          servis, lojistik, sigorta veya sektör hizmetleri.
+        </p>
+        <ul class="legal-check legal-check--compact">
+          <li>İlan detay ve liste yerleşimleri</li>
+          <li>Kurumsal tanıtım ve kampanya</li>
+          <li>Hedef kitleye özel mesaj</li>
+          <li>Esnek süre ve paket seçenekleri</li>
+        </ul>
+        <a class="btn btn-ghost" href="/reklam">Reklam ve yerleşimler</a>
+      </section>
+    </div>
+
+    <h2>Bayiler için neden Araç Parkı?</h2>
+    <ul class="legal-check">
+      <li>İş makinelerine özel kategori, marka, saat ve tonaj filtreleriyle doğru alıcıya ulaşın</li>
+      <li>Bireysel ilanların yanında kurumsal güven rozetiyle öne çıkın</li>
+      <li>Mağaza sayfanızda stoğunuzu tek çatı altında sergileyin</li>
+      <li>Moderasyon ve ilan kurallarıyla daha temiz bir vitrin ortamında yer alın</li>
+    </ul>
+
+    <h2>Kimler için uygun?</h2>
+    <div class="legal-cards" role="list">
+      <section class="legal-card" role="listitem">
+        <p class="legal-card-kicker">Satış</p>
+        <h2>İş makinesi bayileri</h2>
+        <p>Yeni / ikinci el satılık stok, galeri ve yetkili satıcılar.</p>
+      </section>
+      <section class="legal-card" role="listitem">
+        <p class="legal-card-kicker">Kiralama</p>
+        <h2>Kiralama firmaları</h2>
+        <p>Günlük / haftalık kiralık park, operatörlü veya operatörsüz filolar.</p>
+      </section>
+      <section class="legal-card" role="listitem">
+        <p class="legal-card-kicker">Ekosistem</p>
+        <h2>Çözüm sağlayıcılar</h2>
+        <p>Finansman, servis, yedek parça, lojistik ve B2B hizmetler.</p>
+      </section>
+    </div>
+
+    <h2>Başvuru süreci</h2>
+    <ol class="legal-steps">
+      <li>
+        <strong>Hesap oluşturun</strong>
+        <span><a href="/kayit">Kayıt</a> olun veya <a href="/giris">giriş</a> yapın.</span>
+      </li>
+      <li>
+        <strong>Kurumsal profili doldurun</strong>
+        <span>
+          <a href="/kurumsal-hesap">Kurumsal hesap</a> üzerinden şirket bilgileri ve
+          evrakları yükleyin.
+        </span>
+      </li>
+      <li>
+        <strong>İnceleme ve onay</strong>
+        <span>Ekibimiz başvuruyu inceler; onay sonrası mağaza ve bayi görünümü açılır.</span>
+      </li>
+      <li>
+        <strong>İlan yayınlayın</strong>
+        <span>
+          <a href="/ilan-ver">İlan ver</a> ile stoğunuzu yayınlayın; durumu
+          <a href="/ilanlarim">İlanlarım</a>’dan takip edin.
+        </span>
+      </li>
+    </ol>
+
+    <aside class="legal-note" aria-label="Şeffaflık notu">
+      <strong>Şeffaflık</strong>
+      Araç Parkı aracı veya mal sahibi değildir. İlan içeriğinden satıcı sorumludur.
+      Ortaklık; görünürlük, güven sinyali ve alıcıya erişim sunar — satış garantisi değildir.
+    </aside>
+
+    <h2 id="sss">Sık sorulan sorular</h2>
+    <div class="legal-faq">
+      <details>
+        <summary>Kurumsal bayi hesabı ücretsiz mi?</summary>
+        <p>
+          Başvuru ve temel mağaza görünümü ücretsizdir. Sponsorlu yerleşimler için
+          <a href="/reklam">reklam</a> paketlerine bakın.
+        </p>
+      </details>
+      <details>
+        <summary>Başvuru sonrası ne kadar sürede onaylanır?</summary>
+        <p>
+          Evraklar eksiksizse genellikle birkaç iş günü içinde incelenir.
+          Eksik belgelerde size dönüş yapılır.
+        </p>
+      </details>
+      <details>
+        <summary>Çözüm ortaklığı ile bayi hesabı aynı mı?</summary>
+        <p>
+          Hayır. Bayi hesabı stok ve mağaza içindir. Çözüm ortaklığı finansman, servis,
+          yedek parça veya reklam iş birliklerini kapsar.
+        </p>
+      </details>
+      <details>
+        <summary>Bireysel satıcılar da başvurabilir mi?</summary>
+        <p>
+          Bireysel satıcılar <a href="/ilan-ver">ücretsiz ilan</a> verebilir.
+          Bayi rozeti ve mağaza sayfası ticari / kurumsal başvuru gerektirir.
+        </p>
+      </details>
+    </div>
+
+    <div class="legal-cta-band">
+      <div>
+        <strong>Hazır mısınız?</strong>
+        <p>Kurumsal başvuruyu başlatın veya çözüm ortaklığı için bize yazın.</p>
+      </div>
+      <div class="legal-cta-band-actions">
+        <a class="btn btn-machine" href="/kurumsal-hesap">Bayi başvurusu</a>
+        <a class="btn btn-ghost" href="/iletisim">İletişim</a>
+      </div>
+    </div>
+
+    <nav class="legal-related" aria-label="İlgili sayfalar">
+      <a href="/reklam">Reklam ver</a>
+      <a href="/hakkimizda">Hakkımızda</a>
+      <a href="/ilan-kurallari">İlan kuralları</a>
+      <a href="/yardim">Yardım merkezi</a>
+    </nav>
+  </article>
+</main>

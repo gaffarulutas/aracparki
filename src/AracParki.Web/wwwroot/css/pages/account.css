@@ -1,6 +1,12 @@
-/* Account / admin shell — SaaS sidebar + content workspace */
+/* Account / admin shell — SaaS sidebar + content workspace
+   Width standard (İlanlarım):
+   - Outer shell: .container → var(--max) 1240px
+   - Sidebar: --account-sidebar-w 260px
+   - Content: full .account-main (minmax(0,1fr)) — do NOT add page-level
+     max-width narrower than list pages. Forms use the same column width. */
 .page-account {
   --account-sidebar-w: 260px;
+  --account-content-max: none;
   padding-block: var(--space-3) var(--space-5);
 }
 
@@ -26,17 +32,27 @@
   gap: var(--space-3);
   min-width: 0;
   align-content: start;
+  width: 100%;
+  max-width: var(--account-content-max);
 }
 
 .account-main > .page-account-head + * {
   min-width: 0;
 }
 
-/* Forms / profile content: readable measure (settings UX pattern) */
+/* Direct children fill the İlanlarım content column (no 42rem settings trap). */
 .account-main > .account-profile,
 .account-main > .corp-form,
-.account-main > form.corp-form {
-  max-width: 42rem;
+.account-main > form.corp-form,
+.account-main > .account-phone-verify,
+.account-main > .account-profile-note,
+.account-main > .account-dash,
+.account-main > .account-filter-tabs,
+.account-main > .admin-listing-list,
+.account-main > .admin-corp-list,
+.account-main > .empty-state {
+  width: 100%;
+  max-width: none;
 }
 
 /* —— Mobile top bar (hidden on desktop) —— */
@@ -453,6 +469,121 @@
   font-size: 15px;
   color: var(--ink);
   word-break: break-word;
+}
+
+/* —— Bilgilerim editable profile —— */
+.account-profile-form .corp-section + .corp-section {
+  margin-top: 8px;
+}
+
+.account-section-hint {
+  margin: -4px 0 14px;
+  max-width: 62ch;
+}
+
+.account-readonly-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+}
+
+.account-readonly-value {
+  margin: 4px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+.account-verify-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.account-verify-meta--phone {
+  margin-top: 12px;
+}
+
+.account-email-resend {
+  margin-top: 12px;
+}
+
+.account-phone-verify {
+  margin-top: 8px;
+  padding-top: 4px;
+}
+
+.account-phone-current {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+}
+
+.account-phone-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+}
+
+.account-phone-empty__text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* Cancel in account phone modal is a <button>, not a link */
+.account-phone-verify .ap-phone-gate__cancel {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+.account-phone-verify .ap-phone-gate__cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.account-profile-note {
+  margin: 20px 0 0;
+  padding: 14px 16px;
+  border-left: 3px solid var(--machine);
+  border-radius: 0 10px 10px 0;
+  background: color-mix(in srgb, var(--machine) 8%, var(--raised));
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft, #2a2a2a);
+}
+
+.account-profile-note strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ink);
+}
+
+.account-profile-note a {
+  color: var(--link);
+  font-weight: 700;
 }
 
 .account-dash {

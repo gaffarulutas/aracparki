@@ -286,6 +286,39 @@ public sealed class AccountService(
         return (true, null, updated);
     }
 
+    /// <summary>
+    /// Updates personal identity (name). Phone is never written here — only via OTP verify.
+    /// </summary>
+    public async Task<(bool Ok, string? Error, AccountDto? Account)> UpdateProfileAsync(
+        long accountId,
+        string firstName,
+        string lastName,
+        CancellationToken cancellationToken)
+    {
+        firstName = (firstName ?? string.Empty).Trim();
+        lastName = (lastName ?? string.Empty).Trim();
+
+        if (firstName.Length is < 2 or > 40)
+        {
+            return (false, "Ad 2–40 karakter olmalı.", null);
+        }
+
+        if (lastName.Length is < 2 or > 40)
+        {
+            return (false, "Soyad 2–40 karakter olmalı.", null);
+        }
+
+        var account = await store.FindByIdAsync(accountId, cancellationToken);
+        if (account is null)
+        {
+            return (false, "Hesap bulunamadı.", null);
+        }
+
+        await store.UpdateProfileAsync(accountId, firstName, lastName, cancellationToken);
+        var updated = await store.FindByIdAsync(accountId, cancellationToken);
+        return (true, null, updated);
+    }
+
     public static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 
     public static string? NormalizePhone(string? phone)

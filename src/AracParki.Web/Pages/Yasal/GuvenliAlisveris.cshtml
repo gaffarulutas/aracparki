@@ -6,14 +6,6 @@
     ViewData["Description"] = "İş makinesi alım, satım ve kiralamada güvenli alışveriş: yerinde kontrol, belge doğrulama, kapora riski ve satıcı için dürüst ilan ipuçları.";
     ViewData["CanonicalUrl"] = SiteUrls.Absolute("/guvenli-alisveris");
     ViewData["OgTitle"] = "Güvenli Alışveriş | Araç Parkı";
-    var crumbs = Breadcrumbs.Create(
-        new BreadcrumbItem("Anasayfa", "/"),
-        new BreadcrumbItem("Güvenli alışveriş", "/guvenli-alisveris"));
-    Breadcrumbs.Set(ViewData, SiteUrls, crumbs);
-}
-
-@section CrumbBar {
-  <partial name="Shared/Partials/_SiteBreadcrumb" model="crumbs" />
 }
 
 <main class="legal-page" id="main">
@@ -51,6 +43,7 @@
 
     <nav class="legal-related" aria-label="İlgili sayfalar">
       <a href="/ilanlar">İlanlara dön</a>
+      <a href="/dogrulanmis-satici">Doğrulanmış satıcı</a>
       <a href="/yardim">Yardım merkezi</a>
       <a href="/iletisim">İletişim</a>
       <a href="/ilan-kurallari">İlan kuralları</a>

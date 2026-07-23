@@ -6,6 +6,8 @@ using AracParki.Application.Listings;
 using AracParki.Application.Media;
 using AracParki.Application.Messaging;
 using AracParki.Application.Corporate;
+using AracParki.Application.Security;
+using AracParki.Application.Site;
 using AracParki.Infrastructure.Accounts;
 using AracParki.Infrastructure.Caching;
 using AracParki.Infrastructure.Catalog;
@@ -14,6 +16,8 @@ using AracParki.Infrastructure.Email;
 using AracParki.Infrastructure.Listings;
 using AracParki.Infrastructure.Messaging;
 using AracParki.Infrastructure.Persistence;
+using AracParki.Infrastructure.Security;
+using AracParki.Infrastructure.Site;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -27,10 +31,17 @@ public static class DependencyInjection
         services.Configure<AppSettings>(configuration.GetSection(AppSettings.SectionName));
         services.Configure<WhatsAppSettings>(configuration.GetSection(WhatsAppSettings.SectionName));
         services.Configure<CloudflareMediaSettings>(configuration.GetSection(CloudflareMediaSettings.SectionName));
+        services.Configure<TurnstileSettings>(configuration.GetSection(TurnstileSettings.SectionName));
         services.Configure<ListingOptions>(configuration.GetSection(ListingOptions.SectionName));
 
         services.AddAracParkiRedis(configuration);
         services.AddHttpClient(WhatsAppOtpSender.HttpClientName);
+        services.AddHttpClient(TurnstileVerifier.HttpClientName, client =>
+        {
+            client.BaseAddress = new Uri("https://challenges.cloudflare.com/");
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
+        services.AddScoped<ITurnstileVerifier, TurnstileVerifier>();
 
         var media = configuration.GetSection(CloudflareMediaSettings.SectionName).Get<CloudflareMediaSettings>()
                     ?? new CloudflareMediaSettings();
@@ -74,6 +85,7 @@ public static class DependencyInjection
         services.AddScoped<IPhoneOtpService, PhoneOtpService>();
         services.AddScoped<IWhatsAppOtpSender, WhatsAppOtpSender>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddScoped<ISiteSettingsStore, SiteSettingsRepository>();
         return services;
     }
 }

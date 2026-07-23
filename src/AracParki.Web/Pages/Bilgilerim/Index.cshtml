@@ -1,32 +1,259 @@
 @page "/bilgilerim"
 @model AracParki.Web.Pages.Bilgilerim.IndexModel
+@using AracParki.Application.Common
 @{
     Layout = "Shared/_AccountLayout";
+    var account = Model.Account!;
+    var phoneDisplay = account.PhoneConfirmed && !string.IsNullOrWhiteSpace(account.Phone)
+        ? Formatters.PhoneDisplay(account.Phone)
+        : null;
+    var hasVerifiedPhone = phoneDisplay is not null;
 }
 <header class="page-account-head">
   <partial name="Shared/Partials/_AccountBreadcrumb" />
   <h1>Bilgilerim</h1>
-  <p class="page-account-lead">Ad, e-posta, telefon ve doğrulama durumu</p>
+  <p class="page-account-lead">
+    Kimlik ve iletişim bilgilerin. İlanlarda görünen ad ve telefon buradan gelir;
+    adres veya vergi bilgisi kurumsal hesapta tutulur.
+  </p>
 </header>
 
-@if (Model.Account is not null)
+@if (!string.IsNullOrWhiteSpace(Model.Notice))
 {
-  <dl class="account-profile">
-    <div>
-      <dt>Ad Soyad</dt>
-      <dd>@Model.Account.DisplayName</dd>
-    </div>
-    <div>
-      <dt>E-posta</dt>
-      <dd>@Model.Account.Email</dd>
-    </div>
-    <div>
-      <dt>Telefon</dt>
-      <dd>@(string.IsNullOrWhiteSpace(Model.Account.Phone) ? "—" : Model.Account.Phone)</dd>
-    </div>
-    <div>
-      <dt>E-posta doğrulama</dt>
-      <dd>@(Model.Account.EmailConfirmed ? "Doğrulandı" : "Bekliyor")</dd>
-    </div>
-  </dl>
+  <p class="corp-notice" role="status">@Model.Notice</p>
 }
+@if (!string.IsNullOrWhiteSpace(Model.FormError))
+{
+  <p class="field-error" role="alert">@Model.FormError</p>
+}
+
+<form method="post" asp-page-handler="Save" class="corp-form account-profile-form" novalidate>
+  @Html.AntiForgeryToken()
+
+  <section class="corp-section" aria-labelledby="identity-heading">
+    <h2 class="corp-section-title" id="identity-heading">Kimlik</h2>
+    <p class="ap-hint account-section-hint">
+      Ad ve soyad; bireysel ilanlarda satıcı adı olarak görünür. Gerçek adını kullanmak güveni artırır.
+    </p>
+    <div class="corp-grid">
+      <div class="ap-field">
+        <label class="ap-label" asp-for="Input.FirstName">
+          Ad <abbr class="field-req" title="Zorunlu">*</abbr>
+        </label>
+        <input class="ap-input" asp-for="Input.FirstName" autocomplete="given-name" maxlength="40" required />
+        <span asp-validation-for="Input.FirstName" class="field-error"></span>
+      </div>
+      <div class="ap-field">
+        <label class="ap-label" asp-for="Input.LastName">
+          Soyad <abbr class="field-req" title="Zorunlu">*</abbr>
+        </label>
+        <input class="ap-input" asp-for="Input.LastName" autocomplete="family-name" maxlength="40" required />
+        <span asp-validation-for="Input.LastName" class="field-error"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="corp-section" aria-labelledby="email-heading">
+    <h2 class="corp-section-title" id="email-heading">Giriş ve bildirim</h2>
+    <p class="ap-hint account-section-hint">
+      E-posta giriş kimliğindir; şifre sıfırlama ve hesap bildirimleri bu adrese gider.
+      Güvenlik için e-posta değişikliği buradan yapılmaz.
+    </p>
+    <div class="account-readonly-row">
+      <div>
+        <p class="ap-label" id="account-email-label">E-posta</p>
+        <p class="account-readonly-value" aria-labelledby="account-email-label">@account.Email</p>
+      </div>
+      <div class="account-verify-meta">
+        @if (account.EmailConfirmed)
+        {
+          <span class="badge badge-ok">Doğrulandı</span>
+        }
+        else
+        {
+          <span class="badge badge-warn">Doğrulama bekliyor</span>
+        }
+      </div>
+    </div>
+    @if (!account.EmailConfirmed)
+    {
+      <div class="account-email-resend">
+        <button type="submit"
+                formaction="?handler=ResendEmail"
+                formmethod="post"
+                class="btn btn-ghost btn-sm"
+                formnovalidate>
+          Doğrulama e-postasını tekrar gönder
+        </button>
+      </div>
+    }
+  </section>
+
+  <div class="ap-actions">
+    <button type="submit" class="btn btn-machine">Adı kaydet</button>
+  </div>
+</form>
+
+<section class="corp-section account-phone-verify"
+         aria-labelledby="phone-heading"
+         x-data="accountPhoneVerify"
+         data-send-url="@Url.Page("/Bilgilerim/Index", "SendPhoneOtp")"
+         data-verify-url="@Url.Page("/Bilgilerim/Index", "VerifyPhoneOtp")"
+         data-verified="@(hasVerifiedPhone ? "1" : "0")"
+         data-start-open="@(!hasVerifiedPhone ? "1" : "0")">
+  <h2 class="corp-section-title" id="phone-heading">Telefon</h2>
+  <p class="ap-hint account-section-hint">
+    Telefon <strong>yukarıdaki “Adı kaydet” ile kaydedilmez</strong>.
+    Numarayı kaydetmek için WhatsApp ile doğrula.
+  </p>
+
+  @if (hasVerifiedPhone)
+  {
+    <div class="account-phone-current">
+      <div>
+        <p class="ap-label">Kayıtlı numara</p>
+        <p class="account-readonly-value">@phoneDisplay</p>
+      </div>
+      <div class="account-verify-meta">
+        <span class="badge badge-ok">WhatsApp doğrulandı</span>
+        <button type="button" class="btn btn-ghost btn-sm" @@click="openModal">
+          Numarayı değiştir
+        </button>
+      </div>
+    </div>
+  }
+  else
+  {
+    <div class="account-phone-empty">
+      <p class="account-phone-empty__text">Henüz doğrulanmış telefon yok.</p>
+      <button type="button" class="btn btn-machine" @@click="openModal">
+        WhatsApp ile doğrula
+      </button>
+    </div>
+  }
+
+  <div class="ap-phone-gate"
+       x-show="open"
+       x-cloak
+       data-step="phone"
+       :data-step="step"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="account-phone-modal-title"
+       aria-describedby="account-phone-modal-desc"
+       x-trap.noscroll.inert="open"
+       @@keydown.escape.prevent="closeModal">
+    <div class="ap-phone-gate__backdrop" aria-hidden="true" @@click="closeModal"></div>
+
+    <div class="ap-phone-gate__dialog" @@click.stop>
+      <header class="ap-phone-gate__header">
+        <h2 id="account-phone-modal-title" class="ap-phone-gate__title" x-text="modalTitle">
+          Telefonunu doğrula
+        </h2>
+        <p id="account-phone-modal-desc" class="ap-phone-gate__lead" x-text="headerDesc">
+          Cep numaranı WhatsApp ile doğrula ve kaydet.
+        </p>
+      </header>
+
+      <form class="ap-phone-gate__form" @@submit.prevent="onSubmit">
+        @Html.AntiForgeryToken()
+
+        <div class="ap-phone-gate__body">
+          <div class="ap-phone-gate__panel" data-panel="phone">
+            <label class="ap-phone-gate__label" for="account-phone-modal-input">Cep telefonu</label>
+            <div class="ap-phone-gate__phone-row">
+              <span class="ap-phone-gate__prefix" aria-hidden="true">+90</span>
+              <input id="account-phone-modal-input"
+                     class="ap-phone-gate__input"
+                     type="tel"
+                     name="phone"
+                     inputmode="tel"
+                     autocomplete="tel"
+                     maxlength="13"
+                     required
+                     placeholder="5xx xxx xx xx"
+                     aria-describedby="account-phone-modal-hint"
+                     :value="phone"
+                     @@input="onPhoneInput"
+                     :disabled="busy" />
+            </div>
+            <p id="account-phone-modal-hint" class="ap-phone-gate__hint">
+              10 haneli Türkiye numarası. Başında 0 kullanabilirsin.
+            </p>
+          </div>
+
+          <div class="ap-phone-gate__panel" data-panel="otp">
+            <label class="ap-phone-gate__label" for="account-phone-modal-otp">WhatsApp kodu</label>
+            <input id="account-phone-modal-otp"
+                   class="ap-phone-gate__input ap-phone-gate__input--otp"
+                   type="text"
+                   name="otpCode"
+                   inputmode="numeric"
+                   autocomplete="one-time-code"
+                   maxlength="6"
+                   pattern="[0-9]{6}"
+                   placeholder="••••••"
+                   aria-describedby="account-phone-otp-hint"
+                   :value="otp"
+                   @@input="onOtpInput"
+                   :disabled="busy" />
+            <p id="account-phone-otp-hint" class="ap-phone-gate__hint">
+              Kod yaklaşık 10 dakika geçerli. Yanlış numara ise “Numarayı değiştir”.
+            </p>
+            <div class="ap-phone-gate__secondary-actions">
+              <button type="button"
+                      class="ap-phone-gate__text-btn"
+                      @@click="resend"
+                      :disabled="resendDisabled">
+                <span x-text="resendLabel">Tekrar gönder</span>
+              </button>
+              <span class="ap-phone-gate__dot" aria-hidden="true">·</span>
+              <button type="button"
+                      class="ap-phone-gate__text-btn"
+                      @@click="editPhone"
+                      :disabled="busy">
+                Numarayı değiştir
+              </button>
+            </div>
+            <p class="ap-phone-gate__dev" x-show="devCode" x-cloak>
+              Geliştirme kodu: <strong x-text="devCode"></strong>
+            </p>
+          </div>
+
+          <div class="ap-phone-gate__alert ap-phone-gate__alert--error"
+               role="alert"
+               x-show="error"
+               x-text="error"
+               x-cloak></div>
+          <div class="ap-phone-gate__alert ap-phone-gate__alert--ok"
+               role="status"
+               x-show="showInfo"
+               x-text="info"
+               x-cloak></div>
+        </div>
+
+        <footer class="ap-phone-gate__footer">
+          <button type="button"
+                  class="ap-phone-gate__cancel"
+                  @@click="closeModal"
+                  :disabled="busy">
+            Vazgeç
+          </button>
+          <button type="submit"
+                  class="btn btn-machine ap-phone-gate__submit"
+                  :disabled="submitDisabled"
+                  :aria-busy="busyAria">
+            <span class="ap-phone-gate__submit-label" x-text="ctaLabel">WhatsApp’a kod gönder</span>
+          </button>
+        </footer>
+      </form>
+    </div>
+  </div>
+</section>
+
+<aside class="account-profile-note" role="note">
+  <strong>Kurumsal bilgiler ayrı</strong>
+  Firma unvanı, vergi, adres ve mağaza görünümü
+  <a href="/kurumsal-hesap">kurumsal hesap</a> üzerinden yönetilir.
+  Şifre değiştirmek için <a href="/sifremi-unuttum">şifre sıfırlama</a> akışını kullan.
+</aside>

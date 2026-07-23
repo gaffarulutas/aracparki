@@ -1,64 +1,137 @@
 @page "/kullanim-kosullari"
+@using AracParki.Application.Site.Services
 @inject SiteUrls SiteUrls
+@inject SiteSettingsService SiteSettings
 @{
+    var site = await SiteSettings.GetAsync();
+    var brand = site.CompanyDisplayName;
     ViewData["PageKey"] = "legal";
-    ViewData["Title"] = "Kullanım Koşulları | Araç Parkı";
-    ViewData["Description"] = "Araç Parkı kullanım koşulları: platformun rolü, ilan sorumluluğu, yasaklı kullanımlar ve hizmet kuralları.";
+    ViewData["Title"] = $"Kullanım Koşulları | {brand}";
+    ViewData["Description"] = $"{brand} kullanım koşulları: platformun rolü, üyelik, ilan sorumluluğu, yasaklı kullanımlar, fikri mülkiyet ve uygulanacak hukuk.";
     ViewData["CanonicalUrl"] = SiteUrls.Absolute("/kullanim-kosullari");
-    ViewData["OgTitle"] = "Kullanım Koşulları | Araç Parkı";
-    var crumbs = Breadcrumbs.Create(
-        new BreadcrumbItem("Anasayfa", "/"),
-        new BreadcrumbItem("Kullanım koşulları", "/kullanim-kosullari"));
-    Breadcrumbs.Set(ViewData, SiteUrls, crumbs);
-}
-
-@section CrumbBar {
-  <partial name="Shared/Partials/_SiteBreadcrumb" model="crumbs" />
+    ViewData["OgTitle"] = $"Kullanım Koşulları | {brand}";
 }
 
 <main class="legal-page" id="main">
   <article class="legal-article container">
-    <h1>Kullanım koşulları</h1>
-    <p class="legal-updated">Son güncelleme: 19 Temmuz 2026</p>
+    <header class="legal-hero legal-hero--compact">
+      <p class="legal-eyebrow">Yasal</p>
+      <h1>Kullanım koşulları</h1>
+      <p class="legal-meta">Son güncelleme: 23 Temmuz 2026</p>
+      <p class="legal-lead">
+        Bu metin, aracparki.com üzerinden sunulan hizmetlerin kullanımına ilişkin
+        kuralları düzenler. Siteyi ziyaret ederek veya üye olarak bu koşulları
+        okuduğunuzu ve kabul ettiğinizi beyan etmiş sayılırsınız.
+      </p>
+    </header>
 
+    <aside class="legal-note" aria-label="Bilgilendirme">
+      <strong>Bilgilendirme</strong>
+      Metin genel bilgilendirme amaçlıdır; hukuki danışmanlık yerine geçmez.
+      Kişisel veriler için <a href="/kvkk">KVKK aydınlatma metni</a> ve
+      <a href="/gizlilik">gizlilik bildirimi</a> ayrıca geçerlidir.
+    </aside>
+
+    <h2>1. Tanımlar</h2>
+    <ul>
+      <li><strong>Platform / Site:</strong> aracparki.com ve bağlı dijital hizmetler.</li>
+      <li><strong>@brand:</strong> Platform’u işleten marka / hizmet sağlayıcı.</li>
+      <li><strong>Kullanıcı:</strong> Siteyi ziyaret eden veya üye olan gerçek / tüzel kişi.</li>
+      <li><strong>İlan:</strong> Kullanıcı tarafından yayınlanan satılık veya kiralık iş makinesi içeriği.</li>
+      <li><strong>İçerik:</strong> İlan metni, fotoğraf, teknik özellik ve benzeri kullanıcı verileri.</li>
+    </ul>
+
+    <h2>2. Hizmetin niteliği ve platformun rolü</h2>
     <p>
-      Bu metin, aracparki.com (“Platform”) üzerinden sunulan hizmetlerin kullanımına ilişkin temel
-      kuralları özetler. Platform’u kullanarak bu koşulları kabul etmiş sayılırsınız.
+      @brand; satılık, kiralık ve ikinci el iş makineleri için ilan yayınlama ve
+      keşfetme imkânı sunan bir pazar yeridir. 5651 sayılı Kanun kapsamında yer
+      sağlayıcı / aracı konumundadır.
+    </p>
+    <ul class="legal-check">
+      <li>Alım-satım veya kiralama sözleşmesi doğrudan ilan sahibi ile ilgili kullanıcı arasında kurulur</li>
+      <li>Platform, ilan konusu makinelerin sahibi, satıcısı, kiraya vereni veya aracısı değildir</li>
+      <li>Fiyat, özellik, durum, belge ve yasal uygunluğun doğruluğundan ilan sahibi sorumludur</li>
+      <li>Kullanıcılar arası anlaşmazlıklarda Platform taraf değildir</li>
+    </ul>
+
+    <h2>3. Üyelik ve hesap güvenliği</h2>
+    <p>
+      Üyelik oluştururken verdiğiniz bilgilerin doğru, eksiksiz ve güncel olması gerekir.
+      Hesap giriş bilgilerinizin gizliliğinden ve hesap üzerinden yapılan işlemlerden
+      siz sorumlusunuz. Şüpheli veya kötüye kullanıma yönelik faaliyetlerde hesap
+      kısıtlanabilir veya kapatılabilir.
     </p>
 
-    <h2>1. Hizmetin kapsamı</h2>
+    <h2>4. İlan içeriği ve moderasyon</h2>
     <p>
-      Araç Parkı, satılık ve kiralık iş makineleri için ilan yayınlama ve keşfetme imkânı sunan bir
-      pazar yeridir. Taraflar arasındaki alım-satım veya kiralama sözleşmesi doğrudan ilan sahibi ile
-      ilgilenen kullanıcı arasında kurulur; Platform aracılık garantisi vermez.
+      İlanlar, <a href="/ilan-kurallari">ilan kuralları</a>na uygun olmalıdır.
+      Yanıltıcı bilgi, yasaklı içerik, üçüncü kişilerin haklarını ihlal eden materyal
+      veya spam yayınlanamaz. Platform; inceleyebilir, yayını erteleyebilir, reddedebilir
+      veya kaldırabilir; bu, içeriklerin doğruluğunu garanti ettiği anlamına gelmez.
     </p>
 
-    <h2>2. Hesap ve doğruluk</h2>
+    <h2>5. İletişim ve telefon doğrulama</h2>
     <p>
-      Üyelik oluştururken verdiğiniz bilgilerin doğru ve güncel olması gerekir. Hesap güvenliğinizden
-      siz sorumlusunuz. Şüpheli kullanım tespitinde hesabınız kısıtlanabilir.
+      İlan yayınlamak veya belirli iletişim özelliklerini kullanmak için cep telefonu
+      doğrulaması istenebilir. Doğrulanmış numara, güvenlik ve kötüye kullanımı önlemek
+      amacıyla başka hesaplarda yeniden kullanılamayabilir. Telefonun talep üzerine
+      gösterilmesi, spam riskini azaltmaya yönelik bir önlemdir.
     </p>
 
-    <h2>3. İlan içeriği</h2>
+    <h2>6. Yasaklı kullanımlar</h2>
+    <ul>
+      <li>Yasa dışı makine, belge sahteciliği veya dolandırıcılık amaçlı kullanım</li>
+      <li>Sisteme zarar verme, otomasyonla aşırı istek, güvenlik açıklarını istismar</li>
+      <li>Başkasının kimliği veya markasıyla yanıltıcı temsil</li>
+      <li>Hakaret, ayrımcılık, spam ve kişisel veri ifşası</li>
+    </ul>
+
+    <h2>7. Fikri mülkiyet</h2>
     <p>
-      İlanlarda yanıltıcı bilgi, yasaklı içerik veya üçüncü kişilerin haklarını ihlal eden materyal
-      yayınlanamaz. İlanların doğruluğundan ilan sahibi sorumludur.
+      Site tasarımı, yazılımı, logosu ve özgün içerikleri @brand’a aittir.
+      Kullanıcı; kendi yüklediği içerik üzerinde, Platform’un hizmeti sunması için
+      gerekli yayın ve arşivleme hakkını tanır. İçeriğin hukuka uygunluğundan kullanıcı sorumludur.
     </p>
 
-    <h2>4. İletişim ve telefon</h2>
+    <h2>8. Sorumluluğun sınırları</h2>
     <p>
-      İlan vermek veya belirli iletişim özelliklerini kullanmak için cep telefonu doğrulaması
-      istenebilir. Doğrulanmış numara başka hesaplarda yeniden kullanılamayabilir.
+      Platform; kesintisiz veya hatasız çalışma, ilanların doğruluğu, kullanıcılar arası
+      ödeme / kapora / teslimat süreçleri veya üçüncü taraf sitelerin içeriği konusunda
+      garanti vermez. Mümkün olan azami ölçüde, dolaylı zararlardan sorumluluk kabul edilmez;
+      zorunlu mevzuat hükümleri saklıdır.
     </p>
 
-    <h2>5. Değişiklikler</h2>
+    <h2>9. Kişisel veriler</h2>
     <p>
-      Bu koşullar güncellenebilir. Önemli değişikliklerde Platform üzerinden bilgilendirme yapılır.
-      Güncel metin her zaman bu sayfada yayımlanır.
+      Kişisel verilerin işlenmesi
+      <a href="/kvkk">KVKK aydınlatma metni</a>,
+      <a href="/gizlilik">gizlilik bildirimi</a> ve
+      <a href="/cerez-politikasi">çerez politikası</a> kapsamında yürütülür.
+    </p>
+
+    <h2>10. Değişiklikler</h2>
+    <p>
+      Bu koşullar güncellenebilir. Güncel metin bu sayfada yayımlanır. Önemli değişikliklerde
+      Platform üzerinden makul yöntemlerle bilgilendirme yapılabilir. Değişiklikten sonra
+      kullanımı sürdürmeniz kabul anlamına gelebilir.
+    </p>
+
+    <h2>11. Uygulanacak hukuk</h2>
+    <p>
+      Bu koşullar Türkiye Cumhuriyeti hukukuna tabidir. Uyuşmazlıklarda Türk mahkemeleri
+      ve icra daireleri yetkilidir. Elektronik kayıtlar, ilgili mevzuat çerçevesinde delil
+      niteliği taşıyabilir.
+    </p>
+
+    <h2>12. İletişim</h2>
+    <p>
+      Sorularınız için
+      <a href="mailto:@site.SupportEmail">@site.SupportEmail</a>
+      veya <a href="/iletisim">iletişim</a> sayfasını kullanın.
     </p>
 
     <nav class="legal-related" aria-label="İlgili sayfalar">
-      <a href="/gizlilik">Gizlilik</a>
+      <a href="/gizlilik">Gizlilik bildirimi</a>
       <a href="/kvkk">KVKK aydınlatma</a>
       <a href="/ilan-kurallari">İlan kuralları</a>
       <a href="/guvenli-alisveris">Güvenli alışveriş</a>

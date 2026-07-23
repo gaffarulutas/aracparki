@@ -18,6 +18,13 @@ public interface IAccountStore
     Task UpdatePhoneAsync(long accountId, string phone, CancellationToken cancellationToken);
     Task ConfirmPhoneAsync(long accountId, CancellationToken cancellationToken);
 
+    /// <summary>Updates first/last name only. Phone is set exclusively via OTP verify.</summary>
+    Task UpdateProfileAsync(
+        long accountId,
+        string firstName,
+        string lastName,
+        CancellationToken cancellationToken);
+
     /// <summary>Invalidates prior unused reset tokens, then inserts the new hash.</summary>
     Task SaveResetTokenAsync(long accountId, string tokenHash, DateTimeOffset expiresAt, CancellationToken cancellationToken);
 

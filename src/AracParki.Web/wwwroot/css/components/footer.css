@@ -21,6 +21,39 @@
   line-height: 1.45;
 }
 
+.footer-social {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.footer-social a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.04);
+  transition:
+    color 0.2s var(--ease),
+    border-color 0.2s var(--ease),
+    background 0.2s var(--ease),
+    transform 0.2s var(--ease);
+}
+
+.footer-social a:hover {
+  color: var(--ink);
+  border-color: var(--machine);
+  background: var(--machine);
+  transform: translateY(-1px);
+}
+
 .footer-col h3 {
   font-size: 12px;
   text-transform: uppercase;
@@ -80,7 +113,9 @@
 .footer-bottom nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px 14px;
+  max-width: 42rem;
+  justify-content: flex-end;
 }
 
 .footer-bottom a:hover {

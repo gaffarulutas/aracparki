@@ -4,6 +4,7 @@
     var isAdminHome = path.Equals("/admin", StringComparison.OrdinalIgnoreCase);
     var isAdminIlanlar = On("/admin/ilanlar");
     var isAdminKurumsal = On("/admin/kurumsal");
+    var isAdminAyarlar = On("/admin/ayarlar");
 }
 <div class="account-nav-panel">
   <div class="account-nav-brand">
@@ -29,6 +30,15 @@
         </li>
         <li>
           <partial name="Shared/Partials/_AccountNavItem" model='("/admin/kurumsal?durum=pending", "Kurumsal", "building-2", isAdminKurumsal, (int?)null)' />
+        </li>
+      </ul>
+    </div>
+
+    <div class="account-nav-section">
+      <p class="account-nav-section-title">Site</p>
+      <ul class="account-nav-list" aria-label="Site ayarları">
+        <li>
+          <partial name="Shared/Partials/_AccountNavItem" model='("/admin/ayarlar", "Site ayarları", "settings", isAdminAyarlar, (int?)null)' />
         </li>
       </ul>
     </div>

@@ -1,0 +1,168 @@
+@page "/turkiye-geneli"
+@inject SiteUrls SiteUrls
+@{
+    ViewData["PageKey"] = "legal";
+    ViewData["Title"] = "81 İl İlan Ağı | Türkiye Geneli İş Makinesi İlanları";
+    ViewData["Description"] = "Araç Parkı’nda 81 il kataloğu vardır: ilan verirken il ve ilçe zorunlu, aramada tüm iller filtrelenir. Popüler iller kısayoldur; her ilde canlı ilan olduğu anlamına gelmez.";
+    ViewData["CanonicalUrl"] = SiteUrls.Absolute("/turkiye-geneli");
+    ViewData["OgTitle"] = "81 İl · Türkiye Geneli İlan Ağı | Araç Parkı";
+    ViewData["OgType"] = "article";
+
+    var faqEntities = new object[]
+    {
+        Qa("81 il ne anlama geliyor?", "Platformda Türkiye’nin 81 ili kayıtlıdır. İlan verirken herhangi bir il seçilebilir; aramada da tüm iller filtrelenir. Bu, her ilde şu an canlı ilan olduğu anlamına gelmez."),
+        Qa("Popüler iller ile tüm iller farkı nedir?", "Ana sayfadaki popüler iller sık kullanılan kısayollardır. İlanlar sayfasındaki il filtresi ve ilan verme formu 81 ili de listeler."),
+        Qa("İlan verirken konum zorunlu mu?", "Evet. İl ve ilçe zorunludur; mahalle isteğe bağlıdır. Konum olmadan ilan yayınlanamaz."),
+        Qa("Başka ile nakliye dahil mi?", "Hayır. Nakliye genelde ilan fiyatına dahil değildir; mesafe, yükleme ve sigorta satıcıyla ayrıca konuşulur.")
+    };
+    ViewData["JsonLd"] = JsonSerializer.Serialize(new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "WebPage",
+        ["name"] = "Türkiye geneli ilan ağı — Araç Parkı",
+        ["url"] = SiteUrls.Absolute("/turkiye-geneli"),
+        ["description"] = ViewData["Description"],
+        ["isPartOf"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "WebSite",
+            ["name"] = "Araç Parkı",
+            ["url"] = SiteUrls.Origin + "/"
+        },
+        ["mainEntity"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "FAQPage",
+            ["mainEntity"] = faqEntities
+        }
+    });
+
+    static Dictionary<string, object?> Qa(string q, string a) => new()
+    {
+        ["@type"] = "Question",
+        ["name"] = q,
+        ["acceptedAnswer"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "Answer",
+            ["text"] = a
+        }
+    };
+}
+
+<main class="legal-page" id="main">
+  <article class="legal-article legal-article--wide container">
+    <header class="legal-hero">
+      <p class="legal-eyebrow">Kapsam · Konum</p>
+      <h1>81 il: Türkiye geneli ilan ağı</h1>
+      <p class="legal-lead">
+        Araç Parkı konum kataloğunda Türkiye’nin 81 ili vardır.
+        İlan verirken il ve ilçe zorunlu seçilir; alıcılar tüm illeri filtreleyebilir.
+        “81 il” ifadesi <em>yayın ve arama kapsamını</em> anlatır — her ilde her an
+        canlı ilan bulunduğu anlamına gelmez. Stok, satıcıların yayınladığı ilanlara bağlıdır.
+      </p>
+      <div class="legal-hero-actions">
+        <a class="btn btn-machine" href="/ilanlar">İlanları keşfet</a>
+        <a class="btn btn-ghost" href="/#sehirler">Popüler iller</a>
+      </div>
+    </header>
+
+    <div class="legal-highlights" role="list">
+      <div class="legal-highlight" role="listitem">
+        <strong>81 il kataloğu</strong>
+        <span>İlan verme ve arama formlarında tüm iller seçilebilir.</span>
+      </div>
+      <div class="legal-highlight" role="listitem">
+        <strong>İl + ilçe zorunlu</strong>
+        <span>Yayın için konum şarttır; mahalle isteğe bağlıdır.</span>
+      </div>
+      <div class="legal-highlight" role="listitem">
+        <strong>Popüler iller</strong>
+        <span>Ana sayfa kısayolu; tam liste ilanlar filtresindedir.</span>
+      </div>
+    </div>
+
+    <h2>Konum sistemi nasıl çalışır?</h2>
+    <p>
+      Her yayındaki ilanda en az il ve ilçe kaydı vardır. Arama tarafında:
+    </p>
+    <ul class="legal-check">
+      <li>Ana sayfa <a href="/#sehirler">popüler iller</a> — sık kullanılan şehirlere hızlı link</li>
+      <li><a href="/ilanlar">İlanlar</a> sayfasındaki il filtresi — 81 ili kapsar</li>
+      <li>İlçe filtresi — seçilen ile göre daraltma</li>
+      <li>Kategori + şehir hub’ları — örn. <em>/ilanlar/satilik/…/istanbul</em> (kategori ve şehir slug’ı ile)</li>
+    </ul>
+    <aside class="legal-note" aria-label="Kapsam notu">
+      <strong>Kapsam notu</strong>
+      Popüler iller menüsü tüm Türkiye’nin özeti değildir; hız için seçilmiş kısayollardır.
+      Kendi iliniz listede öne çıkmasa bile ilanlar filtresinden veya ilan verirken seçebilirsiniz.
+    </aside>
+
+    <h2>Alıcı için</h2>
+    <p>
+      Önce kendi ilinizi filtreleyerek yakındaki stoku görün; ihtiyaç genişse Türkiye
+      geneline açın. Şehirler arası alımda nakliye maliyeti ve süre ilan fiyatına genelde
+      dahil değildir — satıcıyla ayrıca netleştirin.
+    </p>
+
+    <h2>Satıcı için</h2>
+    <p>
+      <a href="/ilan-ver">İlan verirken</a> il ve ilçe zorunludur; yanlış konum ilanın
+      yanlış alıcılara gitmesine yol açar. Doğru konum, yerel aramalarda görünürlüğü artırır.
+      Ücretsiz temel yayın tüm illerde aynı kurallarla yapılır.
+    </p>
+
+    <aside class="legal-note" aria-label="Nakliye notu">
+      <strong>Nakliye</strong>
+      Platform nakliye organize etmez. Mesafe, yükleme, sigorta ve süre satıcı–alıcı
+      arasında konuşulur; anlaşmadan önce teyit edin.
+    </aside>
+
+    <h2>Sık sorulanlar</h2>
+    <div class="legal-faq">
+      <details>
+        <summary>81 il ne anlama geliyor?</summary>
+        <p>
+          Platformda Türkiye’nin 81 ili kayıtlıdır. İlan verirken herhangi bir il seçilebilir;
+          aramada da tüm iller filtrelenir. Bu, her ilde şu an canlı ilan olduğu anlamına gelmez.
+        </p>
+      </details>
+      <details>
+        <summary>Popüler iller ile tüm iller farkı nedir?</summary>
+        <p>
+          Ana sayfadaki popüler iller sık kullanılan kısayollardır.
+          <a href="/ilanlar">İlanlar</a> sayfasındaki il filtresi ve ilan verme formu
+          81 ili de listeler.
+        </p>
+      </details>
+      <details>
+        <summary>İlan verirken konum zorunlu mu?</summary>
+        <p>
+          Evet. İl ve ilçe zorunludur; mahalle isteğe bağlıdır. Konum olmadan ilan yayınlanamaz.
+        </p>
+      </details>
+      <details>
+        <summary>Başka ile nakliye dahil mi?</summary>
+        <p>
+          Hayır. Nakliye genelde ilan fiyatına dahil değildir; mesafe, yükleme ve sigorta
+          satıcıyla ayrıca konuşulur.
+        </p>
+      </details>
+    </div>
+
+    <div class="legal-cta-band">
+      <div>
+        <strong>Konuma göre arayın</strong>
+        <p>İl seçerek satılık veya kiralık makineleri daraltın.</p>
+      </div>
+      <div class="legal-cta-band-actions">
+        <a class="btn btn-machine" href="/ilanlar">İlanları aç</a>
+        <a class="btn btn-ghost" href="/ilan-ver">Ücretsiz ilan ver</a>
+      </div>
+    </div>
+
+    <nav class="legal-related" aria-label="İlgili sayfalar">
+      <a href="/dogrulanmis-satici">Doğrulanmış satıcı</a>
+      <a href="/net-fiyat">Net fiyat</a>
+      <a href="/hakkimizda">Hakkımızda</a>
+      <a href="/ilanlar">Tüm ilanlar</a>
+    </nav>
+  </article>
+</main>

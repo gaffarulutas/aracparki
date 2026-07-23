@@ -2,7 +2,6 @@ using AracParki.Application.Abstractions;
 using AracParki.Application.Common;
 using AracParki.Application.Corporate;
 using AracParki.Application.Corporate.Dtos;
-using AracParki.Domain.Corporate;
 using Dapper;
 
 namespace AracParki.Infrastructure.Corporate;

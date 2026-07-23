@@ -6,6 +6,7 @@
     {
         if (path.StartsWith("/admin/ilanlar", StringComparison.OrdinalIgnoreCase)) return "İlanlar";
         if (path.StartsWith("/admin/kurumsal", StringComparison.OrdinalIgnoreCase)) return "Kurumsal";
+        if (path.StartsWith("/admin/ayarlar", StringComparison.OrdinalIgnoreCase)) return "Site ayarları";
         if (path.Equals("/admin", StringComparison.OrdinalIgnoreCase)) return "Admin";
         if (path.StartsWith("/ilanlarim", StringComparison.OrdinalIgnoreCase)) return "İlanlarım";
         if (path.StartsWith("/ilan-ver", StringComparison.OrdinalIgnoreCase)) return "İlan ver";

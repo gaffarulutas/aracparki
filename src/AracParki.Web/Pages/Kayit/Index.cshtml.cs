@@ -1,3 +1,4 @@
+using AracParki.Application.Abstractions;
 using AracParki.Application.Accounts.Services;
 using AracParki.Web.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
@@ -8,7 +9,7 @@ using Microsoft.AspNetCore.RateLimiting;
 
 namespace AracParki.Web.Pages.Kayit;
 
-public sealed class IndexModel(AccountService accounts) : PageModel
+public sealed class IndexModel(AccountService accounts, ITurnstileVerifier turnstile) : PageModel
 {
     [BindProperty]
     public RegisterInput Input { get; set; } = new();
@@ -33,6 +34,13 @@ public sealed class IndexModel(AccountService accounts) : PageModel
 
         if (!ModelState.IsValid)
         {
+            return Page();
+        }
+
+        var turnstileToken = Request.Form["cf-turnstile-response"].ToString();
+        if (!await turnstile.VerifyAsync(turnstileToken, HttpContext.Connection.RemoteIpAddress?.ToString(), cancellationToken))
+        {
+            FormError = "Bot doğrulaması başarısız. Lütfen tekrar dene.";
             return Page();
         }
 

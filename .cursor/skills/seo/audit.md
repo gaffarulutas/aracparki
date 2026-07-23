@@ -10,6 +10,16 @@ Update this file when SEO-related inventory changes.
 | Dynamic sitemaps | `/sitemap.xml`, `/sitemap-static.xml`, `/sitemap-hubs.xml`, `/sitemap-dealers.xml`, `/sitemap-listings-{n}.xml` |
 | SQL | `SitemapPublished.sql`, `CountPublished.sql`; migration `14_seo_slugs.sql` |
 
+## Trust / E-E-A-T info pages (home proof strip)
+
+| Path | Actual meaning (code-aligned) |
+|------|-------------------------------|
+| `/dogrulanmis-satici` | “Doğrulanmış” = approved corporate on listing (not phone OTP). Bayi vs Sahibi = seller type. Phone OTP = publish gate only. |
+| `/net-fiyat` | Price always required & visible; sale = amount only; rent = amount + hour/day/week/month; no platform commission. |
+| `/turkiye-geneli` | 81-city catalog for create/filter; popular cities = shortcuts; not a claim of live inventory in every city. |
+
+Linked from home `#guven`, help related nav; in `sitemap-static.xml`.
+
 ## Path hubs
 
 | Pattern | Example |

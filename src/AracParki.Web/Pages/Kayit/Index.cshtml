@@ -88,6 +88,8 @@
         </label>
         <span asp-validation-for="Input.AcceptTerms" class="auth-error"></span>
 
+        <partial name="Shared/_TurnstileWidget" />
+
         <button class="btn btn-machine btn-block auth-submit" type="submit">Hesabı oluştur</button>
       </form>
 

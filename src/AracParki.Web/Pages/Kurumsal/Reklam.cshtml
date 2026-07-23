@@ -1,16 +1,15 @@
 @page "/reklam"
-@using System.Text.Json
+@using AracParki.Application.Site.Services
 @inject SiteUrls SiteUrls
+@inject SiteSettingsService SiteSettings
 @{
+    var site = await SiteSettings.GetAsync();
+    var adsEmail = site.EffectiveAdsEmail;
     ViewData["PageKey"] = "legal";
     ViewData["Title"] = "Reklam Ver | Araç Parkı İş Birliği ve Sponsorluk";
     ViewData["Description"] = "İş makineleri alıcılarına ulaşın: Araç Parkı’nda ilan detay paneli, sponsorlu görünürlük ve kurumsal tanıtım için reklam ve iş birliği.";
     ViewData["CanonicalUrl"] = SiteUrls.Absolute("/reklam");
     ViewData["OgTitle"] = "Reklam Ver | Araç Parkı";
-    var crumbs = Breadcrumbs.Create(
-        new BreadcrumbItem("Anasayfa", "/"),
-        new BreadcrumbItem("Reklam ver", "/reklam"));
-    Breadcrumbs.Set(ViewData, SiteUrls, crumbs);
     ViewData["JsonLd"] = JsonSerializer.Serialize(new Dictionary<string, object?>
     {
         ["@context"] = "https://schema.org",
@@ -19,10 +18,6 @@
         ["url"] = SiteUrls.Absolute("/reklam"),
         ["description"] = ViewData["Description"]
     });
-}
-
-@section CrumbBar {
-  <partial name="Shared/Partials/_SiteBreadcrumb" model="crumbs" />
 }
 
 <main class="legal-page" id="main">
@@ -37,7 +32,7 @@
       </p>
       <div class="legal-hero-actions">
         <a class="btn btn-machine"
-           href="mailto:destek@aracparki.com?subject=@Uri.EscapeDataString("Reklam teklifi")&amp;body=@Uri.EscapeDataString("Merhaba,\n\nReklam / iş birliği için teklif almak istiyorum.\n\nŞirket:\nHedef kitle / ürün:\nTahmini süre ve bütçe:\n\n")">
+           href="mailto:@adsEmail?subject=@Uri.EscapeDataString("Reklam teklifi")&amp;body=@Uri.EscapeDataString("Merhaba,\n\nReklam / iş birliği için teklif almak istiyorum.\n\nŞirket:\nHedef kitle / ürün:\nTahmini süre ve bütçe:\n\n")">
           Teklif e-postası gönder
         </a>
         <a class="btn btn-ghost" href="/iletisim">İletişim</a>
@@ -93,12 +88,13 @@
         <p>Kısa bir brief yeterli; size uygun seçenekleri iletelim.</p>
       </div>
       <a class="btn btn-machine"
-         href="mailto:destek@aracparki.com?subject=@Uri.EscapeDataString("Reklam teklifi")">
+         href="mailto:@adsEmail?subject=@Uri.EscapeDataString("Reklam teklifi")">
         Teklif iste
       </a>
     </div>
 
     <nav class="legal-related" aria-label="İlgili sayfalar">
+      <a href="/bayi-ortakligi">Bayi ortaklığı</a>
       <a href="/hakkimizda">Hakkımızda</a>
       <a href="/iletisim">İletişim</a>
       <a href="/kullanim-kosullari">Kullanım koşulları</a>

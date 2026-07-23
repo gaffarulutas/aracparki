@@ -1,13 +1,20 @@
-﻿@using System.Text.Json
-@using Microsoft.AspNetCore.Antiforgery
+﻿@using Microsoft.AspNetCore.Antiforgery
 @using Microsoft.Extensions.Options
 @using AracParki.Application.Email
+@using AracParki.Application.Security
+@using AracParki.Application.Site.Services
 @inject SiteUrls SiteUrls
 @inject IAntiforgery Antiforgery
 @inject IOptions<SeoSettings> SeoOptions
+@inject IOptions<TurnstileSettings> TurnstileOptions
+@inject SiteSettingsService SiteSettings
 @{
     var pageKey = ViewData["PageKey"] as string ?? "home";
     var isAuth = pageKey == "auth";
+    var turnstileSiteKey = TurnstileOptions.Value.SiteKey;
+    var loadTurnstile = isAuth && !string.IsNullOrWhiteSpace(turnstileSiteKey);
+    // Auth pages skip footer — avoid a DB/cache hit on every /giris|/kayit request.
+    var siteContact = isAuth ? null : await SiteSettings.GetAsync();
     var requestPath = Context.Request.Path.Value ?? string.Empty;
     var needDetailGallery = ViewData["NeedDetailGallery"] is true
         || requestPath.StartsWith("/admin/ilanlar/", StringComparison.OrdinalIgnoreCase);
@@ -175,13 +182,11 @@
     }
     else if (pageKey is "dealer")
     {
-        <link rel="stylesheet" href="~/css/components/breadcrumb.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/css/components/cards.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/css/pages/dealer.css" asp-append-version="true" />
     }
     else if (pageKey is "legal")
     {
-        <link rel="stylesheet" href="~/css/components/breadcrumb.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/css/pages/legal.css" asp-append-version="true" />
     }
 
@@ -207,6 +212,10 @@
               gtag('config', '@seo.GoogleAnalyticsMeasurementId');
             </script>
         }
+        if (loadTurnstile)
+        {
+            <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer nonce="@cspNonce"></script>
+        }
     }
 </head>
 <body data-page="@pageKey"
@@ -231,9 +240,9 @@
          data-boot-toast="@(TempData["AuthNotice"] as string)"
          data-draft-toast="@(TempData["DraftNotice"] as string)"></div>
 
-    @if (!isAuth)
+    @if (!isAuth && siteContact is not null)
     {
-        <partial name="Shared/_Footer" model="pageKey" />
+        <partial name="Shared/_Footer" model="siteContact" />
     }
 
     <script src="~/lib/htmx/htmx.min.js" asp-append-version="true" defer></script>

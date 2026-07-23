@@ -35,6 +35,7 @@
             <input asp-for="Input.Email" type="email" autocomplete="email" inputmode="email" autofocus />
             <span asp-validation-for="Input.Email" class="auth-error"></span>
           </div>
+          <partial name="Shared/_TurnstileWidget" />
           <button class="btn btn-machine btn-block auth-submit" type="submit">Bağlantı gönder</button>
         </form>
 

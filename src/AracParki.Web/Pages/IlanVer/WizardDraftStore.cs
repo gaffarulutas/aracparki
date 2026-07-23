@@ -1,6 +1,5 @@
 using System.Text.Json;
 using AracParki.Application.Listings;
-using Microsoft.Extensions.Logging;
 
 namespace AracParki.Web.Pages.IlanVer;
 

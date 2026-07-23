@@ -1,6 +1,5 @@
 using AracParki.Application.Accounts.Services;
 using AracParki.Application.Catalog.Services;
-using AracParki.Application.Listings;
 using AracParki.Application.Listings.Commands;
 using AracParki.Domain.Listings;
 using FluentValidation;

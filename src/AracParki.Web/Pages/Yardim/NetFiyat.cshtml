@@ -1,0 +1,188 @@
+@page "/net-fiyat"
+@inject SiteUrls SiteUrls
+@{
+    ViewData["PageKey"] = "legal";
+    ViewData["Title"] = "Net Fiyat Nedir? | Satılık ve Kiralık İş Makineleri";
+    ViewData["Description"] = "Araç Parkı’nda her ilanda satıcı fiyatı zorunlu ve görünürdür. Satılık tek tutar; kiralıkta saatlik, günlük, haftalık veya aylık birim. Platform komisyon eklemez.";
+    ViewData["CanonicalUrl"] = SiteUrls.Absolute("/net-fiyat");
+    ViewData["OgTitle"] = "Net Fiyat | Araç Parkı";
+    ViewData["OgType"] = "article";
+
+    var faqEntities = new object[]
+    {
+        Qa("Net fiyat ne anlama geliyor?", "Her yayındaki ilanda satıcının girdiği tutarın kart ve detayda açıkça görünmesi demektir. “Fiyat sorun” veya gizli fiyat seçeneği yoktur."),
+        Qa("Satılık ve kiralık fiyat farkı nedir?", "Satılıkta tek satış bedeli yazılır (birim yok). Kiralıkta tutar zorunlu birimle gelir: saatlik, günlük, haftalık veya aylık."),
+        Qa("Fiyat pazarlığa açık mı?", "Platform pazarlığı yönetmez. İlandaki tutar satıcının yayınladığı referanstır; nihai anlaşma taraflar arasındadır."),
+        Qa("Platform komisyon veya ödeme alır mı?", "Hayır. Araç Parkı ilan platformudur; fiyata komisyon eklemez, ödemeyi aracılık etmez.")
+    };
+    ViewData["JsonLd"] = JsonSerializer.Serialize(new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "WebPage",
+        ["name"] = "Net fiyat — Araç Parkı",
+        ["url"] = SiteUrls.Absolute("/net-fiyat"),
+        ["description"] = ViewData["Description"],
+        ["isPartOf"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "WebSite",
+            ["name"] = "Araç Parkı",
+            ["url"] = SiteUrls.Origin + "/"
+        },
+        ["mainEntity"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "FAQPage",
+            ["mainEntity"] = faqEntities
+        }
+    });
+
+    static Dictionary<string, object?> Qa(string q, string a) => new()
+    {
+        ["@type"] = "Question",
+        ["name"] = q,
+        ["acceptedAnswer"] = new Dictionary<string, object?>
+        {
+            ["@type"] = "Answer",
+            ["text"] = a
+        }
+    };
+}
+
+<main class="legal-page" id="main">
+  <article class="legal-article legal-article--wide container">
+    <header class="legal-hero">
+      <p class="legal-eyebrow">Şeffaflık · Fiyatlandırma</p>
+      <h1>Net fiyat: satılık ve birimli kiralık</h1>
+      <p class="legal-lead">
+        Araç Parkı’nda fiyat alanı zorunludur: ilan yayınlanırken satıcı tutarı girer;
+        kart ve detayda bu tutar herkese görünür. “Fiyat sorun” veya gizli fiyat yoktur.
+        “Net” ifadesi, platformun fiyatı gizlemediğini anlatır — kapıda ödenecek nihai
+        tutarı veya ek masrafları garanti etmez.
+      </p>
+      <div class="legal-hero-actions">
+        <a class="btn btn-machine" href="/ilanlar/satilik">Satılık ilanlar</a>
+        <a class="btn btn-ghost" href="/ilanlar/kiralik">Kiralık ilanlar</a>
+      </div>
+    </header>
+
+    <div class="legal-highlights" role="list">
+      <div class="legal-highlight" role="listitem">
+        <strong>Zorunlu tutar</strong>
+        <span>Her ilanda 0’dan büyük fiyat girilir; aksi halde yayınlanamaz.</span>
+      </div>
+      <div class="legal-highlight" role="listitem">
+        <strong>Satılık</strong>
+        <span>Tek satış bedeli (TL, USD veya EUR). Birim yazılmaz.</span>
+      </div>
+      <div class="legal-highlight" role="listitem">
+        <strong>Kiralık</strong>
+        <span>Tutar + birim: saatlik, günlük, haftalık veya aylık.</span>
+      </div>
+    </div>
+
+    <h2>Sistemde fiyat nasıl kaydedilir?</h2>
+    <p>
+      İlan sihirbazında satılık veya kiralık seçilir (ikisi birden değil).
+      Satılıkta yalnızca tutar ve para birimi istenir. Kiralıkta aynı tutar alanına
+      ek olarak birim zorunludur; isteğe bağlı “operatör dahil” işareti yalnızca
+      kiralıkta kullanılabilir.
+    </p>
+    <ul class="legal-check">
+      <li>Kart ve liste satırında fiyat her zaman gösterilir</li>
+      <li>Kiralık örnek: <em>5.000 TL / Günlük</em></li>
+      <li>Satılık örnek: <em>1.250.000 TL</em></li>
+      <li>Liste filtrelerinde fiyat aralığı ve (kiralıkta) birim kullanılabilir</li>
+    </ul>
+
+    <h2>Satılık</h2>
+    <p>
+      Görünen tutar satıcının belirlediği satış bedelidir. Marka, model, yıl, çalışma
+      saati ve konumla birlikte değerlendirin. Teslim şekli, ek ekipman, fatura / vergi
+      gibi konular ilan metninde yoksa satıcıya sorun; nihai anlaşma taraflar arasındadır.
+    </p>
+
+    <h2>Kiralık birimler</h2>
+    <p>
+      Kiralık ilanlarda birim şunlardan biri olmalıdır: saatlik, günlük, haftalık, aylık.
+      Ana sayfadaki “günlük kiralık” ifadesi yaygın kullanımı vurgular; sistem dört birimi
+      de destekler. Proje sürenize göre
+      <a href="/ilanlar/kiralik">kiralık listede</a> birim filtresini kullanın.
+    </p>
+    <ul class="legal-check">
+      <li><strong>Saatlik</strong> — kısa süreli veya vardiyalı kullanım</li>
+      <li><strong>Günlük</strong> — günlük saha / proje kiralaması</li>
+      <li><strong>Haftalık</strong> — orta vadeli ihtiyaç</li>
+      <li><strong>Aylık</strong> — uzun süreli saha ihtiyacı</li>
+    </ul>
+
+    <h2>“Net” neyi kapsamaz?</h2>
+    <p>
+      İlandaki tutar, satıcının yayınladığı referanstır. Aşağıdakiler genelde ayrıca konuşulur
+      (ilan açıklamasında yazılmadıysa satıcıya sorun):
+    </p>
+    <ul class="legal-check">
+      <li>Nakliye, yükleme ve sigorta</li>
+      <li>Yakıt, operatör (işaretlenmemişse) ve bekleme süreleri</li>
+      <li>Vergi / fatura tercihi ve peşinat koşulları</li>
+    </ul>
+    <p>
+      Şüpheli düşük fiyatlarda
+      <a href="/guvenli-alisveris">güvenli alışveriş</a> adımlarını uygulayın.
+    </p>
+
+    <aside class="legal-note" aria-label="Platform notu">
+      <strong>Platform notu</strong>
+      Araç Parkı ilan platformudur. Fiyat bilgisi satıcıya aittir; platform fiyata komisyon
+      eklemez ve ödemeyi aracılık etmez. Güncellik ve doğruluk satıcının sorumluluğundadır.
+      Temel ilan yayınlama ücretsizdir; sponsorlu yerleşimler ayrı reklam paketidir.
+    </aside>
+
+    <h2>Sık sorulanlar</h2>
+    <div class="legal-faq">
+      <details>
+        <summary>Net fiyat ne anlama geliyor?</summary>
+        <p>
+          Her yayındaki ilanda satıcının girdiği tutarın kart ve detayda açıkça görünmesi
+          demektir. “Fiyat sorun” veya gizli fiyat seçeneği yoktur.
+        </p>
+      </details>
+      <details>
+        <summary>Satılık ve kiralık fiyat farkı nedir?</summary>
+        <p>
+          Satılıkta tek satış bedeli yazılır (birim yok). Kiralıkta tutar zorunlu birimle
+          gelir: saatlik, günlük, haftalık veya aylık.
+        </p>
+      </details>
+      <details>
+        <summary>Fiyat pazarlığa açık mı?</summary>
+        <p>
+          Platform pazarlığı yönetmez. İlandaki tutar satıcının yayınladığı referanstır;
+          nihai anlaşma taraflar arasındadır.
+        </p>
+      </details>
+      <details>
+        <summary>Platform komisyon veya ödeme alır mı?</summary>
+        <p>
+          Hayır. Araç Parkı ilan platformudur; fiyata komisyon eklemez, ödemeyi aracılık etmez.
+        </p>
+      </details>
+    </div>
+
+    <div class="legal-cta-band">
+      <div>
+        <strong>Fiyatı görünen ilanlarla ilerleyin</strong>
+        <p>Satılık veya kiralık — tutarı ve birimi kartta karşılaştırın.</p>
+      </div>
+      <div class="legal-cta-band-actions">
+        <a class="btn btn-machine" href="/ilanlar">Tüm ilanlar</a>
+        <a class="btn btn-ghost" href="/ilan-ver">Ücretsiz ilan ver</a>
+      </div>
+    </div>
+
+    <nav class="legal-related" aria-label="İlgili sayfalar">
+      <a href="/dogrulanmis-satici">Doğrulanmış satıcı</a>
+      <a href="/turkiye-geneli">Türkiye geneli</a>
+      <a href="/ilanlar/satilik">Satılık</a>
+      <a href="/ilanlar/kiralik">Kiralık</a>
+    </nav>
+  </article>
+</main>

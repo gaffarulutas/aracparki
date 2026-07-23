@@ -5,7 +5,6 @@ using AracParki.Application.Catalog.Services;
 using AracParki.Application.Listings.Dtos;
 using AracParki.Application.Listings.Queries;
 using AracParki.Application.Listings.Services;
-using AracParki.Domain.Equipment;
 using AracParki.Domain.Listings;
 using AracParki.Web.Infrastructure;
 using Microsoft.AspNetCore.Mvc;

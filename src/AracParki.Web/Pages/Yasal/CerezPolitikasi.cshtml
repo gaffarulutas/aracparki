@@ -1,19 +1,15 @@
 @page "/cerez-politikasi"
+@using AracParki.Application.Site.Services
 @inject SiteUrls SiteUrls
+@inject SiteSettingsService SiteSettings
 @{
+    var site = await SiteSettings.GetAsync();
+    var brand = site.CompanyDisplayName;
     ViewData["PageKey"] = "legal";
-    ViewData["Title"] = "Çerez Politikası | Araç Parkı";
-    ViewData["Description"] = "Araç Parkı çerez politikası: zorunlu, işlevsel ve analitik çerezlerin kullanımı, yönetimi ve kişisel verilerle ilişkisi.";
+    ViewData["Title"] = $"Çerez Politikası | {brand}";
+    ViewData["Description"] = $"{brand} çerez politikası: zorunlu, işlevsel ve analitik çerezlerin amacı, süresi, yönetimi ve KVKK kapsamında bilgilendirme.";
     ViewData["CanonicalUrl"] = SiteUrls.Absolute("/cerez-politikasi");
-    ViewData["OgTitle"] = "Çerez Politikası | Araç Parkı";
-    var crumbs = Breadcrumbs.Create(
-        new BreadcrumbItem("Anasayfa", "/"),
-        new BreadcrumbItem("Çerez politikası", "/cerez-politikasi"));
-    Breadcrumbs.Set(ViewData, SiteUrls, crumbs);
-}
-
-@section CrumbBar {
-  <partial name="Shared/Partials/_SiteBreadcrumb" model="crumbs" />
+    ViewData["OgTitle"] = $"Çerez Politikası | {brand}";
 }
 
 <main class="legal-page" id="main">
@@ -23,51 +19,112 @@
       <h1>Çerez politikası</h1>
       <p class="legal-meta">Son güncelleme: 23 Temmuz 2026</p>
       <p class="legal-lead">
-        Bu metin, aracparki.com’da kullanılan çerez ve benzeri teknolojileri açıklar.
-        Kişisel veriler için <a href="/gizlilik">gizlilik bildirimi</a> ve
-        <a href="/kvkk">KVKK aydınlatma</a> metnine bakın.
+        Bu politika, aracparki.com’da kullanılan çerez ve benzeri teknolojileri;
+        Kişisel Verileri Koruma Kurumu’nun çerez uygulamalarına ilişkin rehber ilkeleri
+        ışığında açıklar. Kişisel veriler için
+        <a href="/gizlilik">gizlilik bildirimi</a> ve
+        <a href="/kvkk">KVKK aydınlatma metni</a> de geçerlidir.
       </p>
     </header>
 
-    <h2>Çerez nedir?</h2>
+    <h2>1. Çerez nedir?</h2>
     <p>
-      Çerezler, siteyi ziyaret ettiğinizde tarayıcınıza kaydedilen küçük metin dosyalarıdır.
-      Oturum sürekliliği, güvenlik ve temel performans için kullanılırlar.
+      Çerezler, bir internet sitesini ziyaret ettiğinizde tarayıcınıza kaydedilen küçük
+      metin dosyalarıdır. Oturumun sürdürülmesi, güvenliğin sağlanması ve (tercihe bağlı)
+      deneyimin iyileştirilmesi için kullanılır.
     </p>
 
-    <h2>Kullandığımız çerez türleri</h2>
+    <h2>2. Çerez türleri ve amaçları</h2>
+    <div class="legal-table-wrap" role="region" aria-label="Çerez tablosu" tabindex="0">
+      <table class="legal-table">
+        <thead>
+          <tr>
+            <th scope="col">Tür</th>
+            <th scope="col">Amaç</th>
+            <th scope="col">Örnek kullanım</th>
+            <th scope="col">Süre / taraf</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Zorunlu</strong></td>
+            <td>Sitenin temel işlevleri ve güvenliği</td>
+            <td>Giriş oturumu, antiforgery (CSRF) koruması</td>
+            <td>Oturum / birinci taraf</td>
+          </tr>
+          <tr>
+            <td><strong>İşlevsel</strong></td>
+            <td>Tercih ve deneyim (zorunlu değilse rıza ile)</td>
+            <td>Taslak ilan, arayüz tercihi</td>
+            <td>Değişken / birinci taraf</td>
+          </tr>
+          <tr>
+            <td><strong>Analitik</strong></td>
+            <td>Trafik ve hata ölçümü (yapılandırıldığında)</td>
+            <td>Sayfa performansı, hata izleme</td>
+            <td>Sınırlı süre / birinci veya hizmet sağlayıcı</td>
+          </tr>
+          <tr>
+            <td><strong>Pazarlama</strong></td>
+            <td>Hedefli reklam / yeniden pazarlama</td>
+            <td>—</td>
+            <td><em>Şu an aktif değildir</em></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Zorunlu çerezler, bilgi toplumu hizmetinin sunulması için gereklidir.
+      Zorunlu olmayan çerezler için ileride açık rıza / tercih paneli sunulması hedeflenir.
+    </p>
+
+    <h2>3. Hukuki dayanak</h2>
     <ul>
       <li>
-        <strong>Zorunlu:</strong> giriş oturumu, antiforgery (güvenlik) ve sitenin çalışması
-        için gerekli tercihler.
+        <strong>Zorunlu çerezler:</strong> sözleşmenin ifası / meşru menfaat ve hizmetin
+        teknik olarak sunulabilmesi.
       </li>
       <li>
-        <strong>İşlevsel:</strong> taslak ilan veya arayüz tercihi gibi deneyimi iyileştiren
-        kayıtlar (varsa).
-      </li>
-      <li>
-        <strong>Analitik:</strong> trafik ve hata ölçümü için sınırlı analitik
-        (yapılandırıldığında). Pazarlama / reklam çerezleri şu an aktif değildir.
+        <strong>Zorunlu olmayan çerezler:</strong> gerektiğinde ilgili kişinin açık rızası
+        (KVKK m.5).
       </li>
     </ul>
 
-    <h2>Yönetim</h2>
+    <h2>4. Çerezleri nasıl yönetebilirsiniz?</h2>
     <p>
-      Tarayıcı ayarlarından çerezleri silebilir veya engelleyebilirsiniz. Zorunlu çerezler
-      engellenirse giriş ve form güvenliği çalışmayabilir. Ayrıntılı tercih paneli ileride
-      sunulacaktır.
+      Tarayıcı ayarlarından çerezleri silebilir, engelleyebilir veya yalnızca belirli
+      siteler için izin verebilirsiniz. Zorunlu çerezler engellenirse giriş, form gönderimi
+      ve güvenlik özellikleri çalışmayabilir.
+    </p>
+    <p>
+      Ayrıntılı bir site içi çerez tercih paneli henüz sunulmuyorsa, tarayıcı kontrolleri
+      birincil yönetim yoludur. Panel eklendiğinde bu politika güncellenir.
     </p>
 
-    <h2>İletişim</h2>
+    <h2>5. Üçüncü taraflar</h2>
     <p>
-      Çerezler hakkında sorularınız için
-      <a href="mailto:destek@aracparki.com?subject=@Uri.EscapeDataString("Çerez politikası")">destek@aracparki.com</a>
-      veya <a href="/iletisim">iletişim</a> sayfası.
+      Hizmet altyapısı (barındırma, medya, e-posta) kapsamında teknik çerezler veya benzeri
+      teknolojiler kullanılabilir. Bu sağlayıcılar, sözleşmesel ve teknik tedbirlerle
+      sınırlı amaçla veri işleyebilir.
+    </p>
+
+    <h2>6. Güncellemeler</h2>
+    <p>
+      Çerez kullanımı değiştikçe bu politika güncellenir. Yürürlükteki sürüm bu sayfada
+      yayımlanır.
+    </p>
+
+    <h2>7. İletişim</h2>
+    <p>
+      Çerezler ve kişisel veriler hakkında:
+      <a href="mailto:@site.SupportEmail?subject=@Uri.EscapeDataString("Çerez politikası")">@site.SupportEmail</a>
+      · <a href="/iletisim">İletişim</a>
+      · <a href="/kvkk">KVKK başvurusu</a>
     </p>
 
     <nav class="legal-related" aria-label="İlgili sayfalar">
-      <a href="/gizlilik">Gizlilik</a>
-      <a href="/kvkk">KVKK</a>
+      <a href="/gizlilik">Gizlilik bildirimi</a>
+      <a href="/kvkk">KVKK aydınlatma</a>
       <a href="/kullanim-kosullari">Kullanım koşulları</a>
     </nav>
   </article>

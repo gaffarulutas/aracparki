@@ -1,12 +1,34 @@
-@model string
+@using AracParki.Application.Site.Dtos
+@model SiteSettingsDto
+@{
+    var site = Model;
+    var year = DateTime.UtcNow.Year;
+    var brand = string.IsNullOrWhiteSpace(site.CompanyDisplayName) ? "Araç Parkı" : site.CompanyDisplayName;
+    var tagline = string.IsNullOrWhiteSpace(site.FooterTagline)
+        ? "Türkiye genelinde satılık, kiralık ve ikinci el iş makineleri için uzman ilan platformu."
+        : site.FooterTagline;
+}
 <footer class="site-footer">
   <div class="container">
     <div class="footer-grid footer-grid--5">
       <div class="footer-brand">
-        <a class="logo" href="/" aria-label="Araç Parkı">
+        <a class="logo" href="/" aria-label="@brand">
           <span class="logo-arac">Araç</span><span class="logo-parki">Parkı</span>
         </a>
-        <p>Türkiye genelinde satılık, kiralık ve ikinci el iş makineleri için uzman ilan platformu.</p>
+        <p>@tagline</p>
+        @if (site.HasAnySocial)
+        {
+          <ul class="footer-social" aria-label="Sosyal medya">
+            @foreach (var link in site.SocialLinks)
+            {
+              <li>
+                <a href="@link.Url" target="_blank" rel="noopener noreferrer" aria-label="@link.Label" title="@link.Label">
+                  <ap-icon name="@link.Icon" size="16" class="ap-icon" aria-hidden="true" />
+                </a>
+              </li>
+            }
+          </ul>
+        }
       </div>
       <div class="footer-col">
         <h3>Keşfet</h3>
@@ -40,14 +62,14 @@
         <ul>
           <li><a href="/kullanim-kosullari">Kullanım koşulları</a></li>
           <li><a href="/gizlilik">Gizlilik bildirimi</a></li>
-          <li><a href="/kvkk">KVKK aydınlatma</a></li>
+          <li><a href="/kvkk">KVKK aydınlatma metni</a></li>
           <li><a href="/cerez-politikasi">Çerez politikası</a></li>
         </ul>
       </div>
     </div>
 
     <p class="footer-disclaimer">
-      Araç Parkı, satılık ve kiralık iş makineleri için bir ilan platformudur.
+      @brand, satılık ve kiralık iş makineleri için bir ilan platformudur.
       İlanlardaki fiyat, özellik, durum ve diğer bilgilerden ilan sahipleri sorumludur;
       platform bu içeriklerin doğruluğunu veya güncelliğini garanti etmez.
       Alım-satım veya kiralama öncesi satıcıyla iletişime geçmenizi ve makineyi
@@ -55,13 +77,13 @@
     </p>
 
     <div class="footer-bottom">
-      <span>© 2026 Araç Parkı · aracparki.com</span>
+      <span>© @year @brand · aracparki.com</span>
       <nav aria-label="Yasal kısayollar">
-        <a href="/kullanim-kosullari">Koşullar</a>
-        <a href="/gizlilik">Gizlilik</a>
-        <a href="/kvkk">KVKK</a>
-        <a href="/cerez-politikasi">Çerezler</a>
-        <a href="/iletisim">İletişim</a>
+        <a href="/kullanim-kosullari" title="Kullanım koşulları">Kullanım koşulları</a>
+        <a href="/gizlilik" title="Gizlilik bildirimi">Gizlilik</a>
+        <a href="/kvkk" title="KVKK aydınlatma metni">KVKK</a>
+        <a href="/cerez-politikasi" title="Çerez politikası">Çerez politikası</a>
+        <a href="/iletisim" title="İletişim">İletişim</a>
       </nav>
     </div>
   </div>

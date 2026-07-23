@@ -6,14 +6,6 @@
     ViewData["Description"] = "Araç Parkı ilan kuralları: doğru içerik, fotoğraf, fiyat, kiralama bilgisi, yasaklı içerikler ve moderasyon süreci.";
     ViewData["CanonicalUrl"] = SiteUrls.Absolute("/ilan-kurallari");
     ViewData["OgTitle"] = "İlan Kuralları | Araç Parkı";
-    var crumbs = Breadcrumbs.Create(
-        new BreadcrumbItem("Anasayfa", "/"),
-        new BreadcrumbItem("İlan kuralları", "/ilan-kurallari"));
-    Breadcrumbs.Set(ViewData, SiteUrls, crumbs);
-}
-
-@section CrumbBar {
-  <partial name="Shared/Partials/_SiteBreadcrumb" model="crumbs" />
 }
 
 <main class="legal-page" id="main">

@@ -84,12 +84,32 @@
       <section class="promo-strip" aria-labelledby="promo-title">
         <div class="promo-copy">
           <h2 class="promo-title" id="promo-title">İlanları daralt</h2>
-          <p class="promo-lead">Kategori ve il seçerek doğru makineye hızlıca ulaş.</p>
+          <p class="promo-lead">Satılık veya kiralık, kategori ve il seçerek doğru makineye ulaş.</p>
         </div>
         <form class="promo-filters" method="get" action="/ilanlar">
+          <label class="sr-only" for="filter-intent">İlan tipi</label>
+          <select id="filter-intent" name="tip" aria-label="İlan tipi seç">
+            <option value="">Satılık / Kiralık</option>
+            @if (Model.Filter.Intent == ListingIntent.Satilik)
+            {
+              <option value="@ListingIntent.Satilik" selected>Satılık</option>
+            }
+            else
+            {
+              <option value="@ListingIntent.Satilik">Satılık</option>
+            }
+            @if (Model.Filter.Intent == ListingIntent.Kiralik)
+            {
+              <option value="@ListingIntent.Kiralik" selected>Kiralık</option>
+            }
+            else
+            {
+              <option value="@ListingIntent.Kiralik">Kiralık</option>
+            }
+          </select>
           <label class="sr-only" for="filter-category">Kategori</label>
           <select id="filter-category" name="kategori" aria-label="Kategori seç">
-            <option value="">Tüm kategoriler</option>
+            <option value="">Kategori</option>
             @foreach (var cat in Model.CategoryOptions)
             {
               if (Model.Filter.Category == cat.Name)
@@ -104,7 +124,7 @@
           </select>
           <label class="sr-only" for="filter-city">İl</label>
           <select id="filter-city" name="il" aria-label="İl seç">
-            <option value="">Türkiye geneli</option>
+            <option value="">İl</option>
             @foreach (var city in Model.CityOptions)
             {
               if (Model.Filter.City == city.Name)
@@ -123,13 +143,10 @@
 
       <section class="partner-banner" aria-labelledby="partner-title">
         <div class="partner-banner-copy">
-          <p class="partner-banner-eyebrow">Kurumsal</p>
           <h2 class="partner-banner-title" id="partner-title">Bayi ve çözüm ortaklığı</h2>
-          <p class="partner-banner-lead">
-            Yetkili bayi, finansman ve servis ağını Araç Parkı ile büyütün.
-          </p>
+          <p class="partner-banner-lead">Onaylı mağaza, bayi rozeti ve niyetli alıcılara erişim. Stok veya çözümünüzü büyütün.</p>
         </div>
-        <a class="btn btn-ghost partner-banner-cta" href="/giris">Başvuru yap</a>
+        <a class="btn btn-ghost partner-banner-cta" href="/bayi-ortakligi">Detaylı bilgi</a>
       </section>
 
       <section class="vitrin-block" id="vitrin" aria-labelledby="vitrin-title">
@@ -167,27 +184,27 @@
       </section>
 
       <section class="proof-strip" id="guven" aria-label="Neden Araç Parkı">
-        <div class="proof-item">
+        <a class="proof-item" href="/dogrulanmis-satici">
           <ap-icon name="badge-check" size="22" />
           <div class="proof-item-copy">
             <strong>Doğrulanmış satıcı</strong>
-            <span>Bayi ve sahibi rozetleri</span>
+            <span>Onaylı kurumsal bayi</span>
           </div>
-        </div>
-        <div class="proof-item">
+        </a>
+        <a class="proof-item" href="/net-fiyat">
           <ap-icon name="banknote" size="22" />
           <div class="proof-item-copy">
             <strong>Net fiyat</strong>
-            <span>Satılık ve günlük kiralık</span>
+            <span>Satılık ve birimli kiralık</span>
           </div>
-        </div>
-        <div class="proof-item">
+        </a>
+        <a class="proof-item" href="/turkiye-geneli">
           <ap-icon name="map-pin" size="22" />
           <div class="proof-item-copy">
             <strong>81 il</strong>
-            <span>Türkiye geneli ilan ağı</span>
+            <span>Yayın ve arama kapsamı</span>
           </div>
-        </div>
+        </a>
       </section>
 
       <section class="seller-cta" id="ilan-ver">

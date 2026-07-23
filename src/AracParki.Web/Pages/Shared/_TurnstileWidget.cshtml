@@ -1,0 +1,14 @@
+@using Microsoft.Extensions.Options
+@using AracParki.Application.Security
+@inject IOptions<TurnstileSettings> TurnstileOptions
+@{
+    var siteKey = TurnstileOptions.Value.SiteKey;
+}
+@if (!string.IsNullOrWhiteSpace(siteKey))
+{
+    <div class="auth-turnstile">
+        <div class="cf-turnstile"
+             data-sitekey="@siteKey"
+             data-action="turnstile-spin-v2"></div>
+    </div>
+}

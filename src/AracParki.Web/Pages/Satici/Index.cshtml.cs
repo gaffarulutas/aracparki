@@ -63,11 +63,6 @@ public sealed class IndexModel(
         }
 
         ViewData["JsonLd"] = BuildLocalBusinessJsonLd(Dealer);
-        Breadcrumbs.Set(ViewData, siteUrls,
-            Breadcrumbs.Create(
-                new BreadcrumbItem("Anasayfa", "/"),
-                new BreadcrumbItem("Satıcılar", ListingRoutes.List),
-                new BreadcrumbItem(Dealer.DisplayName, ListingRoutes.Dealer(Dealer.Slug))));
 
         return Page();
     }

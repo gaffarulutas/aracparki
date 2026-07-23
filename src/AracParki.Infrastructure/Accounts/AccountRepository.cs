@@ -106,6 +106,30 @@ public sealed class AccountRepository(IDbConnectionFactory connectionFactory) : 
                 cancellationToken: cancellationToken));
     }
 
+    public async Task UpdateProfileAsync(
+        long accountId,
+        string firstName,
+        string lastName,
+        CancellationToken cancellationToken)
+    {
+        await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                """
+                UPDATE accounts
+                SET first_name = @FirstName,
+                    last_name = @LastName
+                WHERE id = @Id
+                """,
+                new
+                {
+                    Id = accountId,
+                    FirstName = firstName,
+                    LastName = lastName
+                },
+                cancellationToken: cancellationToken));
+    }
+
     public async Task ConfirmPhoneAsync(long accountId, CancellationToken cancellationToken)
     {
         await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);

@@ -1,5 +1,4 @@
 using AracParki.Application.Listings;
-using AracParki.Application.Listings.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

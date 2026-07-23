@@ -1,5 +1,4 @@
 @page "/hakkimizda"
-@using System.Text.Json
 @inject SiteUrls SiteUrls
 @{
     ViewData["PageKey"] = "legal";
@@ -8,10 +7,6 @@
     ViewData["CanonicalUrl"] = SiteUrls.Absolute("/hakkimizda");
     ViewData["OgTitle"] = "Hakkımızda | Araç Parkı";
     ViewData["OgType"] = "website";
-    var crumbs = Breadcrumbs.Create(
-        new BreadcrumbItem("Anasayfa", "/"),
-        new BreadcrumbItem("Hakkımızda", "/hakkimizda"));
-    Breadcrumbs.Set(ViewData, SiteUrls, crumbs);
     ViewData["JsonLd"] = JsonSerializer.Serialize(new Dictionary<string, object?>
     {
         ["@context"] = "https://schema.org",
@@ -26,10 +21,6 @@
             ["url"] = SiteUrls.Origin + "/"
         }
     });
-}
-
-@section CrumbBar {
-  <partial name="Shared/Partials/_SiteBreadcrumb" model="crumbs" />
 }
 
 <main class="legal-page" id="main">
@@ -55,7 +46,7 @@
       </div>
       <div class="legal-highlight" role="listitem">
         <strong>Şeffaf yayın</strong>
-        <span>Moderasyon, doğrulanmış telefon ve kurumsal satıcı görünümü.</span>
+        <span>Moderasyon, telefon doğrulama (yayın şartı) ve onaylı kurumsal satıcı.</span>
       </div>
       <div class="legal-highlight" role="listitem">
         <strong>Türkiye geneli</strong>
@@ -98,6 +89,9 @@
     </div>
 
     <nav class="legal-related" aria-label="İlgili sayfalar">
+      <a href="/bayi-ortakligi">Bayi ortaklığı</a>
+      <a href="/dogrulanmis-satici">Doğrulanmış satıcı</a>
+      <a href="/turkiye-geneli">Türkiye geneli</a>
       <a href="/yardim">Yardım merkezi</a>
       <a href="/ilan-kurallari">İlan kuralları</a>
       <a href="/kullanim-kosullari">Kullanım koşulları</a>
