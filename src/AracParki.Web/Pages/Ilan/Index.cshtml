@@ -1,7 +1,5 @@
 @page "/ilan/{adNo}"
 @model AracParki.Web.Pages.Ilan.IndexModel
-@using AracParki.Domain.Listings
-@using AracParki.Application.Listings
 @{
     var listing = Model.Listing!;
     var intentLabel = ListingIntent.Label(listing.PrimaryIntent);
@@ -35,7 +33,7 @@
     var isExpiredLive = listing.Status == ListingStatus.Published
         && listing.ExpiresAt is DateTimeOffset exp
         && exp <= DateTimeOffset.UtcNow;
-    var hasTechSpecs = Model.SpecRows.Count > 0;
+    var hasTechSpecs = Model.SpecRows.Count > 0 || listing.Attachments.Count > 0;
     var priceText = Formatters.Price(
         listing.Price,
         listing.PrimaryIntent == ListingIntent.Kiralik ? listing.PriceUnit : null,
@@ -73,57 +71,8 @@
     </div>
   }
 
-  <header class="detail-head">
-    <h1 class="detail-title">@listing.Title</h1>
-    <div class="detail-utils" role="group" aria-label="İlan işlemleri">
-      @if (!isPreview && !isExpiredLive)
-      {
-        @if (User.Identity?.IsAuthenticated == true)
-        {
-          <form method="post" asp-page-handler="ToggleFavorite" class="detail-util-form">
-            @Html.AntiForgeryToken()
-            <button type="submit"
-                    class="btn btn-ghost btn-sm detail-util @(Model.IsFavorite ? "is-active" : null)"
-                    aria-pressed="@(Model.IsFavorite ? "true" : "false")"
-                    aria-label="@(Model.IsFavorite ? "Favorilerden çıkar" : "Favorilere ekle")"
-                    title="@(Model.IsFavorite ? "Favorilerden çıkar" : "Favorilere ekle")">
-              <ap-icon name="heart" size="15" class="ap-icon" aria-hidden="true" />
-              <span>@(Model.IsFavorite ? "Favorilerimde" : "Favorilere Ekle")</span>
-            </button>
-          </form>
-        }
-        else
-        {
-          <a class="btn btn-ghost btn-sm detail-util"
-             href="/giris?returnUrl=@Uri.EscapeDataString($"/ilan/{listing.AdNo}")"
-             title="Favorilere ekle">
-            <ap-icon name="heart" size="15" class="ap-icon" aria-hidden="true" />
-            <span>Favorilere Ekle</span>
-          </a>
-        }
-      }
-      <button type="button" class="btn btn-ghost btn-sm detail-util" data-print-listing title="Yazdır" aria-label="Yazdır">
-        <ap-icon name="printer" size="15" class="ap-icon" aria-hidden="true" />
-        <span>Yazdır</span>
-      </button>
-      @if (!isPreview && !isExpiredLive)
-      {
-        <button type="button"
-                class="btn btn-ghost btn-sm detail-util"
-                data-share-listing
-                data-share-title="@listing.Title"
-                data-share-url=""
-                title="Paylaş"
-                aria-label="Paylaş">
-          <ap-icon name="share-2" size="15" class="ap-icon" aria-hidden="true" />
-          <span data-share-label>Paylaş</span>
-        </button>
-      }
-    </div>
-  </header>
-
   <div class="detail-top">
-    <div class="detail-gallery detail-review-gallery" data-detail-gallery tabindex="0" aria-label="İlan görselleri">
+    <div class="detail-gallery detail-review-gallery" data-detail-gallery data-thumbs-per-page="5" tabindex="0" aria-label="İlan görselleri">
       <div class="gallery-main-wrap">
         <img class="gallery-main"
              src="@mainDisplay"
@@ -142,12 +91,8 @@
           <button type="button" class="gallery-hit gallery-hit--next" data-gallery-next aria-label="Sonraki görsel"></button>
         }
         <div class="detail-gallery-overlay">
-          <h2 class="detail-gallery-overlay-title">@listing.Title</h2>
+          <h1 class="detail-gallery-overlay-title">@listing.Title</h1>
           <p class="detail-gallery-overlay-price">@priceText</p>
-          <p class="detail-gallery-overlay-place">
-            <ap-icon name="map-pin" size="14" aria-hidden="true" />
-            <span>@listing.City / @listing.District@(string.IsNullOrWhiteSpace(listing.Neighborhood) ? "" : $" / {listing.Neighborhood}")</span>
-          </p>
         </div>
         @if (images.Count > 0)
         {
@@ -155,9 +100,9 @@
                   class="gallery-expand"
                   data-gallery-open
                   aria-haspopup="dialog"
-                  aria-label="Büyük galeriyi aç">
+                  aria-label="Büyük resmi aç">
             <ap-icon name="maximize-2" size="16" />
-            <span>@images.Count fotoğraf</span>
+            <span>Büyük resim</span>
           </button>
         }
         <button type="button" class="sr-only" data-gallery-lg-trigger id="gallery-lg-@listing.Id" tabindex="-1">Galeri</button>
@@ -165,42 +110,73 @@
 
       @if (images.Count > 0)
       {
-        <div class="gallery-thumbs" role="list">
-          @for (var i = 0; i < images.Count; i++)
-          {
-            <button type="button"
-                    role="listitem"
-                    class="@(i == 0 ? "is-active" : null)"
-                    data-gallery-thumb
-                    data-src="@ListingImageUrlVariants.WithVariant(images[i], ListingImageVariants.Lg)"
-                    data-srcset="@ListingImageUrlVariants.SrcSet(
-                        images[i],
-                        (ListingImageVariants.Md, 768),
-                        (ListingImageVariants.Lg, 1280),
-                        (ListingImageVariants.Xl, 1920))"
-                    data-index="@i"
-                    aria-label="Görsel @(i + 1)"
-                    aria-current="@(i == 0 ? "true" : "false")">
-              <img src="@ListingImageUrlVariants.WithVariant(images[i], ListingImageVariants.Thumb)"
-                   alt="@(listing.Title) — görsel @(i + 1)"
-                   width="88"
-                   height="88"
-                   loading="lazy"
-                   decoding="async" />
-            </button>
-          }
+        var thumbsPerPage = 5;
+        var thumbPageCount = Math.Max(1, (int)Math.Ceiling(images.Count / (double)thumbsPerPage));
+        <div class="gallery-thumbs-viewport">
+          <div class="gallery-thumbs-track" data-gallery-track>
+            @for (var pageIdx = 0; pageIdx < thumbPageCount; pageIdx++)
+            {
+              <div class="gallery-thumbs-page" role="list">
+                @for (var i = pageIdx * thumbsPerPage; i < Math.Min(images.Count, (pageIdx + 1) * thumbsPerPage); i++)
+                {
+                  <button type="button"
+                          role="listitem"
+                          class="@(i == 0 ? "is-active" : null)"
+                          data-gallery-thumb
+                          data-src="@ListingImageUrlVariants.WithVariant(images[i], ListingImageVariants.Lg)"
+                          data-srcset="@ListingImageUrlVariants.SrcSet(
+                              images[i],
+                              (ListingImageVariants.Md, 768),
+                              (ListingImageVariants.Lg, 1280),
+                              (ListingImageVariants.Xl, 1920))"
+                          data-index="@i"
+                          aria-label="Görsel @(i + 1)"
+                          aria-current="@(i == 0 ? "true" : "false")">
+                    <img src="@ListingImageUrlVariants.WithVariant(images[i], ListingImageVariants.Thumb)"
+                         alt="@(listing.Title) — görsel @(i + 1)"
+                         width="88"
+                         height="88"
+                         loading="lazy"
+                         decoding="async" />
+                  </button>
+                }
+              </div>
+            }
+          </div>
         </div>
-        <div class="gallery-meta">
-          <span data-gallery-counter>1 / @images.Count Fotoğraf</span>
+
+        <div class="gallery-footer">
+          <span class="gallery-counter" data-gallery-counter>1/@images.Count Fotoğraf</span>
+          @if (thumbPageCount > 1)
+          {
+            <div class="gallery-pager" data-gallery-pager>
+              <button type="button" class="gallery-page-btn" data-gallery-page-prev aria-label="Önceki fotoğraf grubu">
+                <ap-icon name="arrow-left" size="16" class="ap-icon" aria-hidden="true" />
+              </button>
+              <div class="gallery-dots" data-gallery-dots role="tablist" aria-label="Fotoğraf grupları">
+                @for (var pageIdx = 0; pageIdx < thumbPageCount; pageIdx++)
+                {
+                  <button type="button"
+                          class="gallery-dot @(pageIdx == 0 ? "is-active" : null)"
+                          data-gallery-page="@pageIdx"
+                          aria-label="Grup @(pageIdx + 1)"
+                          aria-selected="@(pageIdx == 0 ? "true" : "false")"></button>
+                }
+              </div>
+              <button type="button" class="gallery-page-btn" data-gallery-page-next aria-label="Sonraki fotoğraf grubu">
+                <ap-icon name="arrow-right" size="16" class="ap-icon" aria-hidden="true" />
+              </button>
+            </div>
+          }
         </div>
       }
     </div>
 
     <section class="detail-info" aria-labelledby="info-title">
-      <h2 class="sr-only" id="info-title">İlan özeti</h2>
-      <div class="detail-price-block">
-        <div class="detail-price">@priceText</div>
-        <p class="detail-loc">
+      <h2 class="sr-only" id="info-title">İlan özellikleri</h2>
+      <p class="detail-loc">
+        <ap-icon name="map-pin" size="14" class="ap-icon" aria-hidden="true" />
+        <span class="detail-loc-text">
           <a class="detail-filter-link" href="@Model.FilterCityUrl()">@listing.City</a>
           <span class="detail-loc-sep" aria-hidden="true">/</span>
           <a class="detail-filter-link" href="@Model.FilterDistrictUrl()">@listing.District</a>
@@ -209,16 +185,19 @@
             <span class="detail-loc-sep" aria-hidden="true">/</span>
             <a class="detail-filter-link" href="@Model.FilterDistrictUrl()" title="İlçe filtresiyle aç">@listing.Neighborhood</a>
           }
-        </p>
-        <p class="detail-price-note">
-          <span class="detail-adno-inline">İlan No <strong class="spec-adno">@listing.AdNo</strong></span>
-          <span class="detail-price-sep" aria-hidden="true">·</span>
-          <span>@Formatters.ListedAt(listing.ListedAt)</span>
-        </p>
-      </div>
+        </span>
+      </p>
 
       <table class="spec-table">
         <tbody>
+          <tr>
+            <th scope="row">İlan No</th>
+            <td><strong class="spec-adno">@listing.AdNo</strong></td>
+          </tr>
+          <tr>
+            <th scope="row">İlan Tarihi</th>
+            <td>@Formatters.ListedAt(listing.ListedAt)</td>
+          </tr>
           <tr>
             <th scope="row">Kategori</th>
             <td><a class="detail-filter-link" href="@Model.FilterCategoryUrl()">@listing.Category</a></td>
@@ -295,155 +274,242 @@
               <td>@Formatters.Horsepower(listing.Horsepower.Value)</td>
             </tr>
           }
-          @if (listing.IncludesOperator)
+          @if (listing.PrimaryIntent == ListingIntent.Kiralik)
           {
+            @if (!string.IsNullOrWhiteSpace(listing.PriceUnit))
+            {
+              <tr>
+                <th scope="row">Kira Birimi</th>
+                <td>
+                  <a class="detail-filter-link" href="@Model.FilterPriceUnitUrl()">@PriceUnit.Label(listing.PriceUnit)</a>
+                </td>
+              </tr>
+            }
             <tr>
               <th scope="row">Operatör</th>
-              <td>Dahil</td>
+              <td>
+                @if (listing.IncludesOperator)
+                {
+                  <a class="detail-filter-link" href="@Model.FilterOperatorUrl()">Dahil</a>
+                }
+                else
+                {
+                  <span>Dahil değil</span>
+                }
+              </td>
             </tr>
-          }
-          @if (listing.Attachments.Count > 0)
-          {
-            <tr>
-              <th scope="row">Ekipmanlar</th>
-              <td>@string.Join(", ", listing.Attachments.Select(a => a.Name))</td>
-            </tr>
+            @if (listing.RentPrice is not null)
+            {
+              <tr>
+                <th scope="row">Kira Fiyatı</th>
+                <td>@Formatters.Price(listing.RentPrice.Value, listing.PriceUnit, listing.Currency)</td>
+              </tr>
+            }
           }
         </tbody>
       </table>
 
       <a class="detail-report" href="mailto:destek@aracparki.com?subject=İlan%20şikayeti%20@Uri.EscapeDataString(listing.AdNo)">
-        İlan ile ilgili şikayetim var
+        <ap-icon name="circle-alert" size="14" class="ap-icon" aria-hidden="true" />
+        <span>İlan ile ilgili şikayetim var</span>
       </a>
     </section>
 
-    <aside class="detail-seller" aria-label="Satıcı bilgileri" id="buybox">
-      <div class="detail-seller-stack sticky-box">
-      <div class="seller-card">
-        <div class="seller-card-head">
-          <div class="seller-identity">
-            @if (isCorporateListing)
-            {
-              <div class="seller-logo" aria-hidden="true">
-                @if (!string.IsNullOrWhiteSpace(sellerLogoUrl))
-                {
-                  <img src="@sellerLogoUrl"
-                       alt=""
-                       width="56"
-                       height="56"
-                       loading="lazy"
-                       decoding="async" />
-                }
-                else
-                {
-                  <span class="seller-logo-fallback">@sellerInitial</span>
-                }
-              </div>
-            }
-            <div class="seller-identity-copy">
-              <strong class="seller-name">@sellerDisplayName</strong>
-              <div class="seller-meta-row">
-                <span class="seller-type">@sellerLabel</span>
-                @if (sellerVerified)
-                {
-                  <span class="seller-verified">
-                    <ap-icon name="badge-check" size="14" class="ap-icon" aria-hidden="true" />
-                    Doğrulanmış
-                  </span>
-                }
-              </div>
-            </div>
-          </div>
-          @if (!string.IsNullOrWhiteSpace(listing.CorporateSlug))
+    <aside class="detail-aside" aria-label="İşlemler ve satıcı">
+      <div class="detail-aside-stack sticky-box">
+        <div class="detail-utils" role="group" aria-label="İlan işlemleri">
+          @if (!isPreview && !isExpiredLive)
           {
-            <a class="seller-profile-link" href="@ListingRoutes.Dealer(listing.CorporateSlug)">
-              Mağazayı gör
-              <ap-icon name="chevron-right" size="14" class="ap-icon" aria-hidden="true" />
-            </a>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+              <form method="post" asp-page-handler="ToggleFavorite" class="detail-util-form">
+                @Html.AntiForgeryToken()
+                <button type="submit"
+                        class="btn btn-ghost btn-sm detail-util @(Model.IsFavorite ? "is-active" : null)"
+                        aria-pressed="@(Model.IsFavorite ? "true" : "false")"
+                        aria-label="@(Model.IsFavorite ? "Favori çıkar" : "Favori Ekle")"
+                        title="@(Model.IsFavorite ? "Favori çıkar" : "Favori Ekle")">
+                  <ap-icon name="heart" size="13" class="ap-icon" aria-hidden="true" />
+                  <span>@(Model.IsFavorite ? "Favori çıkar" : "Favori Ekle")</span>
+                </button>
+              </form>
+            }
+            else
+            {
+              <a class="btn btn-ghost btn-sm detail-util"
+                 href="/giris?returnUrl=@Uri.EscapeDataString($"/ilan/{listing.AdNo}")"
+                 title="Favori Ekle">
+                <ap-icon name="heart" size="13" class="ap-icon" aria-hidden="true" />
+                <span>Favori Ekle</span>
+              </a>
+            }
+          }
+          <button type="button" class="btn btn-ghost btn-sm detail-util" data-print-listing title="Yazdır" aria-label="Yazdır">
+            <ap-icon name="printer" size="13" class="ap-icon" aria-hidden="true" />
+            <span>Yazdır</span>
+          </button>
+          @if (!isPreview && !isExpiredLive)
+          {
+            <button type="button"
+                    class="btn btn-ghost btn-sm detail-util"
+                    data-share-listing
+                    data-share-title="@listing.Title"
+                    data-share-url=""
+                    title="Paylaş"
+                    aria-label="Paylaş">
+              <ap-icon name="share-2" size="13" class="ap-icon" aria-hidden="true" />
+              <span data-share-label>Paylaş</span>
+            </button>
           }
         </div>
 
-        @if (!isPreview)
-        {
-          <div class="seller-actions">
-            <button type="button" class="btn btn-dark btn-block" data-reveal-phone="@listing.AdNo">
-              <ap-icon name="phone" size="18" />
-              <span>Telefonu Göster</span>
-            </button>
-            <span data-phone-slot hidden>
-              <a class="btn btn-ghost btn-block" data-phone-link href="#">Ara</a>
-            </span>
-            <button type="button" class="btn btn-machine btn-block" data-toast="Teklif talebi alındı">
-              <ap-icon name="message-circle" size="18" />
-              <span>Teklif Al</span>
-            </button>
-          </div>
-          @if (isCorporateListing && sellerVerified)
-          {
-            <p class="seller-trust">Onaylı kurumsal satıcı · güvenli iletişim</p>
-          }
-        }
-      </div>
+        <div class="detail-seller" id="buybox">
+          <div class="seller-card">
+            <div class="seller-card-head">
+              <div class="seller-identity">
+                @if (isCorporateListing)
+                {
+                  <div class="seller-logo" aria-hidden="true">
+                    @if (!string.IsNullOrWhiteSpace(sellerLogoUrl))
+                    {
+                      <img src="@sellerLogoUrl"
+                           alt=""
+                           width="56"
+                           height="56"
+                           loading="lazy"
+                           decoding="async" />
+                    }
+                    else
+                    {
+                      <span class="seller-logo-fallback">@sellerInitial</span>
+                    }
+                  </div>
+                }
+                <div class="seller-identity-copy">
+                  <strong class="seller-name">@sellerDisplayName</strong>
+                  <div class="seller-meta-row">
+                    <span class="seller-type">@sellerLabel</span>
+                    @if (sellerVerified)
+                    {
+                      <span class="seller-verified">
+                        <ap-icon name="badge-check" size="14" class="ap-icon" aria-hidden="true" />
+                        Doğrulanmış
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+              @if (!string.IsNullOrWhiteSpace(listing.CorporateSlug))
+              {
+                <a class="btn btn-ghost btn-block seller-store-btn" href="@ListingRoutes.Dealer(listing.CorporateSlug)">
+                  Mağazayı gör
+                </a>
+              }
+            </div>
 
-      <a class="safety-tips"
-         href="/guvenli-alisveris"
-         title="Detaylı güvenlik ipuçları"
-         aria-label="Güvenlik ipuçları — detaylı bilgi için tıklayın">
-        <span class="safety-tips-head">
-          <span class="safety-tips-icon" aria-hidden="true">
-            <ap-icon name="shield-check" size="16" class="ap-icon" />
-          </span>
-          <strong class="safety-tips-title">Güvenlik İpuçları</strong>
-        </span>
-        <span class="safety-tips-text">
-          İlgilendiğiniz makineyi yerinde görmeden kapora ödemeyin, para göndermeyin.
-        </span>
-      </a>
+            @if (!isPreview)
+            {
+              <div class="seller-actions">
+                <button type="button"
+                        class="btn btn-dark btn-block"
+                        data-reveal-phone="@listing.AdNo"
+                        data-label-show="Telefonu Göster"
+                        data-label-hide="Telefonu Gizle"
+                        aria-expanded="false"
+                        aria-controls="listing-phone-slot">
+                  <ap-icon name="phone" size="18" />
+                  <span data-reveal-phone-label>Telefonu Göster</span>
+                </button>
+                <span id="listing-phone-slot" data-phone-slot hidden>
+                  <a class="btn btn-ghost btn-block" data-phone-link href="#">Ara</a>
+                </span>
+                <button type="button" class="btn btn-machine btn-block" data-toast="Teklif talebi alındı">
+                  <ap-icon name="message-circle" size="18" />
+                  <span>Teklif Al</span>
+                </button>
+              </div>
+            }
+            @if (!isPreview && isCorporateListing && sellerVerified)
+            {
+              <p class="seller-trust">Onaylı kurumsal satıcı · güvenli iletişim</p>
+            }
+          </div>
+
+          <a class="safety-tips"
+             href="/guvenli-alisveris"
+             title="Detaylı güvenlik ipuçları"
+             aria-label="Güvenlik ipuçları — detaylı bilgi için tıklayın">
+            <span class="safety-tips-head">
+              <span class="safety-tips-icon" aria-hidden="true">
+                <ap-icon name="shield-check" size="16" class="ap-icon" />
+              </span>
+              <strong class="safety-tips-title">Güvenlik İpuçları</strong>
+            </span>
+            <span class="safety-tips-text">
+              İlgilendiğiniz makineyi yerinde görmeden kapora ödemeyin, para göndermeyin.
+            </span>
+          </a>
+
+          <aside class="detail-ad-slot" aria-label="Reklam alanı">
+            <span class="detail-ad-slot-kicker">Reklam alanı</span>
+            <strong class="detail-ad-slot-title">Bu alana reklam verebilirsiniz</strong>
+            <p class="detail-ad-slot-text">
+              İlan detayını inceleyen alıcılara markanızı veya stoğunuzu gösterin.
+              Sponsorlu görünürlük için bizimle iletişime geçin.
+            </p>
+            <a class="btn btn-ghost btn-sm detail-ad-slot-cta"
+               href="mailto:destek@aracparki.com?subject=@Uri.EscapeDataString("Reklam talebi — ilan detay paneli")">
+              <ap-icon name="mail" size="14" class="ap-icon" aria-hidden="true" />
+              <span>Reklam teklifi alın</span>
+            </a>
+          </aside>
+        </div>
       </div>
     </aside>
   </div>
 
-  <div class="detail-tabs" data-detail-tabs>
-    <div class="detail-tablist" role="tablist" aria-label="İlan içeriği">
-      <button type="button" class="detail-tab is-active" role="tab" id="tab-details"
-              aria-selected="true" aria-controls="panel-details" data-detail-tab="details">
-        İlan Detayları
-      </button>
-      @if (hasTechSpecs)
-      {
-        <button type="button" class="detail-tab" role="tab" id="tab-tech"
-                aria-selected="false" aria-controls="panel-tech" data-detail-tab="tech" tabindex="-1">
-          Teknik Özellikler
-        </button>
-      }
-    </div>
-
-    <div class="detail-tabpanels">
-      <section class="detail-tabpanel is-active" role="tabpanel" id="panel-details"
-               aria-labelledby="tab-details" data-detail-panel="details">
-        <h2 class="detail-section-title" id="desc-title">Açıklama</h2>
-        <div class="detail-desc">@Html.Raw(ListingDescriptionHtml.ToSafeDisplayHtml(listing.Description))</div>
-      </section>
-
-      @if (hasTechSpecs)
-      {
-        <section class="detail-tabpanel" role="tabpanel" id="panel-tech"
-                 aria-labelledby="tab-tech" data-detail-panel="tech" hidden>
-          <h2 class="detail-section-title" id="tech-title">Teknik Özellikler</h2>
-          <table class="spec-table">
-            <tbody>
-              @foreach (var row in Model.SpecRows)
+  <div class="detail-body">
+    @if (hasTechSpecs)
+    {
+      <section class="detail-section" aria-labelledby="tech-title">
+        <h2 class="detail-section-title" id="tech-title">Teknik Özellikler</h2>
+        @if (Model.SpecRows.Count > 0)
+        {
+          <dl class="detail-tech-grid">
+            @foreach (var row in Model.SpecRows)
+            {
+              <div class="detail-tech-item">
+                <dt>@row.Label</dt>
+                <dd>@row.Value</dd>
+              </div>
+            }
+          </dl>
+        }
+        @if (listing.Attachments.Count > 0)
+        {
+          <div class="detail-tech-attachments">
+            <h3 class="detail-tech-attachments-title">Ekipmanlar</h3>
+            <ul class="detail-tags" aria-label="Ekipmanlar">
+              @foreach (var att in listing.Attachments)
               {
-                <tr>
-                  <th scope="row">@row.Label</th>
-                  <td>@row.Value</td>
-                </tr>
+                <li>
+                  <a class="detail-tag"
+                     href="@Model.FilterAttachmentUrl(att.Id)"
+                     title="@att.Name ekipmanlı ilanları gör">
+                    @att.Name
+                  </a>
+                </li>
               }
-            </tbody>
-          </table>
-        </section>
-      }
-    </div>
+            </ul>
+          </div>
+        }
+      </section>
+    }
+
+    <section class="detail-section" aria-labelledby="desc-title">
+      <h2 class="detail-section-title" id="desc-title">Açıklama</h2>
+      <div class="detail-desc">@Html.Raw(ListingDescriptionHtml.ToSafeDisplayHtml(listing.Description))</div>
+    </section>
   </div>
 
   @if (Model.Similar.Count > 0)
@@ -466,9 +532,21 @@
   {
     <div class="mobile-cta" id="mobile-cta" aria-label="Hızlı işlemler">
       <div class="mobile-cta-price">@priceText</div>
-      <button type="button" class="btn btn-dark btn-sm" data-reveal-phone="@listing.AdNo">
-        Telefon
+      <button type="button"
+              class="btn btn-dark btn-sm"
+              data-reveal-phone="@listing.AdNo"
+              data-label-show="Telefon"
+              data-label-hide="Gizle"
+              aria-expanded="false"
+              aria-controls="listing-phone-slot-mobile">
+        <span data-reveal-phone-label>Telefon</span>
       </button>
+      <a id="listing-phone-slot-mobile"
+         class="btn btn-ghost btn-sm"
+         data-phone-slot
+         data-phone-link
+         href="#"
+         hidden>Ara</a>
       <button type="button" class="btn btn-machine btn-sm" data-toast="Teklif talebi alındı">
         Teklif Al
       </button>

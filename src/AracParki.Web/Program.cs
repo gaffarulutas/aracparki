@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using System.Security.Claims;
 using AracParki.Application.Email;
 using AracParki.Application;
+using AracParki.Application.Common;
 using AracParki.Application.Authorization;
 using AracParki.Application.Catalog.Services;
 using AracParki.Application.Listings;
@@ -276,7 +277,14 @@ try
                 return Results.NotFound();
             }
 
-            return Results.Json(new { phone });
+            var tel = Formatters.PhoneTel(phone);
+            var display = Formatters.PhoneDisplay(phone);
+            if (string.IsNullOrWhiteSpace(tel) || string.IsNullOrWhiteSpace(display))
+            {
+                return Results.NotFound();
+            }
+
+            return Results.Json(new { phone = display, tel });
         })
         .RequireRateLimiting("phone-reveal");
 

@@ -201,8 +201,31 @@
     const btn = e.target.closest("[data-reveal-phone]");
     if (!btn) return;
     e.preventDefault();
+    if (!(btn instanceof HTMLElement)) return;
+
     const adNo = btn.getAttribute("data-reveal-phone");
     if (!adNo) return;
+
+    const setExpanded = (open) => {
+      document.querySelectorAll("[data-reveal-phone]").forEach((el) => {
+        if (!(el instanceof HTMLElement)) return;
+        el.setAttribute("aria-expanded", open ? "true" : "false");
+        const showLabel = el.getAttribute("data-label-show") || "Telefonu Göster";
+        const hideLabel = el.getAttribute("data-label-hide") || "Telefonu Gizle";
+        const lab = el.querySelector("[data-reveal-phone-label]");
+        if (lab) lab.textContent = open ? hideLabel : showLabel;
+      });
+      document.querySelectorAll("[data-phone-slot]").forEach((slot) => {
+        if (slot instanceof HTMLElement) slot.hidden = !open;
+      });
+    };
+
+    // Already fetched — toggle only (no toast).
+    if (btn.dataset.phoneReady === "1") {
+      setExpanded(btn.getAttribute("aria-expanded") !== "true");
+      return;
+    }
+
     btn.disabled = true;
     try {
       const token = document.querySelector('meta[name="request-verification-token"]')?.getAttribute("content") || "";
@@ -226,23 +249,28 @@
         return;
       }
       const data = await res.json();
-      const phone = data?.phone;
-      if (!phone) {
+      const display = String(data?.phone || "").trim();
+      const tel = String(data?.tel || "").trim().replace(/\s/g, "");
+      if (!display || !tel) {
         toast("Telefon alınamadı.");
         return;
       }
-      toast(`Telefon: ${phone}`);
+
       document.querySelectorAll("[data-phone-slot]").forEach((slot) => {
-        slot.hidden = false;
-        const link = slot.querySelector("a[data-phone-link]");
-        if (link) {
-          link.href = `tel:${String(phone).replace(/\s/g, "")}`;
-          link.textContent = `Ara: ${phone}`;
+        if (!(slot instanceof HTMLElement)) return;
+        const link = slot.matches("a[data-phone-link]")
+          ? slot
+          : slot.querySelector("a[data-phone-link]");
+        if (link instanceof HTMLAnchorElement) {
+          link.href = `tel:${tel}`;
+          link.textContent = display;
         }
       });
+
       document.querySelectorAll("[data-reveal-phone]").forEach((el) => {
-        el.hidden = true;
+        if (el instanceof HTMLElement) el.dataset.phoneReady = "1";
       });
+      setExpanded(true);
     } catch {
       toast("Telefon alınamadı.");
     } finally {
@@ -3495,56 +3523,6 @@
     });
   };
 
-  const initDetailTabs = () => {
-    document.querySelectorAll("[data-detail-tabs]").forEach((root) => {
-      if (!(root instanceof HTMLElement) || root.dataset.tabsReady === "1") return;
-      const tabs = [...root.querySelectorAll("[data-detail-tab]")];
-      const panels = [...root.querySelectorAll("[data-detail-panel]")];
-      if (tabs.length === 0) return;
-
-      const activate = (name) => {
-        tabs.forEach((tab) => {
-          const on = tab.getAttribute("data-detail-tab") === name;
-          tab.classList.toggle("is-active", on);
-          tab.setAttribute("aria-selected", on ? "true" : "false");
-          tab.tabIndex = on ? 0 : -1;
-        });
-        panels.forEach((panel) => {
-          const on = panel.getAttribute("data-detail-panel") === name;
-          panel.classList.toggle("is-active", on);
-          panel.toggleAttribute("hidden", !on);
-        });
-      };
-
-      root.addEventListener("click", (e) => {
-        const t = e.target;
-        if (!(t instanceof Element)) return;
-        const tab = t.closest("[data-detail-tab]");
-        if (!(tab instanceof HTMLElement)) return;
-        const name = tab.getAttribute("data-detail-tab");
-        if (name) activate(name);
-      });
-
-      root.addEventListener("keydown", (e) => {
-        if (!(e instanceof KeyboardEvent)) return;
-        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-        const current = tabs.findIndex((t) => t.classList.contains("is-active"));
-        if (current < 0) return;
-        const next = e.key === "ArrowRight"
-          ? (current + 1) % tabs.length
-          : (current - 1 + tabs.length) % tabs.length;
-        const name = tabs[next].getAttribute("data-detail-tab");
-        if (name) {
-          activate(name);
-          tabs[next].focus();
-        }
-        e.preventDefault();
-      });
-
-      root.dataset.tabsReady = "1";
-    });
-  };
-
   const initShareListing = () => {
     document.querySelectorAll("[data-share-listing]").forEach((btn) => {
       if (!(btn instanceof HTMLButtonElement) || btn.dataset.shareReady === "1") return;
@@ -3591,7 +3569,6 @@
     initQuillDescriptions();
     initLazyImageSpinners();
     initDetailGallery();
-    initDetailTabs();
     initShareListing();
     initPrintListing();
     const toastEl = document.getElementById("toast");

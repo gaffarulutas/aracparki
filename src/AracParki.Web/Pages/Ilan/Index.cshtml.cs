@@ -230,6 +230,44 @@ public sealed class IndexModel(
         }, categorySlug: Listing.CategoryId > 0 ? Listing.CategorySlug : null);
     }
 
+    public string FilterAttachmentUrl(int attachmentId)
+    {
+        if (attachmentId <= 0)
+        {
+            return FilterCategoryUrl();
+        }
+
+        return ListingRoutes.ListUrl(new ListingSearchQuery
+        {
+            Intent = CrumbIntent,
+            CategoryId = Listing is { CategoryId: > 0 } ? Listing.CategoryId : null,
+            AttachmentIds = [attachmentId]
+        }, categorySlug: Listing is { CategoryId: > 0 } ? Listing.CategorySlug : null);
+    }
+
+    public string FilterPriceUnitUrl()
+    {
+        if (Listing is null || string.IsNullOrWhiteSpace(Listing.PriceUnit))
+        {
+            return FilterIntentUrl();
+        }
+
+        return ListingRoutes.ListUrl(new ListingSearchQuery
+        {
+            Intent = ListingIntent.Kiralik,
+            CategoryId = Listing.CategoryId > 0 ? Listing.CategoryId : null,
+            PriceUnit = Listing.PriceUnit
+        }, categorySlug: Listing.CategoryId > 0 ? Listing.CategorySlug : null);
+    }
+
+    public string FilterOperatorUrl()
+        => ListingRoutes.ListUrl(new ListingSearchQuery
+        {
+            Intent = ListingIntent.Kiralik,
+            CategoryId = Listing is { CategoryId: > 0 } ? Listing.CategoryId : null,
+            IncludesOperator = true
+        }, categorySlug: Listing is { CategoryId: > 0 } ? Listing.CategorySlug : null);
+
     public string FilterCityUrl()
     {
         if (Listing is null || Listing.CityId <= 0)

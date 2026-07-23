@@ -1,3 +1,4 @@
+using AracParki.Application.Accounts.Services;
 using AracParki.Application.Catalog.Services;
 using AracParki.Application.Listings;
 using AracParki.Application.Listings.Commands;
@@ -105,7 +106,7 @@ public sealed class ListingCommandService(
         {
             AccountId = command.AccountId,
             SellerDisplayName = command.SellerDisplayName.Trim(),
-            Phone = command.Phone.Trim(),
+            Phone = AccountService.NormalizePhone(command.Phone) ?? command.Phone.Trim(),
             SellerType = command.SellerType.Trim(),
             CorporateAccountId = command.CorporateAccountId is > 0 ? command.CorporateAccountId : null,
             CategoryId = command.CategoryId,
