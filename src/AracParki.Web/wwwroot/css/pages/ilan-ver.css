@@ -2102,7 +2102,11 @@ select.is-catalog {
   line-height: 1.55;
   color: var(--ink);
   max-height: 12rem;
+  max-width: 100%;
+  min-width: 0;
   overflow: auto;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .wizard-review-aside {

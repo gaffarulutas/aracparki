@@ -117,6 +117,16 @@
         </a>
       </li>
       <li role="none">
+        <a class="account-menu-item" role="menuitem" tabindex="-1" href="/bildirimler" aria-label="Bildirimler@(Model.UnreadNotifications > 0 ? $" ({Model.UnreadNotifications})" : "")">
+          <ap-icon name="bell" size="16" />
+          <span>Bildirimler</span>
+          @if (Model.UnreadNotifications > 0)
+          {
+            <span class="account-menu-count" aria-hidden="true">@Model.UnreadNotifications</span>
+          }
+        </a>
+      </li>
+      <li role="none">
         <a class="account-menu-item" role="menuitem" tabindex="-1" href="/bilgilerim">
           <ap-icon name="circle-user" size="16" />
           <span>Bilgilerim</span>

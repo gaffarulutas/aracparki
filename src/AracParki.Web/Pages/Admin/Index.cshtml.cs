@@ -12,15 +12,18 @@ namespace AracParki.Web.Pages.Admin;
 [Authorize(Policy = AuthPolicies.ListingModerate)]
 public sealed class IndexModel(
     ListingModerationService moderation,
-    CorporateAccountService corporate) : PageModel
+    CorporateAccountService corporate,
+    ListingReportService reports) : PageModel
 {
     public ModerationCountsDto Counts { get; private set; } = new();
     public CorporateModerationCountsDto CorporateCounts { get; private set; } = new();
+    public ListingReportCountsDto ReportCounts { get; private set; } = new();
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
         Counts = await moderation.GetCountsAsync(cancellationToken);
         CorporateCounts = await corporate.GetModerationCountsAsync(cancellationToken);
+        ReportCounts = await reports.GetCountsAsync(cancellationToken);
         ViewData["PageKey"] = "account";
         ViewData["Title"] = "Admin | Araç Parkı";
         ViewData["Robots"] = "noindex, nofollow";

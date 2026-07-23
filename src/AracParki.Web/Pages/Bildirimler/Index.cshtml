@@ -5,7 +5,69 @@
 }
 <header class="page-account-head">
   <partial name="Shared/Partials/_AccountBreadcrumb" />
-  <h1>Bildirimler</h1>
-  <p class="page-account-lead">İlan ve hesap bildirimlerin</p>
+  <div class="page-account-title-row">
+    <div>
+      <h1>Bildirimler</h1>
+      <p class="page-account-lead">
+        @(Model.UnreadCount == 0
+            ? "İlan ve hesap bildirimlerin"
+            : $"{Model.UnreadCount} okunmamış bildirim")
+      </p>
+    </div>
+    @if (Model.Items.Any(x => x.IsUnread))
+    {
+      <form method="post" asp-page-handler="MarkAllRead">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-ghost btn-sm">Tümünü okundu işaretle</button>
+      </form>
+    }
+  </div>
 </header>
-<partial name="Shared/Partials/_AccountComingSoon" model="@($"Bildirim merkezi yakında açılacak. İlan durumu ve önemli hesap uyarılarını burada göreceksin.")" />
+
+@if (Model.Items.Count == 0)
+{
+  <div class="empty-state">
+    <span class="empty-state-icon" aria-hidden="true"><ap-icon name="bell" size="22" class="ap-icon" /></span>
+    <p>Henüz bildirimin yok.</p>
+    <p class="empty-state-hint">Şikayet sonucu ve önemli hesap uyarıları burada görünür.</p>
+  </div>
+}
+else
+{
+  <div class="account-notif-list" role="list">
+    @foreach (var item in Model.Items)
+    {
+      var url = IndexModel.TryGetUrl(item.DataJson);
+      <article class="account-notif-row @(item.IsUnread ? "is-unread" : null)" role="listitem">
+        <div class="account-notif-body">
+          <div class="account-notif-title-row">
+            <strong class="account-notif-title">@item.Title</strong>
+            <time class="account-notif-time" datetime="@item.CreatedAt.UtcDateTime.ToString("o")">
+              @item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+            </time>
+          </div>
+          <p class="account-notif-text">@item.Body</p>
+        </div>
+        <div class="account-notif-actions">
+          @if (!string.IsNullOrWhiteSpace(url))
+          {
+            <form method="post" asp-page-handler="MarkRead">
+              @Html.AntiForgeryToken()
+              <input type="hidden" name="id" value="@item.Id" />
+              <input type="hidden" name="returnUrl" value="@url" />
+              <button type="submit" class="btn btn-ghost btn-sm">Görüntüle</button>
+            </form>
+          }
+          else if (item.IsUnread)
+          {
+            <form method="post" asp-page-handler="MarkRead">
+              @Html.AntiForgeryToken()
+              <input type="hidden" name="id" value="@item.Id" />
+              <button type="submit" class="btn btn-ghost btn-sm">Okundu</button>
+            </form>
+          }
+        </div>
+      </article>
+    }
+  </div>
+}

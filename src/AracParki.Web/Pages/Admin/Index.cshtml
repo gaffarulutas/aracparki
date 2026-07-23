@@ -5,7 +5,7 @@
 }
 <header class="page-account-head">
   <h1>Admin</h1>
-  <p class="page-account-lead">İlan ve kurumsal hesap moderasyonu</p>
+  <p class="page-account-lead">İlan, şikayet ve kurumsal hesap moderasyonu</p>
 </header>
 
 <div class="account-dash">
@@ -28,6 +28,13 @@
     <span class="account-dash-body">
       <span class="account-dash-title">Reddedilen</span>
       <span class="account-dash-meta">@Model.Counts.Rejected ilan</span>
+    </span>
+  </a>
+  <a class="account-dash-card" href="/admin/sikayetler?durum=open">
+    <span class="account-dash-icon" aria-hidden="true"><ap-icon name="circle-alert" size="22" class="ap-icon" /></span>
+    <span class="account-dash-body">
+      <span class="account-dash-title">Şikayetler</span>
+      <span class="account-dash-meta">@Model.ReportCounts.Active açık şikayet</span>
     </span>
   </a>
   <a class="account-dash-card" href="/admin/kurumsal?durum=pending">

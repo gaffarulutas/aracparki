@@ -74,6 +74,7 @@
     </div>
   }
 
+  <div class="detail-layout">
   <div class="detail-top">
     <div class="detail-gallery detail-review-gallery" data-detail-gallery data-thumbs-per-page="5" tabindex="0" aria-label="İlan görselleri">
       <div class="gallery-main-wrap">
@@ -95,7 +96,6 @@
         }
         <div class="detail-gallery-overlay">
           <h1 class="detail-gallery-overlay-title">@listing.Title</h1>
-          <p class="detail-gallery-overlay-price">@priceText</p>
         </div>
         @if (images.Count > 0)
         {
@@ -175,8 +175,78 @@
       }
     </div>
 
+    <div class="detail-info-stack">
     <section class="detail-info" aria-labelledby="info-title">
       <h2 class="sr-only" id="info-title">İlan özellikleri</h2>
+      <div class="detail-info-price-row">
+        <p class="detail-info-price">@priceText</p>
+        <div class="detail-price-history"
+             x-data="priceHistoryPopover"
+             @@keydown.escape.window="close"
+             @@click.outside="close">
+          <button type="button"
+                  class="detail-price-history-trigger"
+                  x-ref="trigger"
+                  @@click="toggle"
+                  :aria-expanded="openAria"
+                  aria-haspopup="dialog"
+                  aria-controls="price-history-panel"
+                  data-tooltip="Fiyat Tarihçesi"
+                  aria-label="Fiyat Tarihçesi">
+            <ap-icon name="history" size="16" class="ap-icon" aria-hidden="true" />
+          </button>
+          <div id="price-history-panel"
+               class="detail-price-history-panel"
+               role="dialog"
+               aria-label="Fiyat Tarihçesi"
+               x-ref="panel"
+               x-show="open"
+               x-cloak
+               :class="panelClass"
+               :style="panelStyle"
+               x-transition:enter="detail-price-history-enter"
+               x-transition:enter-start="detail-price-history-enter-start"
+               x-transition:enter-end="detail-price-history-enter-end"
+               x-transition:leave="detail-price-history-leave"
+               x-transition:leave-start="detail-price-history-leave-start"
+               x-transition:leave-end="detail-price-history-leave-end">
+            <div class="detail-price-history-head">Fiyat Tarihçesi</div>
+            <div class="detail-price-history-body">
+              <span class="detail-price-history-label">Şu Anki Fiyatı</span>
+              <strong class="detail-price-history-current">@priceText</strong>
+              <p class="detail-price-history-lead">
+                Favoriye ekleyerek bu ilanın gelecekteki fiyat değişimlerini takip edebilirsiniz.
+              </p>
+              @if (!isPreview && !isExpiredLive)
+              {
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                  <form method="post" asp-page-handler="ToggleFavorite" class="detail-price-history-fav-form">
+                    @Html.AntiForgeryToken()
+                    <button type="submit"
+                            class="detail-price-history-fav @(Model.IsFavorite ? "is-active" : null)"
+                            aria-pressed="@(Model.IsFavorite ? "true" : "false")">
+                      <ap-icon name="heart" size="14" class="ap-icon" aria-hidden="true" />
+                      <span>@(Model.IsFavorite ? "Favoriden çıkar" : "Favorilerime Ekle")</span>
+                    </button>
+                  </form>
+                }
+                else
+                {
+                  <a class="detail-price-history-fav"
+                     href="/giris?returnUrl=@Uri.EscapeDataString($"/ilan/{listing.AdNo}")">
+                    <ap-icon name="heart" size="14" class="ap-icon" aria-hidden="true" />
+                    <span>Favorilerime Ekle</span>
+                  </a>
+                }
+              }
+            </div>
+            <p class="detail-price-history-note">
+              Fiyatlar kullanıcılar tarafından girilmektedir. aracparki.com fiyatlar üzerinde herhangi bir kontrol ve değişiklik yapmamaktadır.
+            </p>
+          </div>
+        </div>
+      </div>
       <p class="detail-loc">
         <ap-icon name="map-pin" size="14" class="ap-icon" aria-hidden="true" />
         <span class="detail-loc-text">
@@ -312,11 +382,44 @@
         </tbody>
       </table>
 
-      <a class="detail-report" href="mailto:@site.SupportEmail?subject=İlan%20şikayeti%20@Uri.EscapeDataString(listing.AdNo)">
-        <ap-icon name="circle-alert" size="14" class="ap-icon" aria-hidden="true" />
-        <span>İlan ile ilgili şikayetim var</span>
-      </a>
     </section>
+
+      @if (!isPreview && !isExpiredLive)
+      {
+        var accountIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var isOwner = long.TryParse(accountIdClaim, out var viewerId)
+                      && listing.OwnerAccountId is long ownerId
+                      && ownerId == viewerId;
+
+        if (isOwner)
+        {
+          <span class="detail-report is-disabled"
+                title="Kendi ilanınızı şikayet edemezsiniz"
+                aria-disabled="true">
+            <ap-icon name="circle-alert" size="14" class="ap-icon" aria-hidden="true" />
+            <span>Bu makine ile ilgili şikayetim var</span>
+          </span>
+        }
+        else if (User.Identity?.IsAuthenticated == true)
+        {
+          <button type="button"
+                  class="detail-report"
+                  x-data="listingReportTrigger"
+                  @@click="openModal">
+            <ap-icon name="circle-alert" size="14" class="ap-icon" aria-hidden="true" />
+            <span>Bu makine ile ilgili şikayetim var</span>
+          </button>
+        }
+        else
+        {
+          <a class="detail-report"
+             href="/giris?returnUrl=@Uri.EscapeDataString($"/ilan/{listing.AdNo}")">
+            <ap-icon name="circle-alert" size="14" class="ap-icon" aria-hidden="true" />
+            <span>Bu makine ile ilgili şikayetim var</span>
+          </a>
+        }
+      }
+    </div>
 
     <aside class="detail-aside" aria-label="İşlemler ve satıcı">
       <div class="detail-aside-stack">
@@ -545,6 +648,8 @@
     </section>
   }
 
+  </div>
+
   @if (!isPreview)
   {
     <div class="mobile-cta" id="mobile-cta" aria-label="Hızlı işlemler">
@@ -570,6 +675,76 @@
     </div>
   }
 </main>
+
+@if (!isPreview && !isExpiredLive && User.Identity?.IsAuthenticated == true)
+{
+  var reportAccountClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+  var reportIsOwner = long.TryParse(reportAccountClaim, out var reportViewerId)
+                      && listing.OwnerAccountId is long reportOwnerId
+                      && reportOwnerId == reportViewerId;
+  if (!reportIsOwner)
+  {
+  <div class="ap-phone-gate detail-report-gate"
+       x-data="listingReportModal"
+       x-show="open"
+       x-cloak
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="listing-report-title"
+       aria-describedby="listing-report-desc"
+       x-trap.noscroll.inert="open"
+       @@keydown.escape.prevent.stop="close">
+    <div class="ap-phone-gate__backdrop" aria-hidden="true" @@click="close"></div>
+    <div class="ap-phone-gate__dialog" @@click.stop>
+      <header class="ap-phone-gate__header">
+        <h2 id="listing-report-title" class="ap-phone-gate__title">Şikayet nedeninizi seçin</h2>
+        <p id="listing-report-desc" class="ap-phone-gate__lead">
+          @listing.AdNo numaralı makine ilanı için şikayet bildirin.
+        </p>
+      </header>
+      <form method="post" asp-page-handler="Report" class="ap-phone-gate__form detail-report-form">
+        @Html.AntiForgeryToken()
+        <div class="ap-phone-gate__body">
+          <fieldset class="detail-report-reasons">
+            <legend class="sr-only">Şikayet nedeni</legend>
+            @foreach (var reason in ListingReportReason.All)
+            {
+              <label class="detail-report-reason">
+                <input type="radio"
+                       name="reasonCode"
+                       value="@reason.Code"
+                       required
+                       @@change="selectReason" />
+                <span>@reason.Label</span>
+              </label>
+            }
+          </fieldset>
+          <div class="detail-report-message">
+            <label class="ap-phone-gate__label" for="listing-report-message">
+              Detaylı bilgi (opsiyonel)
+            </label>
+            <textarea id="listing-report-message"
+                      class="detail-report-textarea"
+                      name="message"
+                      maxlength="250"
+                      rows="4"
+                      placeholder="Şikayetiniz ile ilgili açıklamanızı buraya yazabilirsiniz…"
+                      :value="message"
+                      @@input="onMessageInput"></textarea>
+            <p class="detail-report-counter" aria-live="polite">
+              <span x-text="messageLength">0</span> / 250
+            </p>
+          </div>
+        </div>
+        <footer class="ap-phone-gate__footer">
+          <button type="button" class="btn btn-ghost btn-block" @@click="close">Vazgeç</button>
+          <button type="submit" class="btn btn-machine btn-block" :disabled="submitDisabled">Gönder</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+  }
+}
 
 @section CrumbBar {
   <partial name="Shared/Partials/_DetailBreadcrumb" model="Model" />

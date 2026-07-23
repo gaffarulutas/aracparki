@@ -10,6 +10,7 @@ using AracParki.Domain.Listings;
 using AracParki.Web.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace AracParki.Web.Pages.Ilan;
 
@@ -17,7 +18,8 @@ public sealed class IndexModel(
     ListingService listingService,
     CatalogService catalog,
     SiteUrls siteUrls,
-    FavoriteService favorites) : PageModel
+    FavoriteService favorites,
+    ListingReportService reports) : PageModel
 {
     [BindProperty(SupportsGet = true)]
     public string AdNo { get; set; } = string.Empty;
@@ -143,6 +145,58 @@ public sealed class IndexModel(
         catch (InvalidOperationException)
         {
             TempData["AuthNotice"] = "Favori işlemi yapılamadı.";
+        }
+
+        return RedirectToPage(new { adNo = listing.AdNo });
+    }
+
+    [EnableRateLimiting("auth-sensitive")]
+    public async Task<IActionResult> OnPostReportAsync(
+        string? reasonCode,
+        string? message,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(AdNo))
+        {
+            return NotFound();
+        }
+
+        var raw = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(raw, out var accountId) || accountId <= 0)
+        {
+            return Challenge();
+        }
+
+        var access = ListingAccessContext.FromPrincipal(User);
+        var listing = await listingService.GetByAdNoAsync(AdNo, access, cancellationToken);
+        if (listing is null || listing.Status != ListingStatus.Published)
+        {
+            return NotFound();
+        }
+
+        try
+        {
+            await reports.CreateAsync(
+                listing.Id,
+                listing.AdNo,
+                accountId,
+                listing.OwnerAccountId,
+                reasonCode ?? "",
+                message,
+                cancellationToken);
+            TempData["AuthNotice"] = "Şikayetiniz alındı. Bildirimler sayfasından takip edebilirsiniz.";
+        }
+        catch (ArgumentException ex)
+        {
+            TempData["AuthNotice"] = ex.Message;
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["AuthNotice"] = ex.Message;
+        }
+        catch (Exception)
+        {
+            TempData["AuthNotice"] = "Şikayet gönderilemedi. Lütfen tekrar deneyin.";
         }
 
         return RedirectToPage(new { adNo = listing.AdNo });

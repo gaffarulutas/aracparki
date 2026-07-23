@@ -104,6 +104,10 @@ public static partial class ListingDescriptionHtml
                 case IElement childElement:
                     SanitizeElement(childElement);
                     break;
+                case IText textNode:
+                    // Quill often inserts NBSP between words; that prevents wrap and blows layout width.
+                    textNode.TextContent = textNode.TextContent.Replace('\u00a0', ' ');
+                    break;
                 case IComment or IDocumentType:
                     child.RemoveFromParent();
                     break;

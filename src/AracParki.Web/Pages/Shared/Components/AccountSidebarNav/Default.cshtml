@@ -55,7 +55,7 @@
           <partial name="Shared/Partials/_AccountNavItem" model='("/mesajlarim", "Mesajlarım", "message-circle", isMesajlarim, (int?)null)' />
         </li>
         <li>
-          <partial name="Shared/Partials/_AccountNavItem" model='("/bildirimler", "Bildirimler", "bell", isBildirimler, (int?)null)' />
+          <partial name="Shared/Partials/_AccountNavItem" model='("/bildirimler", "Bildirimler", "bell", isBildirimler, (int?)Model.UnreadNotifications)' />
         </li>
       </ul>
     </div>

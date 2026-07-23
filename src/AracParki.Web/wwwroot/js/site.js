@@ -437,6 +437,89 @@
       },
     }));
 
+    // Price history popover on listing detail (fixed layer, collision-aware).
+    Alpine.data("priceHistoryPopover", () => ({
+      open: false,
+      placement: "below",
+      panelTop: "0px",
+      panelLeft: "0px",
+      panelWidth: "300px",
+      arrowLeft: "50%",
+      _onReposition: null,
+      init() {
+        this._onReposition = () => {
+          if (!this.open) return;
+          this.placePanel();
+        };
+        window.addEventListener("resize", this._onReposition);
+        window.addEventListener("scroll", this._onReposition, true);
+      },
+      destroy() {
+        window.removeEventListener("resize", this._onReposition);
+        window.removeEventListener("scroll", this._onReposition, true);
+      },
+      get openAria() {
+        return this.open ? "true" : "false";
+      },
+      get panelClass() {
+        return this.placement === "above" ? "is-above" : "is-below";
+      },
+      get panelStyle() {
+        return (
+          "top:" +
+          this.panelTop +
+          ";left:" +
+          this.panelLeft +
+          ";width:" +
+          this.panelWidth +
+          ";--ph-arrow:" +
+          this.arrowLeft
+        );
+      },
+      placePanel() {
+        const trigger = this.$refs.trigger;
+        const panel = this.$refs.panel;
+        if (!trigger || !panel) return;
+
+        const rect = trigger.getBoundingClientRect();
+        const gap = 10;
+        const width = Math.min(300, Math.max(240, window.innerWidth - 24));
+        let left = rect.left + rect.width / 2 - width / 2;
+        left = Math.max(12, Math.min(left, window.innerWidth - width - 12));
+
+        const height = panel.offsetHeight || 220;
+        const spaceBelow = window.innerHeight - rect.bottom - gap;
+        const spaceAbove = rect.top - gap;
+        const placeAbove = spaceBelow < height && spaceAbove > spaceBelow;
+
+        let top = placeAbove ? rect.top - height - gap : rect.bottom + gap;
+        top = Math.max(12, Math.min(top, window.innerHeight - height - 12));
+
+        const arrow = rect.left + rect.width / 2 - left;
+        const arrowClamped = Math.max(16, Math.min(arrow, width - 16));
+
+        this.placement = placeAbove ? "above" : "below";
+        this.panelTop = Math.round(top) + "px";
+        this.panelLeft = Math.round(left) + "px";
+        this.panelWidth = Math.round(width) + "px";
+        this.arrowLeft = Math.round(arrowClamped) + "px";
+      },
+      toggle() {
+        if (this.open) {
+          this.close();
+          return;
+        }
+        this.open = true;
+        this.$nextTick(() => {
+          this.placePanel();
+          requestAnimationFrame(() => this.placePanel());
+        });
+      },
+      close() {
+        this.open = false;
+      },
+    }));
+
     Alpine.data("accountMenu", () => ({
       open: false,
       menuId: "",
@@ -2697,6 +2780,49 @@
         const el = this.$refs.input;
         const value = el ? String(el.value || "") : "";
         this.count = value.length;
+      },
+    }));
+
+    // CSP Alpine: listing report modal — no $store / !expr in templates.
+    Alpine.store("listingReport", {
+      open: false,
+      openModal() {
+        this.open = true;
+      },
+      close() {
+        this.open = false;
+      },
+    });
+
+    Alpine.data("listingReportTrigger", () => ({
+      openModal() {
+        this.$store.listingReport.openModal();
+      },
+    }));
+
+    Alpine.data("listingReportModal", () => ({
+      reason: "",
+      message: "",
+      get open() {
+        return this.$store.listingReport.open;
+      },
+      get submitDisabled() {
+        return !this.reason;
+      },
+      get messageLength() {
+        return this.message.length;
+      },
+      selectReason(event) {
+        const el = event && event.target ? event.target : null;
+        this.reason = el ? String(el.value || "") : "";
+      },
+      onMessageInput(event) {
+        const el = event && event.target ? event.target : null;
+        const value = el ? String(el.value || "") : "";
+        this.message = value.length > 250 ? value.slice(0, 250) : value;
+      },
+      close() {
+        this.$store.listingReport.close();
       },
     }));
 

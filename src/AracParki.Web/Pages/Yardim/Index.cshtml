@@ -16,7 +16,7 @@
         Qa("İlanım neden incelemede veya reddedildi?", "Yeni ve güncellenen ilanlar moderasyondan geçer. Red nedeni İlanlarım ekranında görünür; kurallara uygun düzenleyip yeniden gönderebilirsiniz."),
         Qa("İlan ne kadar süre yayında kalır?", "Yayınlanan ilanların geçerlilik süresi vardır. Süre dolunca ilan arşive alınabilir; yeniden yayın için İlanlarım kullanılır."),
         Qa("Telefon numarası herkese açık mı?", "Hayır. İlan detayında Telefonu Göster ile talep üzerine açılır; spam ve kötüye kullanımı azaltmak için bu yapı kullanılır."),
-        Qa("Şüpheli bir ilanı nasıl bildiririm?", "İlan detayındaki şikayet bağlantısını veya iletişim sayfasını kullanın. Acil dolandırıcılık şüphesinde yetkili mercilere de başvurun.")
+        Qa("Şüpheli bir ilanı nasıl bildiririm?", "Giriş yaptıktan sonra ilan detayındaki “Bu makine ile ilgili şikayetim var” bağlantısından neden seçerek bildirin. Sonuç Bildirimler sayfanıza düşer. Acil dolandırıcılık şüphesinde yetkili mercilere de başvurun.")
     };
     ViewData["JsonLd"] = JsonSerializer.Serialize(new Dictionary<string, object?>
     {
@@ -126,8 +126,9 @@
       <details>
         <summary>Şüpheli bir ilanı nasıl bildiririm?</summary>
         <p>
-          İlan detayındaki şikayet bağlantısını veya <a href="/iletisim">iletişim</a>
-          sayfasını kullanın. Acil dolandırıcılık şüphesinde yetkili mercilere de başvurun.
+          Giriş yaptıktan sonra ilan detayındaki “Bu makine ile ilgili şikayetim var”
+          bağlantısından neden seçerek bildirin. Sonuç <a href="/bildirimler">Bildirimler</a>
+          sayfanıza düşer. Acil dolandırıcılık şüphesinde yetkili mercilere de başvurun.
         </p>
       </details>
       <details>

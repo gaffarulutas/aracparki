@@ -50,6 +50,7 @@
 .account-main > .account-filter-tabs,
 .account-main > .admin-listing-list,
 .account-main > .admin-corp-list,
+.account-main > .account-notif-list,
 .account-main > .empty-state {
   width: 100%;
   max-width: none;
@@ -751,11 +752,71 @@
   color: var(--machine-ink);
 }
 
+.account-notif-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+}
+
+.account-notif-row.is-unread {
+  border-color: var(--line-strong);
+  background: var(--surface);
+}
+
+.account-notif-body {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.account-notif-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.account-notif-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.account-notif-time {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.account-notif-text {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.account-notif-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
 /* Shared result list (admin ilanlar / kurumsal / panel lists) */
 .account-result-list,
 .admin-listing-list,
 .admin-corp-list,
-.corp-list {
+.corp-list,
+.account-notif-list {
   display: grid;
   gap: 10px;
 }

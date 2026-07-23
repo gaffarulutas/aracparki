@@ -1,0 +1,155 @@
+@page "/admin/sikayetler/{id:long}"
+@model AracParki.Web.Pages.Admin.Sikayetler.DetayModel
+@using AracParki.Domain.Listings
+@{
+    Layout = "Shared/_AccountLayout";
+    var report = Model.Report!;
+    var cover = string.IsNullOrWhiteSpace(report.CoverImageUrl)
+        ? "/assets/logo/icon-512.png"
+        : report.CoverImageUrl;
+    ViewData[Breadcrumbs.ViewDataKey] = Breadcrumbs.Create(
+        new BreadcrumbItem("Admin", "/admin"),
+        new BreadcrumbItem("Şikayetler", $"/admin/sikayetler?durum={report.Status}"),
+        new BreadcrumbItem($"#{report.Id}"));
+}
+<header class="page-account-head">
+  <partial name="Shared/Partials/_AccountBreadcrumb" />
+  <div class="page-account-title-row">
+    <div>
+      <h1>Şikayet #@report.Id</h1>
+      <p class="page-account-lead">@report.AdNo · @report.ListingTitle</p>
+    </div>
+    <span class="@ListingReportStatus.BadgeClass(report.Status)">@ListingReportStatus.Label(report.Status)</span>
+  </div>
+</header>
+
+@if (!string.IsNullOrWhiteSpace(Model.FormError))
+{
+  <p class="field-error" role="alert">@Model.FormError</p>
+}
+
+<div class="admin-corp-detail-grid">
+  <div class="admin-corp-detail-main">
+    <section class="admin-corp-panel">
+      <h2 class="admin-corp-panel-title">Şikayet bilgisi</h2>
+      <dl class="admin-corp-dl">
+        <div>
+          <dt>Neden</dt>
+          <dd>@ListingReportReason.Label(report.ReasonCode)</dd>
+        </div>
+        <div class="admin-corp-dl-wide">
+          <dt>Açıklama</dt>
+          <dd>@(string.IsNullOrWhiteSpace(report.Message) ? "—" : report.Message)</dd>
+        </div>
+        <div>
+          <dt>Şikayet eden</dt>
+          <dd>@report.ReporterName · @report.ReporterEmail</dd>
+        </div>
+        <div>
+          <dt>Tarih</dt>
+          <dd>@report.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</dd>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(report.AdminNotes))
+        {
+          <div class="admin-corp-dl-wide">
+            <dt>Admin notu</dt>
+            <dd>@report.AdminNotes</dd>
+          </div>
+        }
+        @if (report.ReviewedAt is not null)
+        {
+          <div>
+            <dt>Son işlem</dt>
+            <dd>@report.ReviewedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</dd>
+          </div>
+        }
+      </dl>
+    </section>
+
+    <section class="admin-corp-panel">
+      <h2 class="admin-corp-panel-title">İlan</h2>
+      <article class="admin-listing-row">
+        <a class="admin-listing-thumb" href="/admin/ilanlar/@report.AdNo">
+          <img src="@cover" alt="" width="120" height="90" loading="lazy" decoding="async" />
+        </a>
+        <div class="admin-listing-body">
+          <h2><a href="/admin/ilanlar/@report.AdNo">@report.ListingTitle</a></h2>
+          <p class="admin-listing-meta">
+            <span class="@ListingStatus.BadgeClass(report.ListingStatus)">@ListingStatus.Label(report.ListingStatus)</span>
+            · @report.AdNo
+          </p>
+        </div>
+        <div>
+          <a class="btn btn-ghost btn-sm" href="/admin/ilanlar/@report.AdNo">Moderasyon</a>
+          <a class="btn btn-ghost btn-sm" href="/ilan/@report.AdNo" target="_blank" rel="noopener">İlanı gör</a>
+        </div>
+      </article>
+    </section>
+  </div>
+
+  <aside class="admin-corp-detail-side">
+    <section class="admin-corp-panel">
+      <h2 class="admin-corp-panel-title">Karar</h2>
+      <p class="page-account-lead">
+        Sonuçlandırdığınızda şikayet eden kullanıcıya bildirim gider.
+      </p>
+
+      @if (ListingReportStatus.IsActive(report.Status))
+      {
+        <form method="post" asp-page-handler="Reviewing" class="admin-corp-reject-form">
+          @Html.AntiForgeryToken()
+          <label for="admin-notes-review">Admin notu (opsiyonel)</label>
+          <textarea id="admin-notes-review"
+                    name="adminNotes"
+                    rows="3"
+                    maxlength="1000"
+                    placeholder="İnceleme notu…"></textarea>
+          <button class="btn btn-ghost btn-block" type="submit">İncelemeye al</button>
+        </form>
+
+        <form method="post" asp-page-handler="Actioned" class="admin-corp-reject-form">
+          @Html.AntiForgeryToken()
+          <label for="admin-notes-actioned">Admin notu (opsiyonel)</label>
+          <textarea id="admin-notes-actioned"
+                    name="adminNotes"
+                    rows="3"
+                    maxlength="1000"
+                    placeholder="Yapılan işlem…"></textarea>
+          <button class="btn btn-machine btn-block" type="submit">İşlem yapıldı</button>
+        </form>
+
+        <form method="post" asp-page-handler="Dismissed" class="admin-corp-reject-form">
+          @Html.AntiForgeryToken()
+          <label for="admin-notes-dismissed">Admin notu (opsiyonel)</label>
+          <textarea id="admin-notes-dismissed"
+                    name="adminNotes"
+                    rows="3"
+                    maxlength="1000"
+                    placeholder="İşlem yapılmama gerekçesi…"></textarea>
+          <button class="btn btn-dark btn-block" type="submit">İşlem yapılmadı</button>
+        </form>
+
+        @if (report.ListingStatus == ListingStatus.Published)
+        {
+          <form method="post"
+                asp-page-handler="ArchiveListing"
+                class="admin-corp-reject-form"
+                onsubmit="return confirm('İlan yayından kaldırılsın ve şikayet sonuçlandırılsın mı?');">
+            @Html.AntiForgeryToken()
+            <label for="admin-notes-archive">Admin notu (opsiyonel)</label>
+            <textarea id="admin-notes-archive"
+                      name="adminNotes"
+                      rows="3"
+                      maxlength="1000"
+                      placeholder="Yayından kaldırma notu…"></textarea>
+            <button class="btn btn-ghost btn-block" type="submit">İlanı arşivle ve sonuçlandır</button>
+          </form>
+        }
+      }
+      else
+      {
+        <p class="page-account-lead">Bu şikayet sonuçlandırılmış.</p>
+      }
+    </section>
+  </aside>
+</div>

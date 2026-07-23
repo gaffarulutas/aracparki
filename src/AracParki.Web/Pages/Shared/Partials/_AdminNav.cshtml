@@ -3,6 +3,7 @@
     bool On(string prefix) => path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
     var isAdminHome = path.Equals("/admin", StringComparison.OrdinalIgnoreCase);
     var isAdminIlanlar = On("/admin/ilanlar");
+    var isAdminSikayetler = On("/admin/sikayetler");
     var isAdminKurumsal = On("/admin/kurumsal");
     var isAdminAyarlar = On("/admin/ayarlar");
 }
@@ -27,6 +28,9 @@
       <ul class="account-nav-list" aria-label="Admin moderasyon">
         <li>
           <partial name="Shared/Partials/_AccountNavItem" model='("/admin/ilanlar?durum=pending_review", "İlanlar", "list", isAdminIlanlar, (int?)null)' />
+        </li>
+        <li>
+          <partial name="Shared/Partials/_AccountNavItem" model='("/admin/sikayetler?durum=open", "Şikayetler", "circle-alert", isAdminSikayetler, (int?)null)' />
         </li>
         <li>
           <partial name="Shared/Partials/_AccountNavItem" model='("/admin/kurumsal?durum=pending", "Kurumsal", "building-2", isAdminKurumsal, (int?)null)' />

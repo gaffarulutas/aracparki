@@ -1,0 +1,81 @@
+@page "/admin/sikayetler"
+@model AracParki.Web.Pages.Admin.Sikayetler.IndexModel
+@using AracParki.Domain.Listings
+@{
+    Layout = "Shared/_AccountLayout";
+    ViewData[Breadcrumbs.ViewDataKey] = Breadcrumbs.Create(
+        new BreadcrumbItem("Admin", "/admin"),
+        new BreadcrumbItem("Şikayetler"));
+}
+<header class="page-account-head">
+  <partial name="Shared/Partials/_AccountBreadcrumb" />
+  <div class="page-account-title-row">
+    <div>
+      <h1>İlan şikayetleri</h1>
+      <p class="page-account-lead">Kullanıcı şikayetlerini incele ve sonuçlandır.</p>
+    </div>
+  </div>
+</header>
+
+<nav class="account-filter-tabs" aria-label="Durum filtresi">
+  <a class="@(Model.Status == ListingReportStatus.Open ? "is-active" : null)"
+     href="/admin/sikayetler?durum=@ListingReportStatus.Open"
+     aria-current="@(Model.Status == ListingReportStatus.Open ? "page" : null)">
+    <span>Yeni</span>
+    <span class="account-filter-count">@Model.Counts.Open</span>
+  </a>
+  <a class="@(Model.Status == ListingReportStatus.Reviewing ? "is-active" : null)"
+     href="/admin/sikayetler?durum=@ListingReportStatus.Reviewing"
+     aria-current="@(Model.Status == ListingReportStatus.Reviewing ? "page" : null)">
+    <span>İncelemede</span>
+    <span class="account-filter-count">@Model.Counts.Reviewing</span>
+  </a>
+  <a class="@(Model.Status == ListingReportStatus.Actioned ? "is-active" : null)"
+     href="/admin/sikayetler?durum=@ListingReportStatus.Actioned"
+     aria-current="@(Model.Status == ListingReportStatus.Actioned ? "page" : null)">
+    <span>İşlem yapıldı</span>
+    <span class="account-filter-count">@Model.Counts.Actioned</span>
+  </a>
+  <a class="@(Model.Status == ListingReportStatus.Dismissed ? "is-active" : null)"
+     href="/admin/sikayetler?durum=@ListingReportStatus.Dismissed"
+     aria-current="@(Model.Status == ListingReportStatus.Dismissed ? "page" : null)">
+    <span>İşlem yapılmadı</span>
+    <span class="account-filter-count">@Model.Counts.Dismissed</span>
+  </a>
+</nav>
+
+@if (Model.Items.Count == 0)
+{
+  <div class="empty-state">
+    <span class="empty-state-icon" aria-hidden="true"><ap-icon name="circle-alert" size="22" class="ap-icon" /></span>
+    <p>Bu durumda şikayet yok.</p>
+  </div>
+}
+else
+{
+  <div class="admin-listing-list">
+    @foreach (var item in Model.Items)
+    {
+      <article class="admin-listing-row">
+        <div class="admin-listing-body">
+          <h2><a href="/admin/sikayetler/@item.Id">@item.ListingTitle</a></h2>
+          <p class="admin-listing-meta">
+            <span class="@ListingReportStatus.BadgeClass(item.Status)">@ListingReportStatus.Label(item.Status)</span>
+            · @item.AdNo
+            · <span class="@ListingStatus.BadgeClass(item.ListingStatus)">@ListingStatus.Label(item.ListingStatus)</span>
+          </p>
+          <p class="admin-listing-meta">
+            @ListingReportReason.Label(item.ReasonCode)
+            · @item.ReporterName
+            · @item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+          </p>
+          @if (!string.IsNullOrWhiteSpace(item.Message))
+          {
+            <p class="admin-reject-note">@item.Message</p>
+          }
+        </div>
+        <a class="btn btn-ghost btn-sm" href="/admin/sikayetler/@item.Id">İncele</a>
+      </article>
+    }
+  </div>
+}

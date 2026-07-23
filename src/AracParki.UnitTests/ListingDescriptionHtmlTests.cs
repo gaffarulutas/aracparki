@@ -61,4 +61,15 @@ public sealed class ListingDescriptionHtmlTests
         Assert.Contains("dünya", text, StringComparison.Ordinal);
         Assert.DoesNotContain("<", text, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Sanitize_replaces_nbsp_with_regular_spaces()
+    {
+        var html = "<p>Caterpillar&nbsp;312D&nbsp;Ekskavatör</p>";
+        var sanitized = ListingDescriptionHtml.Sanitize(html);
+
+        Assert.DoesNotContain("&nbsp;", sanitized, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("\u00a0", sanitized, StringComparison.Ordinal);
+        Assert.Contains("Caterpillar 312D Ekskavatör", sanitized, StringComparison.Ordinal);
+    }
 }
