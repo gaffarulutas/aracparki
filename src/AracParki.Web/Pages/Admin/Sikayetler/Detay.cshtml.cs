@@ -14,6 +14,11 @@ public sealed class DetayModel(
     ListingReportService reports,
     ListingModerationService moderation) : PageModel
 {
+    private const string DecisionReviewing = "reviewing";
+    private const string DecisionActioned = "actioned";
+    private const string DecisionDismissed = "dismissed";
+    private const string DecisionArchive = "archive";
+
     [BindProperty(SupportsGet = true)]
     public long Id { get; set; }
 
@@ -39,28 +44,35 @@ public sealed class DetayModel(
         return Page();
     }
 
-    public async Task<IActionResult> OnPostReviewingAsync(string? adminNotes, CancellationToken cancellationToken)
-        => await RunActionAsync(
-            (adminId) => reports.MarkReviewingAsync(Id, adminId, adminNotes, cancellationToken),
-            "Şikayet incelemeye alındı.",
-            ListingReportStatus.Reviewing,
-            cancellationToken);
+    public async Task<IActionResult> OnPostResolveAsync(
+        string? decision,
+        string? adminNotes,
+        CancellationToken cancellationToken)
+    {
+        var normalized = (decision ?? string.Empty).Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            DecisionReviewing => await RunActionAsync(
+                adminId => reports.MarkReviewingAsync(Id, adminId, adminNotes, cancellationToken),
+                "Şikayet incelemeye alındı.",
+                ListingReportStatus.Reviewing,
+                cancellationToken),
+            DecisionActioned => await RunActionAsync(
+                adminId => reports.MarkActionedAsync(Id, adminId, adminNotes, cancellationToken),
+                "Şikayette işlem yapıldı. Kullanıcıya bildirim gönderildi.",
+                ListingReportStatus.Actioned,
+                cancellationToken),
+            DecisionDismissed => await RunActionAsync(
+                adminId => reports.MarkDismissedAsync(Id, adminId, adminNotes, cancellationToken),
+                "Şikayette işlem yapılmadı. Kullanıcıya bildirim gönderildi.",
+                ListingReportStatus.Dismissed,
+                cancellationToken),
+            DecisionArchive => await ArchiveListingAsync(adminNotes, cancellationToken),
+            _ => await InvalidDecisionAsync(cancellationToken)
+        };
+    }
 
-    public async Task<IActionResult> OnPostActionedAsync(string? adminNotes, CancellationToken cancellationToken)
-        => await RunActionAsync(
-            (adminId) => reports.MarkActionedAsync(Id, adminId, adminNotes, cancellationToken),
-            "Şikayette işlem yapıldı. Kullanıcıya bildirim gönderildi.",
-            ListingReportStatus.Actioned,
-            cancellationToken);
-
-    public async Task<IActionResult> OnPostDismissedAsync(string? adminNotes, CancellationToken cancellationToken)
-        => await RunActionAsync(
-            (adminId) => reports.MarkDismissedAsync(Id, adminId, adminNotes, cancellationToken),
-            "Şikayette işlem yapılmadı. Kullanıcıya bildirim gönderildi.",
-            ListingReportStatus.Dismissed,
-            cancellationToken);
-
-    public async Task<IActionResult> OnPostArchiveListingAsync(string? adminNotes, CancellationToken cancellationToken)
+    private async Task<IActionResult> ArchiveListingAsync(string? adminNotes, CancellationToken cancellationToken)
     {
         if (!TryGetAdminId(out var adminId))
         {
@@ -71,6 +83,13 @@ public sealed class DetayModel(
         if (Report is null)
         {
             return NotFound();
+        }
+
+        if (Report.ListingStatus != ListingStatus.Published)
+        {
+            FormError = "Yalnızca yayındaki ilanlar arşivlenebilir.";
+            await OnGetAsync(cancellationToken);
+            return Page();
         }
 
         try
@@ -99,6 +118,13 @@ public sealed class DetayModel(
             await OnGetAsync(cancellationToken);
             return Page();
         }
+    }
+
+    private async Task<IActionResult> InvalidDecisionAsync(CancellationToken cancellationToken)
+    {
+        FormError = "Geçerli bir karar seçin.";
+        await OnGetAsync(cancellationToken);
+        return Page();
     }
 
     private async Task<IActionResult> RunActionAsync(

@@ -28,6 +28,15 @@
         var cover = !string.IsNullOrWhiteSpace(listing.CoverImageUrl)
             ? listing.CoverImageUrl
             : (listing.ImageUrls.Count > 0 ? listing.ImageUrls[0] : "/assets/logo/icon-512.png");
+        var metaParts = new List<string>();
+        if (listing.ModelYear > 0)
+        {
+            metaParts.Add(listing.ModelYear.ToString());
+        }
+        if (listing.Hours is not null)
+        {
+            metaParts.Add(Formatters.Hours(listing.Hours.Value));
+        }
         ViewData["CompareCurrentAdNo"] = listing.AdNo;
         ViewData["CompareCurrentTitle"] = listing.Title;
         ViewData["CompareCurrentThumb"] = ListingImageUrlVariants.WithVariant(cover, ListingImageVariants.Thumb);
@@ -35,7 +44,10 @@
             listing.Price,
             listing.PrimaryIntent == ListingIntent.Kiralik ? listing.PriceUnit : null,
             listing.Currency);
+        ViewData["CompareCurrentMeta"] = string.Join(", ", metaParts);
     }
+
+    ViewData["ShowCrumbCompare"] = true;
 }
 <div id="site-crumb-bar" class="list-crumb-bar">
   <div class="list-crumb-inner">

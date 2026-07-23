@@ -4,7 +4,7 @@
     Layout = "Shared/_AccountLayout";
 }
 <header class="page-account-head">
-  <partial name="Shared/Partials/_AccountBreadcrumb" />
+  <partial name="Shared/Partials/_AccountBack" model='("/", "Anasayfa")' />
   <h1>Panel</h1>
   <p class="page-account-lead">@(Model.Greeting)</p>
 </header>
@@ -45,11 +45,21 @@
       </span>
     </span>
   </a>
-  <a class="account-dash-card" href="/mesajlarim">
+  <a class="account-dash-card" href="/mesajlarim" aria-label="Mesajlarım@(Model.UnreadMessageCount > 0 ? $" ({Model.UnreadMessageCount} okunmamış)" : "")">
     <span class="account-dash-icon" aria-hidden="true"><ap-icon name="message-circle" size="22" class="ap-icon" /></span>
     <span class="account-dash-body">
-      <span class="account-dash-title">Mesajlarım</span>
-      <span class="account-dash-meta">Yazışmaların</span>
+      <span class="account-dash-title-row">
+        <span class="account-dash-title">Mesajlarım</span>
+        @if (Model.UnreadMessageCount > 0)
+        {
+          <span class="account-dash-count" aria-hidden="true">@Model.UnreadMessageCount</span>
+        }
+      </span>
+      <span class="account-dash-meta">
+        @(Model.UnreadMessageCount == 0
+            ? "Yazışmaların"
+            : $"{Model.UnreadMessageCount} okunmamış konuşma")
+      </span>
     </span>
   </a>
   <a class="account-dash-card" href="/bilgilerim">

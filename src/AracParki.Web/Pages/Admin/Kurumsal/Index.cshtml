@@ -9,12 +9,9 @@
         CorporateStatus.Rejected => "Reddedilmiş başvuru yok.",
         _ => "Onay bekleyen başvuru yok."
     };
-    ViewData[Breadcrumbs.ViewDataKey] = Breadcrumbs.Create(
-        new BreadcrumbItem("Admin", "/admin"),
-        new BreadcrumbItem("Kurumsal hesaplar"));
 }
 <header class="page-account-head">
-  <partial name="Shared/Partials/_AccountBreadcrumb" />
+  <partial name="Shared/Partials/_AccountBack" model='("/admin", "Admin")' />
   <div class="page-account-title-row">
     <div>
       <h1>Kurumsal moderasyon</h1>

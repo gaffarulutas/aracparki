@@ -3,12 +3,9 @@
 @using AracParki.Domain.Listings
 @{
     Layout = "Shared/_AccountLayout";
-    ViewData[Breadcrumbs.ViewDataKey] = Breadcrumbs.Create(
-        new BreadcrumbItem("Admin", "/admin"),
-        new BreadcrumbItem("İlanlar"));
 }
 <header class="page-account-head">
-  <partial name="Shared/Partials/_AccountBreadcrumb" />
+  <partial name="Shared/Partials/_AccountBack" model='("/admin", "Admin")' />
   <div class="page-account-title-row">
     <div>
       <h1>İlan moderasyonu</h1>

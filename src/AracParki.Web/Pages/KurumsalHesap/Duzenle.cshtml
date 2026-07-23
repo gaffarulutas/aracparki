@@ -10,12 +10,9 @@
     var docsByType = Model.Documents
         .GroupBy(d => d.DocType)
         .ToDictionary(g => g.Key, g => g.OrderByDescending(d => d.UploadedAt).First());
-    ViewData[Breadcrumbs.ViewDataKey] = Breadcrumbs.Create(
-        new BreadcrumbItem("Kurumsal hesaplar", "/kurumsal-hesap"),
-        new BreadcrumbItem(isNew ? "Yeni" : "Düzenle"));
 }
 <header class="page-account-head">
-  <partial name="Shared/Partials/_AccountBreadcrumb" />
+  <partial name="Shared/Partials/_AccountBack" model='("/kurumsal-hesap", "Kurumsal hesap")' />
   <div class="page-account-title-row">
     <div>
       <h1>@(isNew ? "Yeni kurumsal hesap" : account!.DisplayName)</h1>

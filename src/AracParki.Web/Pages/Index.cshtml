@@ -59,6 +59,8 @@
         </ul>
       </div>
 
+      <partial name="Shared/Partials/_AdSlot" />
+
       <div class="aside-card" id="sehirler">
         <h2 class="aside-title">Popüler İller</h2>
         <ul class="aside-cities" id="city-grid">
@@ -149,37 +151,71 @@
         <a class="btn btn-ghost partner-banner-cta" href="/bayi-ortakligi">Detaylı bilgi</a>
       </section>
 
-      <section class="vitrin-block" id="vitrin" aria-labelledby="vitrin-title">
+      @{
+        var tipAll = ListingIntent.All;
+        var tipSale = ListingIntent.Satilik;
+        var tipRent = ListingIntent.Kiralik;
+        var activeTip = Model.Filter.Intent is ListingIntent.Satilik or ListingIntent.Kiralik
+            ? Model.Filter.Intent
+            : tipAll;
+        var activeTabId = activeTip == tipSale
+            ? "vitrin-tab-satilik"
+            : activeTip == tipRent
+                ? "vitrin-tab-kiralik"
+                : "vitrin-tab-all";
+        var seeAllAll = ListingRoutes.ListUrl(new ListingSearchQuery { Intent = tipAll });
+        var seeAllSale = ListingRoutes.ListUrl(new ListingSearchQuery { Intent = tipSale });
+        var seeAllRent = ListingRoutes.ListUrl(new ListingSearchQuery { Intent = tipRent });
+      }
+      <section class="vitrin-block" id="vitrin" aria-labelledby="vitrin-title" data-vitrin>
         <div class="vitrin-head">
           <h2 id="vitrin-title">
             Öne çıkan ilanlar
-            <span class="result-count" aria-live="polite">(@Model.Featured.Count)</span>
+            <span class="result-count" data-vitrin-count aria-live="polite">(@Model.Featured.Count)</span>
           </h2>
           <div class="vitrin-head-actions">
-            <div class="filter-chips" role="group" aria-label="İlan tipi">
-              <a class="chip" href="/?tip=@ListingIntent.All" aria-current="@(Model.Filter.Intent == ListingIntent.All ? "page" : null)">Tümü</a>
-              <a class="chip" href="/?tip=@ListingIntent.Satilik" aria-current="@(Model.Filter.Intent == ListingIntent.Satilik ? "page" : null)">Satılık</a>
-              <a class="chip" href="/?tip=@ListingIntent.Kiralik" aria-current="@(Model.Filter.Intent == ListingIntent.Kiralik ? "page" : null)">Kiralık</a>
+            <div class="filter-chips">
+              <div class="filter-chips-tabs" role="tablist" aria-label="İlan tipi" data-vitrin-tabs>
+                <a class="chip"
+                   role="tab"
+                   id="vitrin-tab-all"
+                   href="/?tip=@tipAll"
+                   data-vitrin-intent="@tipAll"
+                   data-see-all="@seeAllAll"
+                   aria-controls="listing-grid"
+                   aria-selected="@(activeTip == tipAll ? "true" : "false")"
+                   tabindex="@(activeTip == tipAll ? "0" : "-1")">Tümü</a>
+                <a class="chip"
+                   role="tab"
+                   id="vitrin-tab-satilik"
+                   href="/?tip=@tipSale"
+                   data-vitrin-intent="@tipSale"
+                   data-see-all="@seeAllSale"
+                   aria-controls="listing-grid"
+                   aria-selected="@(activeTip == tipSale ? "true" : "false")"
+                   tabindex="@(activeTip == tipSale ? "0" : "-1")">Satılık</a>
+                <a class="chip"
+                   role="tab"
+                   id="vitrin-tab-kiralik"
+                   href="/?tip=@tipRent"
+                   data-vitrin-intent="@tipRent"
+                   data-see-all="@seeAllRent"
+                   aria-controls="listing-grid"
+                   aria-selected="@(activeTip == tipRent ? "true" : "false")"
+                   tabindex="@(activeTip == tipRent ? "0" : "-1")">Kiralık</a>
+              </div>
               <a class="chip" href="/ilanlar?durum=@EquipmentCondition.Used">İkinci El</a>
             </div>
-            <a class="text-link" href="@seeAll">Tümünü gör</a>
+            <a class="text-link" href="@seeAll" data-vitrin-see-all>Tümünü gör</a>
           </div>
         </div>
-        <div class="listing-grid" id="listing-grid" aria-live="polite">
-          @if (Model.Featured.Count == 0)
-          {
-            <div class="empty-state">
-              <p>Bu kriterlere uygun ilan yok.</p>
-              <a class="btn btn-machine" href="/ilanlar">Tüm ilanları gör</a>
-            </div>
-          }
-          else
-          {
-            foreach (var item in Model.Featured)
-            {
-              <partial name="Shared/Partials/_ListingCard" model="item" />
-            }
-          }
+        <div class="listing-grid"
+             id="listing-grid"
+             role="tabpanel"
+             aria-labelledby="@activeTabId"
+             data-vitrin-grid
+             data-vitrin-intent="@activeTip">
+          <partial name="Shared/Partials/_FeaturedGrid" model="Model.Featured" />
         </div>
       </section>
 
@@ -213,6 +249,16 @@
           <p>Satılık veya kiralık — Türkiye’deki alıcılara ulaş.</p>
         </div>
         <a class="btn btn-cta btn-lg" href="/ilan-ver">Ücretsiz İlan Ver</a>
+      </section>
+
+      <section class="vitrin-block recent-block" id="son-bakilanlar" hidden aria-labelledby="recent-title">
+        <div class="vitrin-head">
+          <h2 id="recent-title">
+            Son bakılan ilanlar
+            <span class="result-count" data-recent-count hidden></span>
+          </h2>
+        </div>
+        <div class="listing-grid listing-grid--recent" data-recent-grid aria-live="polite"></div>
       </section>
     </div>
   </div>

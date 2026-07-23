@@ -6,14 +6,17 @@
     Layout = "Shared/_AccountLayout";
 }
 <header class="page-account-head">
-  <partial name="Shared/Partials/_AccountBreadcrumb" />
+  <partial name="Shared/Partials/_AccountBack" model='("/panel", "Panel")' />
   <div class="page-account-title-row">
     <div>
       <h1>Kurumsal Hesap</h1>
       <p class="page-account-lead">Bayi / galeri profillerini oluştur, evraklarını yükle ve onaya gönder. Onaylı kurumsal hesabınla ilan verebilirsin.</p>
     </div>
     <div class="page-account-actions">
-      <a class="btn btn-machine btn-sm" href="/kurumsal-hesap/duzenle">+ Yeni</a>
+      <a class="btn btn-machine btn-sm" href="/kurumsal-hesap/duzenle">
+        <ap-icon name="plus" size="16" class="ap-icon" aria-hidden="true" />
+        Firma ekle
+      </a>
     </div>
   </div>
 </header>
@@ -30,7 +33,10 @@
     <p>Henüz kurumsal hesabın yok.</p>
     <p class="ap-hint">Kurumsal hesap oluşturup evraklarını yükledikten sonra admin onayıyla ilanlarını firma adına yayınlayabilirsin.</p>
     <div class="empty-state-actions">
-      <a class="btn btn-machine" href="/kurumsal-hesap/duzenle">+ Yeni kurumsal hesap</a>
+      <a class="btn btn-machine" href="/kurumsal-hesap/duzenle">
+        <ap-icon name="plus" size="18" class="ap-icon" aria-hidden="true" />
+        Firma ekle
+      </a>
     </div>
   </div>
 }

@@ -111,9 +111,13 @@
         </a>
       </li>
       <li role="none">
-        <a class="account-menu-item" role="menuitem" tabindex="-1" href="/mesajlarim">
+        <a class="account-menu-item" role="menuitem" tabindex="-1" href="/mesajlarim" aria-label="Mesajlarım@(Model.UnreadMessages > 0 ? $" ({Model.UnreadMessages})" : "")">
           <ap-icon name="message-circle" size="16" />
           <span>Mesajlarım</span>
+          @if (Model.UnreadMessages > 0)
+          {
+            <span class="account-menu-count" aria-hidden="true">@Model.UnreadMessages</span>
+          }
         </a>
       </li>
       <li role="none">

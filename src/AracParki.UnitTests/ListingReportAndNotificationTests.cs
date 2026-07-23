@@ -36,5 +36,6 @@ public sealed class ListingReportAndNotificationTests
         Assert.Equal("listing.report.received", NotificationTypes.ListingReportReceived);
         Assert.Equal("listing.report.actioned", NotificationTypes.ListingReportActioned);
         Assert.Equal("listing.report.dismissed", NotificationTypes.ListingReportDismissed);
+        Assert.Equal("message.received", NotificationTypes.MessageReceived);
     }
 }

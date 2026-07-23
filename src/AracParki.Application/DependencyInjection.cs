@@ -1,5 +1,6 @@
 using AracParki.Application.Accounts.Services;
 using AracParki.Application.Catalog.Services;
+using AracParki.Application.Conversations.Services;
 using AracParki.Application.Corporate.Services;
 using AracParki.Application.Listings;
 using AracParki.Application.Listings.Services;
@@ -22,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<ListingCommandService>();
         services.AddScoped<ListingModerationService>();
         services.AddScoped<ListingReportService>();
+        services.AddScoped<MessagingService>();
         services.AddScoped<FavoriteService>();
         services.AddScoped<SavedSearchService>();
         services.AddScoped<INotificationService, NotificationService>();

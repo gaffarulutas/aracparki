@@ -36,24 +36,185 @@
   max-width: var(--account-content-max);
 }
 
-.account-main > .page-account-head + * {
+/*
+ * Content surface — homepage .vitrin-block / .recent-block language.
+ * One raised shell; children are inset tiles (surface), not nested white cards.
+ */
+.account-content-card {
+  --account-inset-bg: var(--surface);
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+}
+
+.account-content-card > .page-account-head {
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--machine);
+}
+
+.account-content-card > .page-account-head.admin-corp-detail-head,
+.account-content-card > .page-account-head.admin-mod-head {
+  margin-bottom: 0;
+}
+
+.account-content-card > .page-account-head + * {
   min-width: 0;
 }
 
-/* Direct children fill the İlanlarım content column (no 42rem settings trap). */
-.account-main > .account-profile,
-.account-main > .corp-form,
-.account-main > form.corp-form,
-.account-main > .account-phone-verify,
-.account-main > .account-profile-note,
-.account-main > .account-dash,
-.account-main > .account-filter-tabs,
-.account-main > .admin-listing-list,
-.account-main > .admin-corp-list,
-.account-main > .account-notif-list,
-.account-main > .empty-state {
+/* Full-width children inside the shell */
+.account-content-card > .account-profile,
+.account-content-card > .corp-form,
+.account-content-card > form.corp-form,
+.account-content-card > .account-phone-verify,
+.account-content-card > .account-profile-note,
+.account-content-card > .account-dash,
+.account-content-card > .account-filter-tabs,
+.account-content-card > .admin-status-tabs,
+.account-content-card > .admin-listing-list,
+.account-content-card > .admin-corp-list,
+.account-content-card > .account-result-list,
+.account-content-card > .account-notif-list,
+.account-content-card > .corp-list,
+.account-content-card > .empty-state,
+.account-content-card > .msg-chat,
+.account-content-card > .msg-context-card,
+.account-content-card > .admin-corp-detail-grid,
+.account-content-card > .admin-mod-grid,
+.account-content-card > .admin-mod-banner,
+.account-content-card > .field-error,
+.account-content-card > .form-error,
+.account-content-card > .msg-safety {
   width: 100%;
   max-width: none;
+}
+
+.account-content-card > .msg-context-card,
+.account-content-card > .account-profile-note,
+.account-content-card > .account-phone-verify {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* —— Inset tiles (no white-on-white / double-card) —— */
+.account-content-card .account-dash-card,
+.account-content-card .account-result-row,
+.account-content-card .admin-listing-row,
+.account-content-card .admin-corp-row,
+.account-content-card .corp-card,
+.account-content-card .account-notif-row,
+.account-content-card .admin-corp-panel,
+.account-content-card .msg-context-card,
+.account-content-card .msg-chat-log,
+.account-content-card .account-profile,
+.account-content-card .corp-section,
+.account-content-card .account-phone-current,
+.account-content-card .account-phone-empty,
+.account-content-card .corp-logo-row {
+  background: var(--account-inset-bg);
+  box-shadow: none;
+}
+
+.account-content-card .account-notif-row.is-unread {
+  background: color-mix(in srgb, var(--machine) 10%, var(--account-inset-bg));
+  border-color: color-mix(in srgb, var(--machine) 35%, var(--line));
+}
+
+.account-content-card .account-dash-card:hover,
+.account-content-card .account-result-row:hover,
+.account-content-card .admin-listing-row:hover,
+.account-content-card .admin-corp-row:hover,
+.account-content-card .corp-card:hover {
+  background: color-mix(in srgb, var(--tint) 55%, var(--account-inset-bg));
+  box-shadow: none;
+}
+
+.account-content-card .account-filter-tabs,
+.account-content-card .admin-status-tabs {
+  box-shadow: none;
+  background: var(--account-inset-bg);
+}
+
+.account-content-card .account-filter-tabs a.is-active,
+.account-content-card .admin-status-tabs a.is-active {
+  background: var(--raised);
+}
+
+.account-content-card .account-dash-icon {
+  background: var(--raised);
+  border: 1px solid var(--line);
+}
+
+.account-content-card .account-dash-card:hover .account-dash-icon {
+  background: var(--machine);
+  border-color: color-mix(in srgb, var(--machine) 70%, var(--ink));
+}
+
+/* Empty state: flat panel inside shell, not a second card */
+.account-content-card .empty-state {
+  min-height: min(280px, 42vh);
+  padding: clamp(28px, 4vw, 48px) clamp(16px, 3vw, 32px);
+  border: 1px dashed var(--line-strong);
+  background: var(--account-inset-bg);
+  box-shadow: none;
+}
+
+.account-content-card .empty-state-icon {
+  background: var(--raised);
+}
+
+.account-content-card .corp-section {
+  margin-bottom: 0;
+}
+
+.account-content-card .corp-form {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.account-content-card .corp-form .corp-section + .corp-section {
+  margin-top: 0;
+}
+
+.account-content-card .admin-mod-banner {
+  margin-bottom: 0;
+  background: var(--account-inset-bg);
+}
+
+.account-content-card .admin-mod-banner.is-rejected {
+  border-color: color-mix(in srgb, #b42318 40%, var(--line));
+  background: color-mix(in srgb, #b42318 10%, var(--account-inset-bg));
+}
+
+.account-content-card .admin-corp-panel.admin-corp-aside-reject {
+  border-color: color-mix(in srgb, #b42318 35%, var(--line));
+  background: color-mix(in srgb, #b42318 7%, var(--account-inset-bg));
+}
+
+.account-content-card .admin-corp-panel.admin-corp-aside-ok {
+  border-color: color-mix(in srgb, #067647 30%, var(--line));
+  background: color-mix(in srgb, #067647 7%, var(--account-inset-bg));
+}
+
+.account-content-card .admin-report-listing,
+.account-content-card .admin-report-listing:hover {
+  background: transparent;
+  box-shadow: none;
+  border: none;
+}
+
+.account-content-card > .msg-safety {
+  margin-bottom: 0;
+}
+
+.account-content-card .msg-compose-input {
+  background: var(--raised);
 }
 
 /* —— Mobile top bar (hidden on desktop) —— */
@@ -271,6 +432,12 @@
   color: var(--machine-ink);
 }
 
+/* Unread-style counts (messages / notifications) stand out in the panel nav. */
+.account-nav-list[aria-label="İletişim"] .account-nav-count {
+  background: var(--machine);
+  color: var(--machine-ink);
+}
+
 .account-nav-footer {
   margin-top: auto;
   flex: 0 0 auto;
@@ -322,26 +489,42 @@
   border-bottom: 1px solid var(--line);
 }
 
-.page-account-kicker,
-.page-account-head nav.page-account-kicker {
-  display: flex;
-  flex-wrap: wrap;
+/* Back link — required on every account/admin page head */
+.account-back {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 2px;
+  padding: 2px 0;
   color: var(--muted);
-}
-
-.page-account-kicker .link-quiet {
+  font-size: 13px;
   font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: color 0.12s var(--ease);
 }
 
-.page-account-kicker .admin-corp-sep,
-.page-account-kicker .account-kicker-sep {
-  color: var(--line-strong);
-  user-select: none;
+.account-back .ap-icon {
+  flex-shrink: 0;
+  color: currentColor;
+  transition: transform 0.12s var(--ease);
+}
+
+.account-back:hover {
+  color: var(--ink);
+}
+
+.account-back:hover .ap-icon {
+  transform: translateX(-2px);
+}
+
+.account-back:focus-visible {
+  outline: 2px solid var(--machine-deep);
+  outline-offset: 3px;
+  border-radius: 2px;
+  color: var(--ink);
 }
 
 .page-account-title-row {
@@ -352,7 +535,7 @@
   gap: 12px 16px;
 }
 
-.page-account-title-row > div {
+.page-account-title-row > :not(.page-account-actions) {
   min-width: 0;
   flex: 1 1 12rem;
 }
@@ -380,6 +563,7 @@
   gap: 8px;
   align-items: center;
   flex: 0 0 auto;
+  margin-left: auto;
 }
 
 /* —— Empty state (centered result panel) —— */
@@ -639,12 +823,37 @@
   display: grid;
   gap: 2px;
   min-width: 0;
+  flex: 1 1 auto;
+}
+
+.account-dash-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .account-dash-title {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 14px;
+}
+
+.account-dash-count {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.25rem;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--machine);
+  color: var(--machine-ink);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .account-dash-meta {
@@ -836,6 +1045,11 @@
   transition:
     border-color 0.12s var(--ease),
     box-shadow 0.12s var(--ease);
+}
+
+/* Text-only rows (şikayet listesi, vb.) — no empty 88px thumb column */
+.admin-listing-row:not(:has(.admin-listing-thumb)):not(:has(.account-result-media)) {
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .account-result-row:hover,
@@ -1290,6 +1504,10 @@ button.account-action-item {
     grid-template-columns: 72px minmax(0, 1fr);
   }
 
+  .admin-listing-row:not(:has(.admin-listing-thumb)):not(:has(.account-result-media)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .account-result-media,
   .admin-listing-thumb,
   .admin-corp-avatar {
@@ -1300,11 +1518,16 @@ button.account-action-item {
   .account-result-cta,
   .admin-listing-row > .btn,
   .admin-listing-row > .account-listing-actions,
+  .admin-listing-row > .admin-report-listing-actions,
   .admin-corp-cta,
   .corp-card > .btn {
     grid-column: 1 / -1;
     justify-self: stretch;
     text-align: center;
+  }
+
+  .admin-report-listing-actions {
+    grid-template-columns: 1fr 1fr;
   }
 
   .account-listing-actions {
@@ -1868,6 +2091,14 @@ button.account-action-item {
   border-top: 1px solid var(--line);
 }
 
+/* Single decision form (şikayet) — no divider above the first field */
+.admin-corp-actions > .admin-corp-reject-form:first-of-type,
+.admin-report-decision-form {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
 .admin-mod-archive-form {
   margin-top: 12px;
   padding-top: 12px;
@@ -1880,11 +2111,22 @@ button.account-action-item {
   color: var(--muted);
 }
 
+.admin-corp-reject-form select.ap-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
 .admin-corp-reject-form .corp-textarea,
 .admin-corp-reject-form textarea {
   box-sizing: border-box;
   width: 100%;
   min-height: 96px;
+  height: auto;
   margin: 0;
   padding: 10px 12px;
   border: 1px solid var(--line-strong);
@@ -1901,6 +2143,27 @@ button.account-action-item {
   outline: none;
   border-color: var(--machine-deep);
   box-shadow: 0 0 0 3px rgba(255, 230, 0, 0.35);
+}
+
+.admin-report-listing {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.admin-report-listing:hover {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.admin-report-listing-actions {
+  display: grid;
+  gap: 8px;
+  justify-self: end;
+  align-content: center;
 }
 
 .admin-corp-aside-reject {
@@ -2364,5 +2627,300 @@ html.wizard-crop-open body {
 
   .wizard-crop-actions .btn {
     flex: 1 1 auto;
+  }
+}
+
+/* —— Messaging (/mesajlarim) —— */
+.msg-thread-list {
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  overflow: hidden;
+}
+
+.msg-thread-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  text-decoration: none;
+  color: inherit;
+  border-bottom: 1px solid var(--line);
+}
+
+.msg-thread-row:last-child {
+  border-bottom: 0;
+}
+
+.msg-thread-row:hover {
+  background: color-mix(in srgb, var(--machine) 6%, transparent);
+}
+
+.msg-thread-row.is-unread .msg-thread-title {
+  font-weight: 800;
+}
+
+.msg-thread-thumb {
+  width: 72px;
+  height: 54px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.msg-thread-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.msg-thread-body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.msg-thread-top {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.msg-thread-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.msg-thread-time {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.msg-thread-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.msg-thread-adno {
+  font-variant-numeric: tabular-nums;
+}
+
+.msg-thread-price {
+  font-weight: 700;
+  color: var(--signal);
+}
+
+.msg-thread-preview {
+  font-size: 0.85rem;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+.msg-thread-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--machine);
+}
+
+.msg-context-card {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+}
+
+.msg-context-media {
+  display: block;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.msg-context-media img {
+  display: block;
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+}
+
+.msg-context-body {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.msg-context-title {
+  font-weight: 700;
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.msg-context-title:hover {
+  color: var(--machine);
+}
+
+.msg-context-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.msg-context-price {
+  color: var(--signal);
+  font-weight: 800;
+}
+
+.msg-safety {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--warn, #b54708) 8%, var(--raised));
+  border: 1px solid color-mix(in srgb, var(--warn, #b54708) 22%, var(--line));
+  border-radius: var(--radius);
+}
+
+.msg-chat {
+  display: grid;
+  grid-template-rows: minmax(240px, 1fr) auto;
+  gap: 12px;
+  min-height: min(62vh, 560px);
+}
+
+.msg-chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  max-height: min(52vh, 480px);
+}
+
+.msg-chat-empty {
+  margin: auto;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.msg-bubble {
+  max-width: min(78%, 420px);
+  padding: 10px 12px;
+  border-radius: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.msg-bubble.is-mine {
+  align-self: flex-end;
+  background: color-mix(in srgb, var(--machine) 18%, var(--raised));
+  border: 1px solid color-mix(in srgb, var(--machine) 28%, var(--line));
+  border-bottom-right-radius: 4px;
+}
+
+.msg-bubble.is-theirs {
+  align-self: flex-start;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 4px;
+}
+
+.msg-bubble-text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.msg-bubble-time {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.msg-compose {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.msg-compose-input {
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  font: inherit;
+  line-height: 1.4;
+}
+
+.msg-compose-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--machine) 45%, transparent);
+  outline-offset: 1px;
+}
+
+@media (max-width: 720px) {
+  .msg-context-card {
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .msg-context-media img {
+    width: 88px;
+    height: 66px;
+  }
+
+  .msg-thread-row {
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .msg-thread-thumb {
+    width: 64px;
+    height: 48px;
+  }
+
+  .msg-compose {
+    grid-template-columns: 1fr;
+  }
+
+  .msg-compose .btn {
+    width: 100%;
   }
 }

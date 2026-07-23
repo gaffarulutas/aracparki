@@ -2,6 +2,7 @@
   "use strict";
 
   const STORAGE_RECENT = "ap:recent";
+  const RECENT_MAX = 6;
   const LISTING_IMAGE_PLACEHOLDER = "/assets/images/landscape-placeholder.svg";
 
   /** Parents that can host the lazy-load spinner (must be position:relative capable). */
@@ -178,15 +179,391 @@
     const host = document.querySelector("[data-recent-id]");
     if (!host) return;
     const id = Number(host.getAttribute("data-recent-id"));
-    if (!Number.isFinite(id)) return;
+    if (!Number.isFinite(id) || id <= 0) return;
     let recent = [];
     try {
       recent = JSON.parse(localStorage.getItem(STORAGE_RECENT) || "[]");
     } catch {
       recent = [];
     }
-    recent = [id, ...recent.filter((x) => x !== id)].slice(0, 6);
+    if (!Array.isArray(recent)) recent = [];
+    recent = [id, ...recent.filter((x) => Number(x) !== id)].slice(0, RECENT_MAX);
     localStorage.setItem(STORAGE_RECENT, JSON.stringify(recent));
+  };
+
+  const readRecentIds = () => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(STORAGE_RECENT) || "[]");
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .map((x) => Number(x))
+        .filter((id) => Number.isFinite(id) && id > 0)
+        .filter((id, i, arr) => arr.indexOf(id) === i)
+        .slice(0, RECENT_MAX);
+    } catch {
+      return [];
+    }
+  };
+
+  const initRecentListings = async () => {
+    const section = document.getElementById("son-bakilanlar");
+    const grid = section?.querySelector("[data-recent-grid]");
+    const countEl = section?.querySelector("[data-recent-count]");
+    if (!section || !grid) return;
+
+    const ids = readRecentIds();
+    if (!ids.length) return;
+
+    try {
+      const res = await fetch("/api/listings/by-ids?ids=" + encodeURIComponent(ids.join(",")), {
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) return;
+      const items = await res.json();
+      if (!Array.isArray(items) || items.length === 0) {
+        localStorage.setItem(STORAGE_RECENT, "[]");
+        return;
+      }
+
+      const liveIds = items.map((x) => Number(x.id)).filter((id) => id > 0);
+      localStorage.setItem(STORAGE_RECENT, JSON.stringify(liveIds.slice(0, RECENT_MAX)));
+
+      grid.replaceChildren();
+      for (const item of items) {
+        const article = document.createElement("article");
+        article.className = "listing-card";
+        if (item.id) article.setAttribute("data-id", String(item.id));
+        if (item.adNo) article.setAttribute("data-adno", item.adNo);
+
+        const link = document.createElement("a");
+        link.className = "listing-card-link";
+        link.href = item.href || "/ilan/" + encodeURIComponent(item.adNo || "");
+
+        const media = document.createElement("div");
+        media.className = "listing-media img-shell is-loading";
+        if (item.badgeClass && item.badgeText) {
+          const badge = document.createElement("span");
+          badge.className = item.badgeClass;
+          badge.textContent = item.badgeText;
+          media.appendChild(badge);
+        }
+        const img = document.createElement("img");
+        img.src = item.thumb || LISTING_IMAGE_PLACEHOLDER;
+        if (item.srcset) img.srcset = item.srcset;
+        img.sizes = "(max-width:720px) 45vw, 160px";
+        img.alt = item.title || "";
+        img.width = 320;
+        img.height = 320;
+        img.loading = "lazy";
+        img.decoding = "async";
+        media.appendChild(img);
+        link.appendChild(media);
+
+        const body = document.createElement("div");
+        body.className = "listing-body";
+        const h3 = document.createElement("h3");
+        h3.textContent = item.title || item.adNo || "";
+        body.appendChild(h3);
+
+        const meta = document.createElement("div");
+        meta.className = "listing-meta";
+        if (item.brandModel) {
+          const s = document.createElement("span");
+          s.textContent = item.brandModel;
+          meta.appendChild(s);
+        }
+        if (item.modelYear) {
+          const s = document.createElement("span");
+          s.textContent = String(item.modelYear);
+          meta.appendChild(s);
+        }
+        if (item.location) {
+          const s = document.createElement("span");
+          s.textContent = item.location;
+          meta.appendChild(s);
+        }
+        if (meta.childNodes.length) body.appendChild(meta);
+
+        const foot = document.createElement("div");
+        foot.className = "listing-foot";
+        const price = document.createElement("div");
+        price.className = "listing-price";
+        price.textContent = item.price || "";
+        foot.appendChild(price);
+        body.appendChild(foot);
+
+        link.appendChild(body);
+        article.appendChild(link);
+        grid.appendChild(article);
+      }
+
+      if (countEl) {
+        countEl.textContent = "(" + items.length + ")";
+        countEl.hidden = false;
+      }
+      section.hidden = false;
+      if (typeof bindImageSpinner === "function") {
+        grid.querySelectorAll("img").forEach((img) => bindImageSpinner(img));
+      }
+    } catch {
+      /* ignore network errors */
+    }
+  };
+
+  const initVitrinTabs = () => {
+    const root = document.querySelector("[data-vitrin]");
+    if (!(root instanceof HTMLElement)) return;
+
+    const tabs = root.querySelector("[data-vitrin-tabs]");
+    const grid = root.querySelector("[data-vitrin-grid]");
+    const countEl = root.querySelector("[data-vitrin-count]");
+    const seeAllEl = root.querySelector("[data-vitrin-see-all]");
+    if (!(tabs instanceof HTMLElement) || !(grid instanceof HTMLElement)) return;
+
+    const KNOWN_INTENTS = new Set(["all", "satilik", "kiralik"]);
+    const CACHE_TTL_MS = 60_000;
+
+    const tabLinks = () =>
+      Array.from(tabs.querySelectorAll("[data-vitrin-intent]")).filter(
+        (el) => el instanceof HTMLAnchorElement
+      );
+
+    /** Same-origin relative path only (blocks //evil, javascript:, https:…). */
+    const safePath = (href) => {
+      if (typeof href !== "string") return null;
+      const t = href.trim();
+      if (!t.startsWith("/") || t.startsWith("//") || t.includes("\\") || t.includes("://")) {
+        return null;
+      }
+      return t;
+    };
+
+    const normalizeIntent = (raw) => {
+      const tip = String(raw || "").trim().toLowerCase();
+      return KNOWN_INTENTS.has(tip) ? tip : "all";
+    };
+
+    const cache = new Map();
+    let activeIntent = normalizeIntent(grid.getAttribute("data-vitrin-intent"));
+    let lastGoodIntent = activeIntent;
+    let abort = null;
+    let reqSeq = 0;
+
+    const readCache = (intent) => {
+      const entry = cache.get(intent);
+      if (!entry) return null;
+      if (Date.now() - entry.at > CACHE_TTL_MS) {
+        cache.delete(intent);
+        return null;
+      }
+      return entry;
+    };
+
+    const writeCache = (intent, payload) => {
+      cache.set(intent, { ...payload, at: Date.now() });
+    };
+
+    const seed = tabLinks().find((a) => a.getAttribute("data-vitrin-intent") === activeIntent);
+    writeCache(activeIntent, {
+      html: grid.innerHTML,
+      count: grid.querySelectorAll(".listing-card").length,
+      seeAll:
+        safePath(seed?.getAttribute("data-see-all")) ||
+        safePath(seeAllEl?.getAttribute("href")) ||
+        "/ilanlar",
+    });
+
+    const setBusy = (busy) => {
+      grid.setAttribute("aria-busy", busy ? "true" : "false");
+      root.classList.toggle("is-loading", busy);
+    };
+
+    const showSkeletons = (n = 10) => {
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < n; i += 1) {
+        const sk = document.createElement("div");
+        sk.className = "skeleton-card";
+        sk.setAttribute("aria-hidden", "true");
+        frag.appendChild(sk);
+      }
+      grid.replaceChildren(frag);
+    };
+
+    const applyChrome = (intent, { count, seeAll } = {}, tabEl) => {
+      activeIntent = intent;
+      grid.setAttribute("data-vitrin-intent", intent);
+      if (tabEl?.id) grid.setAttribute("aria-labelledby", tabEl.id);
+
+      tabLinks().forEach((a) => {
+        const on = a.getAttribute("data-vitrin-intent") === intent;
+        a.setAttribute("aria-selected", on ? "true" : "false");
+        a.tabIndex = on ? 0 : -1;
+      });
+
+      if (typeof count === "number" && countEl) {
+        countEl.textContent = "(" + count + ")";
+      }
+      const path = safePath(seeAll);
+      if (seeAllEl instanceof HTMLAnchorElement && path) {
+        seeAllEl.href = path;
+      }
+    };
+
+    const applyPayload = (intent, payload, tabEl) => {
+      // Fragment only — never inject a full document into the grid.
+      const html = String(payload.html || "").trim();
+      if (/^<!DOCTYPE|^<html[\s>]/i.test(html)) {
+        throw new Error("unexpected document fragment");
+      }
+      grid.innerHTML = html;
+      applyChrome(intent, payload, tabEl);
+      lastGoodIntent = intent;
+      initLazyImageSpinners(grid);
+      setBusy(false);
+    };
+
+    const urlForIntent = (intent) => {
+      const u = new URL(window.location.href);
+      if (!intent || intent === "all") u.searchParams.delete("tip");
+      else u.searchParams.set("tip", intent);
+      if (intent === "all" && ![...u.searchParams.keys()].length) {
+        return u.pathname + u.hash;
+      }
+      return u.pathname + u.search + u.hash;
+    };
+
+    const syncHistory = (intent, replace) => {
+      const url = urlForIntent(intent);
+      const state = { ...(history.state || {}), vitrinIntent: intent };
+      if (replace) history.replaceState(state, "", url);
+      else history.pushState(state, "", url);
+    };
+
+    const restoreLastGood = () => {
+      const good = readCache(lastGoodIntent);
+      if (!good) {
+        setBusy(false);
+        return;
+      }
+      const tabEl = tabLinks().find((a) => a.getAttribute("data-vitrin-intent") === lastGoodIntent);
+      try {
+        applyPayload(lastGoodIntent, good, tabEl);
+        syncHistory(lastGoodIntent, true);
+      } catch {
+        setBusy(false);
+      }
+    };
+
+    const loadIntent = async (intentRaw, { push = true, focusTab = false } = {}) => {
+      const intent = normalizeIntent(intentRaw);
+      const tabEl = tabLinks().find((a) => a.getAttribute("data-vitrin-intent") === intent);
+      if (!tabEl) return;
+
+      if (intent === activeIntent && grid.getAttribute("aria-busy") !== "true") {
+        if (focusTab) tabEl.focus();
+        return;
+      }
+
+      applyChrome(intent, { seeAll: tabEl.getAttribute("data-see-all") || "/ilanlar" }, tabEl);
+      if (push) syncHistory(intent, false);
+
+      const cached = readCache(intent);
+      if (cached) {
+        try {
+          applyPayload(intent, cached, tabEl);
+          if (focusTab) tabEl.focus();
+          return;
+        } catch {
+          cache.delete(intent);
+        }
+      }
+
+      if (abort) abort.abort();
+      abort = new AbortController();
+      const seq = ++reqSeq;
+
+      setBusy(true);
+      showSkeletons();
+
+      try {
+        const res = await fetch(
+          "/api/listings/featured?tip=" + encodeURIComponent(intent),
+          {
+            headers: { Accept: "text/html", "X-Requested-With": "XMLHttpRequest" },
+            signal: abort.signal,
+            credentials: "same-origin",
+          }
+        );
+        if (!res.ok) throw new Error("featured " + res.status);
+        const html = await res.text();
+        if (seq !== reqSeq) return;
+
+        const countHeader = res.headers.get("X-Featured-Count");
+        const parsed = countHeader != null ? Number(countHeader) : NaN;
+        const count = Number.isFinite(parsed)
+          ? parsed
+          : (html.match(/\blisting-card\b/g) || []).length;
+        const seeAll =
+          safePath(res.headers.get("X-Featured-See-All")) ||
+          safePath(tabEl.getAttribute("data-see-all")) ||
+          "/ilanlar";
+
+        const payload = { html, count, seeAll };
+        writeCache(intent, payload);
+        applyPayload(intent, payload, tabEl);
+        if (focusTab) tabEl.focus();
+      } catch (err) {
+        if (err?.name === "AbortError") return;
+        if (seq !== reqSeq) return;
+        toast("İlanlar yüklenemedi. Tekrar deneyin.");
+        restoreLastGood();
+      }
+    };
+
+    tabs.addEventListener("click", (e) => {
+      const a = e.target.closest("[data-vitrin-intent]");
+      if (!(a instanceof HTMLAnchorElement) || !tabs.contains(a)) return;
+      if (e.defaultPrevented) return;
+      if (e.button !== 0) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+      e.preventDefault();
+      const intent = a.getAttribute("data-vitrin-intent");
+      if (!intent) return;
+      loadIntent(intent, { push: true });
+    });
+
+    tabs.addEventListener("keydown", (e) => {
+      const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
+      if (!keys.includes(e.key)) return;
+      const list = tabLinks();
+      if (!list.length) return;
+      const current = document.activeElement;
+      const idx = list.indexOf(current);
+      if (idx < 0) return;
+
+      e.preventDefault();
+      let next = idx;
+      if (e.key === "ArrowLeft") next = (idx - 1 + list.length) % list.length;
+      else if (e.key === "ArrowRight") next = (idx + 1) % list.length;
+      else if (e.key === "Home") next = 0;
+      else if (e.key === "End") next = list.length - 1;
+
+      const target = list[next];
+      const intent = target.getAttribute("data-vitrin-intent");
+      if (!intent) return;
+      loadIntent(intent, { push: true, focusTab: true });
+    });
+
+    window.addEventListener("popstate", () => {
+      // URL is source of truth; state is a hint only when tip is absent
+      const fromUrl = new URL(window.location.href).searchParams.get("tip");
+      const intent = normalizeIntent(fromUrl || history.state?.vitrinIntent || "all");
+      if (intent === activeIntent && grid.getAttribute("aria-busy") !== "true") return;
+      loadIntent(intent, { push: false });
+    });
+
+    syncHistory(activeIntent, true);
   };
 
   document.addEventListener("click", (e) => {
@@ -404,6 +781,7 @@
             title: String(x.title || x.adNo),
             thumb: String(x.thumb || ""),
             price: String(x.price || ""),
+            meta: String(x.meta || ""),
           }));
       } catch {
         return [];
@@ -452,6 +830,7 @@
             title: String(payload?.title || adNo),
             thumb: String(payload?.thumb || ""),
             price: String(payload?.price || ""),
+            meta: String(payload?.meta || ""),
           },
         ];
         writeCompareItems(this.items);
@@ -479,6 +858,7 @@
             title: (meta && meta.title) || (existing && existing.title) || adNo,
             thumb: (meta && meta.thumb) || (existing && existing.thumb) || "",
             price: (meta && meta.price) || (existing && existing.price) || "",
+            meta: (meta && meta.meta) || (existing && existing.meta) || "",
           });
           if (next.length >= this.max) break;
         }
@@ -496,8 +876,25 @@
         const n = this.$store.listingCompare.count;
         return n > 0 ? "Karşılaştır (" + n + ")" : "Karşılaştır";
       },
-      get currentAdNo() {
-        return (this.$el.getAttribute("data-compare-adno") || "").toUpperCase();
+      /** Current listing from crumb attrs, or detail page #main fallback (sahibinden-style). */
+      readCurrent() {
+        const fromEl = (name) => (this.$el.getAttribute(name) || "").trim();
+        let adNo = fromEl("data-compare-adno").toUpperCase();
+        let title = fromEl("data-compare-title");
+        let thumb = fromEl("data-compare-thumb");
+        let price = fromEl("data-compare-price");
+        let meta = fromEl("data-compare-meta");
+        if (!adNo) {
+          const page = document.getElementById("main");
+          if (page) {
+            adNo = (page.getAttribute("data-compare-adno") || "").trim().toUpperCase();
+            title = (page.getAttribute("data-compare-title") || "").trim();
+            thumb = (page.getAttribute("data-compare-thumb") || "").trim();
+            price = (page.getAttribute("data-compare-price") || "").trim();
+            meta = (page.getAttribute("data-compare-meta") || "").trim();
+          }
+        }
+        return { adNo, title, thumb, price, meta };
       },
       toggle() {
         this.open = !this.open;
@@ -507,16 +904,12 @@
         this.open = false;
       },
       addCurrent() {
-        const adNo = this.currentAdNo;
-        if (!adNo) return;
-        const result = this.$store.listingCompare.add({
-          adNo,
-          title: this.$el.getAttribute("data-compare-title") || "",
-          thumb: this.$el.getAttribute("data-compare-thumb") || "",
-          price: this.$el.getAttribute("data-compare-price") || "",
-        });
+        const cur = this.readCurrent();
+        if (!cur.adNo) return;
+        const result = this.$store.listingCompare.add(cur);
         if (!result.ok && result.reason === "max") {
           toast("En fazla 4 ilan karşılaştırabilirsin.");
+          return;
         }
         this.render();
       },
@@ -529,6 +922,14 @@
         }
       },
       init() {
+        const addBtn = this.$refs.addBtn;
+        if (addBtn) {
+          addBtn.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.addCurrent();
+          });
+        }
         this.$watch("$store.listingCompare.items", () => {
           if (this.open) this.render();
         });
@@ -540,26 +941,11 @@
         const empty = this.$refs.empty;
         const list = this.$refs.list;
         const go = this.$refs.goLink;
-        const adNo = this.currentAdNo;
-        const showOffer = !!adNo && !store.has(adNo);
+        const cur = this.readCurrent();
+        const showOffer = !!cur.adNo && !store.has(cur.adNo);
 
         if (offer) {
           offer.hidden = !showOffer;
-          if (showOffer) {
-            const thumbUrl = this.$el.getAttribute("data-compare-thumb") || "";
-            const img = this.$refs.currentThumb;
-            const ph = this.$refs.currentPlaceholder;
-            if (img) {
-              if (thumbUrl) {
-                img.src = thumbUrl;
-                img.hidden = false;
-                if (ph) ph.hidden = true;
-              } else {
-                img.hidden = true;
-                if (ph) ph.hidden = false;
-              }
-            }
-          }
         }
 
         if (go) {
@@ -571,7 +957,7 @@
         list.replaceChildren();
         for (const item of store.items) {
           const row = document.createElement("div");
-          row.className = "compare-pop-item";
+          row.className = "compare-pop-card compare-pop-item";
 
           const media = document.createElement("a");
           media.className = "compare-pop-item-media";
@@ -580,8 +966,8 @@
             const img = document.createElement("img");
             img.src = item.thumb;
             img.alt = "";
-            img.width = 56;
-            img.height = 42;
+            img.width = 80;
+            img.height = 60;
             img.loading = "lazy";
             media.appendChild(img);
           }
@@ -589,26 +975,42 @@
 
           const body = document.createElement("div");
           body.className = "compare-pop-item-body";
+
           const title = document.createElement("a");
           title.className = "compare-pop-item-title";
           title.href = "/ilan/" + encodeURIComponent(item.adNo);
           title.textContent = item.title;
           title.title = item.title;
           body.appendChild(title);
+
+          if (item.meta) {
+            const metaEl = document.createElement("div");
+            metaEl.className = "compare-pop-item-meta";
+            metaEl.textContent = item.meta;
+            body.appendChild(metaEl);
+          }
+
           if (item.price) {
             const price = document.createElement("div");
             price.className = "compare-pop-item-price";
             price.textContent = item.price;
             body.appendChild(price);
           }
+
           row.appendChild(body);
 
           const remove = document.createElement("button");
           remove.type = "button";
           remove.className = "compare-pop-item-remove";
-          remove.setAttribute("aria-label", item.adNo + " kaldır");
-          remove.textContent = "×";
-          remove.addEventListener("click", () => store.remove(item.adNo));
+          remove.setAttribute("aria-label", item.adNo + " listeden kaldır");
+          remove.title = "Listeden kaldır";
+          remove.innerHTML =
+            '<svg class="ap-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>';
+          remove.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            store.remove(item.adNo);
+          });
           row.appendChild(remove);
 
           list.appendChild(row);
@@ -3109,6 +3511,92 @@
       },
     });
 
+    Alpine.data("listingMessageThread", () => ({
+      lastId: 0,
+      pollUrl: "",
+      _timer: null,
+      init() {
+        this.lastId = Number(this.$el.getAttribute("data-last-id") || "0") || 0;
+        this.pollUrl = this.$el.getAttribute("data-poll-url") || "";
+        this.scrollToBottom(true);
+        if (!this.pollUrl) return;
+        this._timer = window.setInterval(() => this.poll(), 10000);
+      },
+      destroy() {
+        if (this._timer) window.clearInterval(this._timer);
+        this._timer = null;
+      },
+      scrollToBottom(force) {
+        const log = this.$refs.log;
+        if (!log) return;
+        const nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 120;
+        if (force || nearBottom) {
+          log.scrollTop = log.scrollHeight;
+        }
+      },
+      formatTime(iso) {
+        try {
+          const d = new Date(iso);
+          if (Number.isNaN(d.getTime())) return "";
+          return d.toLocaleString("tr-TR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        } catch {
+          return "";
+        }
+      },
+      appendMessage(msg) {
+        const log = this.$refs.log;
+        if (!log || !msg || !msg.id) return;
+        if (log.querySelector(`[data-msg-id="${msg.id}"]`)) return;
+
+        const empty = log.querySelector(".msg-chat-empty");
+        if (empty) empty.remove();
+
+        const bubble = document.createElement("div");
+        bubble.className = `msg-bubble ${msg.isMine ? "is-mine" : "is-theirs"}`;
+        bubble.setAttribute("data-msg-id", String(msg.id));
+
+        const text = document.createElement("p");
+        text.className = "msg-bubble-text";
+        text.textContent = String(msg.body || "");
+
+        const time = document.createElement("time");
+        time.className = "msg-bubble-time";
+        const iso = msg.createdAt || "";
+        if (iso) time.setAttribute("datetime", String(iso));
+        time.textContent = this.formatTime(iso);
+
+        bubble.appendChild(text);
+        bubble.appendChild(time);
+        log.appendChild(bubble);
+
+        const id = Number(msg.id) || 0;
+        if (id > this.lastId) this.lastId = id;
+        this.scrollToBottom(!!msg.isMine);
+      },
+      async poll() {
+        if (!this.pollUrl || document.hidden) return;
+        const url = `${this.pollUrl}${this.pollUrl.includes("?") ? "&" : "?"}afterId=${encodeURIComponent(String(this.lastId))}`;
+        try {
+          const res = await fetch(url, {
+            credentials: "same-origin",
+            headers: { Accept: "application/json" },
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          if (!Array.isArray(data) || data.length === 0) return;
+          for (const msg of data) this.appendMessage(msg);
+        } catch {
+          /* ignore transient poll errors */
+        }
+      },
+    }));
+
     Alpine.data("listingReportTrigger", () => ({
       openModal() {
         this.$store.listingReport.openModal();
@@ -4297,8 +4785,131 @@
     });
   };
 
+  const STORAGE_MSG_NOTIFIED = "ap:msg:notifiedId";
+
+  const isMobileLike = () => {
+    try {
+      return window.matchMedia("(max-width: 720px), (pointer: coarse)").matches;
+    } catch {
+      return false;
+    }
+  };
+
+  const initMessageAlerts = () => {
+    if (document.body?.getAttribute("data-authenticated") !== "1") return;
+    if (typeof Notification === "undefined") return;
+
+    let lastNotifiedId = 0;
+    try {
+      lastNotifiedId = Number(localStorage.getItem(STORAGE_MSG_NOTIFIED) || "0") || 0;
+    } catch {
+      lastNotifiedId = 0;
+    }
+
+    const onThreadPage = () => /^\/mesajlarim\/\d+/.test(location.pathname);
+
+    const showOsNotification = (msg) => {
+      if (!msg || !msg.id) return;
+      if (Notification.permission !== "granted") return;
+      // Desktop: in-app /bildirimler is enough. Mobile: every inbound message.
+      if (!isMobileLike()) return;
+      if (onThreadPage() && String(location.pathname).endsWith(`/${msg.threadId}`)) return;
+
+      try {
+        const title = msg.adNo ? `Yeni mesaj · ${msg.adNo}` : "Yeni mesaj";
+        const body = String(msg.body || "Mesajını görüntüle");
+        const n = new Notification(title, {
+          body,
+          tag: `ap-msg-${msg.id}`,
+          renotify: true,
+        });
+        n.onclick = () => {
+          window.focus();
+          location.href = `/mesajlarim/${msg.threadId}`;
+          n.close();
+        };
+      } catch {
+        /* ignore Notification failures */
+      }
+    };
+
+    const ensurePermission = async () => {
+      if (!isMobileLike()) return false;
+      if (Notification.permission === "granted") return true;
+      if (Notification.permission === "denied") return false;
+      try {
+        const result = await Notification.requestPermission();
+        return result === "granted";
+      } catch {
+        return false;
+      }
+    };
+
+    const poll = async () => {
+      if (document.hidden) return;
+      try {
+        const res = await fetch("/api/account/unread-messages", {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" },
+        });
+        if (res.status === 401) return;
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = Array.isArray(data?.messages) ? data.messages : [];
+        // API returns newest-first; notify oldest-first among new ones.
+        const fresh = list
+          .filter((m) => Number(m.id) > lastNotifiedId)
+          .sort((a, b) => Number(a.id) - Number(b.id));
+        if (fresh.length === 0) return;
+
+        if (isMobileLike()) await ensurePermission();
+        for (const msg of fresh) showOsNotification(msg);
+
+        const maxId = Math.max(lastNotifiedId, ...fresh.map((m) => Number(m.id) || 0));
+        lastNotifiedId = maxId;
+        try {
+          localStorage.setItem(STORAGE_MSG_NOTIFIED, String(maxId));
+        } catch {
+          /* ignore */
+        }
+      } catch {
+        /* ignore transient poll errors */
+      }
+    };
+
+    // Seed watermark so existing unread don't spam on first load.
+    (async () => {
+      try {
+        const res = await fetch("/api/account/unread-messages", {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = Array.isArray(data?.messages) ? data.messages : [];
+        const maxExisting = list.reduce((max, m) => Math.max(max, Number(m.id) || 0), 0);
+        if (maxExisting > lastNotifiedId) {
+          lastNotifiedId = maxExisting;
+          try {
+            localStorage.setItem(STORAGE_MSG_NOTIFIED, String(maxExisting));
+          } catch {
+            /* ignore */
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+      window.setInterval(poll, 15000);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) poll();
+      });
+    })();
+  };
+
   document.addEventListener("DOMContentLoaded", () => {
     trackRecent();
+    initRecentListings();
+    initVitrinTabs();
     initVerifyBanner();
     initListEnhancements();
     initQuillDescriptions();
@@ -4307,6 +4918,7 @@
     initOverlayTitleTooltip();
     initShareListing();
     initPrintListing();
+    initMessageAlerts();
     const toastEl = document.getElementById("toast");
     const draftToast = toastEl?.getAttribute("data-draft-toast");
     if (draftToast) {

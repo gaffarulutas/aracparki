@@ -4,7 +4,7 @@
     Layout = "Shared/_AccountLayout";
 }
 <header class="page-account-head">
-  <partial name="Shared/Partials/_AccountBreadcrumb" />
+  <partial name="Shared/Partials/_AccountBack" model='("/panel", "Panel")' />
   <div class="page-account-title-row">
     <div>
       <h1>Bildirimler</h1>
@@ -29,7 +29,7 @@
   <div class="empty-state">
     <span class="empty-state-icon" aria-hidden="true"><ap-icon name="bell" size="22" class="ap-icon" /></span>
     <p>Henüz bildirimin yok.</p>
-    <p class="empty-state-hint">Şikayet sonucu ve önemli hesap uyarıları burada görünür.</p>
+    <p class="empty-state-hint">Mesaj, şikayet sonucu ve önemli hesap uyarıları burada görünür.</p>
   </div>
 }
 else

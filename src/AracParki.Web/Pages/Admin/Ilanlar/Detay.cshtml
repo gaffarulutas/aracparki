@@ -34,13 +34,10 @@
     var isRejected = listing.Status == ListingStatus.Rejected;
     var isPublished = listing.Status == ListingStatus.Published;
     ViewData["NeedDetailGallery"] = true;
-    ViewData[Breadcrumbs.ViewDataKey] = Breadcrumbs.Create(
-        new BreadcrumbItem("Admin", "/admin"),
-        new BreadcrumbItem("İlanlar", $"/admin/ilanlar?durum={listing.Status}"),
-        new BreadcrumbItem(listing.AdNo));
 }
 <header class="page-account-head admin-mod-head">
-  <partial name="Shared/Partials/_AccountBreadcrumb" />
+  <partial name="Shared/Partials/_AccountBack"
+           model='($"/admin/ilanlar?durum={listing.Status}", "İlanlar")' />
   <div class="admin-mod-hero">
     <div class="admin-mod-hero-text">
       <div class="admin-corp-title-row">

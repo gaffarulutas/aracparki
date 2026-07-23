@@ -81,6 +81,53 @@ public sealed class ListingRepository(
         return items.AsList();
     }
 
+    public async Task<IReadOnlyList<ListingCardDto>> GetPublishedCardsByIdsAsync(
+        IReadOnlyList<long> ids,
+        CancellationToken cancellationToken)
+    {
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var unique = ids.Where(id => id > 0).Distinct().Take(6).ToArray();
+        if (unique.Length == 0)
+        {
+            return [];
+        }
+
+        await using var connection = (System.Data.Common.DbConnection)await connectionFactory.CreateOpenConnectionAsync(cancellationToken);
+        var items = (await connection.QueryAsync<ListingCardDto>(
+            new CommandDefinition(
+                sql.Get("Listings/GetPublishedCardsByIds.sql"),
+                new { Ids = unique },
+                cancellationToken: cancellationToken))).AsList();
+
+        if (items.Count == 0)
+        {
+            return [];
+        }
+
+        var byId = items.ToDictionary(x => x.Id);
+        var ordered = new List<ListingCardDto>(unique.Length);
+        foreach (var id in ids)
+        {
+            if (id <= 0 || !byId.TryGetValue(id, out var card))
+            {
+                continue;
+            }
+
+            ordered.Add(card);
+            byId.Remove(id);
+            if (ordered.Count >= 6)
+            {
+                break;
+            }
+        }
+
+        return ordered;
+    }
+
     public async Task<IReadOnlyList<ListingCardDto>> GetByAccountIdAsync(
         long accountId,
         int take,

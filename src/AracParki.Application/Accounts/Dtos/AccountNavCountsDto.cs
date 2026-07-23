@@ -6,4 +6,5 @@ public sealed class AccountNavCountsDto
     public int Favorites { get; init; }
     public int SavedSearches { get; init; }
     public int UnreadNotifications { get; init; }
+    public int UnreadMessages { get; init; }
 }

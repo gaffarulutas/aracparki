@@ -23,6 +23,18 @@ public sealed class ListingService(
         return await listingQuery.GetFeaturedAsync(Normalize(query), take, cancellationToken);
     }
 
+    public Task<IReadOnlyList<ListingCardDto>> GetPublishedCardsByIdsAsync(
+        IReadOnlyList<long> ids,
+        CancellationToken cancellationToken)
+    {
+        if (ids.Count == 0)
+        {
+            return Task.FromResult<IReadOnlyList<ListingCardDto>>([]);
+        }
+
+        return listingQuery.GetPublishedCardsByIdsAsync(ids, cancellationToken);
+    }
+
     public Task<ListingDetailDto?> GetByAdNoAsync(
         string adNo,
         ListingAccessContext access,

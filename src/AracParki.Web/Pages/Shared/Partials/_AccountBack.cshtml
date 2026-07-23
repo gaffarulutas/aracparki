@@ -1,0 +1,9 @@
+@model (string Href, string Label)
+@{
+    var href = string.IsNullOrWhiteSpace(Model.Href) ? "/" : Model.Href.Trim();
+    var label = string.IsNullOrWhiteSpace(Model.Label) ? "Geri" : Model.Label.Trim();
+}
+<a class="account-back" href="@href">
+  <ap-icon name="arrow-left" size="16" class="ap-icon" aria-hidden="true" />
+  <span>@label</span>
+</a>

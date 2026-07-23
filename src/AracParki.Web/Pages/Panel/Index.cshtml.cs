@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using AracParki.Application.Conversations.Services;
 using AracParki.Application.Corporate.Services;
 using AracParki.Application.Listings.Services;
 using AracParki.Domain.Corporate;
@@ -11,7 +12,8 @@ public sealed class IndexModel(
     ListingService listings,
     CorporateAccountService corporate,
     FavoriteService favorites,
-    SavedSearchService savedSearches) : AccountPageModel
+    SavedSearchService savedSearches,
+    MessagingService messaging) : AccountPageModel
 {
     public string DisplayName { get; private set; } = string.Empty;
 
@@ -22,6 +24,7 @@ public sealed class IndexModel(
     public int RejectedCount { get; private set; }
     public int FavoriteCount { get; private set; }
     public int SavedSearchCount { get; private set; }
+    public int UnreadMessageCount { get; private set; }
     public int CorporateApprovedCount { get; private set; }
     public int CorporatePendingCount { get; private set; }
 
@@ -47,10 +50,12 @@ public sealed class IndexModel(
         var favTask = favorites.ListAsync(accountId, 100, cancellationToken);
         var savedTask = savedSearches.ListAsync(accountId, cancellationToken);
         var corporateTask = corporate.ListMineAsync(accountId, cancellationToken);
-        await Task.WhenAll(favTask, savedTask, corporateTask);
+        var unreadMessagesTask = messaging.CountUnreadThreadsAsync(accountId, cancellationToken);
+        await Task.WhenAll(favTask, savedTask, corporateTask, unreadMessagesTask);
 
         FavoriteCount = (await favTask).Count;
         SavedSearchCount = (await savedTask).Count;
+        UnreadMessageCount = await unreadMessagesTask;
 
         var corporateAccounts = await corporateTask;
         CorporateApprovedCount = corporateAccounts.Count(c => c.Status == CorporateStatus.Approved);

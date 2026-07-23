@@ -3,12 +3,9 @@
 @using AracParki.Domain.Listings
 @{
     Layout = "Shared/_AccountLayout";
-    ViewData[Breadcrumbs.ViewDataKey] = Breadcrumbs.Create(
-        new BreadcrumbItem("Admin", "/admin"),
-        new BreadcrumbItem("Şikayetler"));
 }
 <header class="page-account-head">
-  <partial name="Shared/Partials/_AccountBreadcrumb" />
+  <partial name="Shared/Partials/_AccountBack" model='("/admin", "Admin")' />
   <div class="page-account-title-row">
     <div>
       <h1>İlan şikayetleri</h1>
@@ -49,6 +46,7 @@
   <div class="empty-state">
     <span class="empty-state-icon" aria-hidden="true"><ap-icon name="circle-alert" size="22" class="ap-icon" /></span>
     <p>Bu durumda şikayet yok.</p>
+    <p class="empty-state-hint">Filtreyi değiştirerek diğer durumlara bakabilirsiniz.</p>
   </div>
 }
 else
@@ -58,23 +56,30 @@ else
     {
       <article class="admin-listing-row">
         <div class="admin-listing-body">
-          <h2><a href="/admin/sikayetler/@item.Id">@item.ListingTitle</a></h2>
-          <p class="admin-listing-meta">
+          <div class="admin-corp-title-row">
+            <h2><a href="/admin/sikayetler/@item.Id">@item.ListingTitle</a></h2>
             <span class="@ListingReportStatus.BadgeClass(item.Status)">@ListingReportStatus.Label(item.Status)</span>
-            · @item.AdNo
-            · <span class="@ListingStatus.BadgeClass(item.ListingStatus)">@ListingStatus.Label(item.ListingStatus)</span>
-          </p>
-          <p class="admin-listing-meta">
-            @ListingReportReason.Label(item.ReasonCode)
-            · @item.ReporterName
-            · @item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+          </div>
+          <div class="admin-listing-meta">
+            <span class="admin-corp-mono">@item.AdNo</span>
+            <span class="admin-corp-sep">·</span>
+            <span class="@ListingStatus.BadgeClass(item.ListingStatus)">@ListingStatus.Label(item.ListingStatus)</span>
+            <span class="admin-corp-sep">·</span>
+            <span>@ListingReportReason.Label(item.ReasonCode)</span>
+          </div>
+          <p class="admin-corp-owner">
+            <span>@item.ReporterName</span>
+            <span class="admin-corp-sep">·</span>
+            <time datetime="@item.CreatedAt.UtcDateTime.ToString("o")">
+              @item.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+            </time>
           </p>
           @if (!string.IsNullOrWhiteSpace(item.Message))
           {
             <p class="admin-reject-note">@item.Message</p>
           }
         </div>
-        <a class="btn btn-ghost btn-sm" href="/admin/sikayetler/@item.Id">İncele</a>
+        <a class="btn btn-machine btn-sm admin-corp-cta" href="/admin/sikayetler/@item.Id">İncele</a>
       </article>
     }
   </div>

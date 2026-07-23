@@ -1,4 +1,5 @@
 using AracParki.Application.Accounts.Dtos;
+using AracParki.Application.Conversations.Services;
 using AracParki.Application.Listings;
 using AracParki.Application.Notifications;
 
@@ -8,7 +9,8 @@ public sealed class AccountNavCountsService(
     IListingQuery listings,
     IFavoriteStore favorites,
     ISavedSearchStore savedSearches,
-    INotificationService notifications)
+    INotificationService notifications,
+    MessagingService messaging)
 {
     private long _cachedAccountId;
     private AccountNavCountsDto? _cached;
@@ -29,7 +31,8 @@ public sealed class AccountNavCountsService(
         var favoritesTask = favorites.CountPublishedAsync(accountId, cancellationToken);
         var savedTask = savedSearches.CountByAccountAsync(accountId, cancellationToken);
         var unreadTask = notifications.CountUnreadAsync(accountId, cancellationToken);
-        await Task.WhenAll(listingsTask, favoritesTask, savedTask, unreadTask);
+        var messagesTask = messaging.CountUnreadThreadsAsync(accountId, cancellationToken);
+        await Task.WhenAll(listingsTask, favoritesTask, savedTask, unreadTask, messagesTask);
 
         _cachedAccountId = accountId;
         _cached = new AccountNavCountsDto
@@ -37,7 +40,8 @@ public sealed class AccountNavCountsService(
             Listings = await listingsTask,
             Favorites = await favoritesTask,
             SavedSearches = await savedTask,
-            UnreadNotifications = await unreadTask
+            UnreadNotifications = await unreadTask,
+            UnreadMessages = await messagesTask
         };
         return _cached;
     }

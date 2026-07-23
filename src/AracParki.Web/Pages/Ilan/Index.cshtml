@@ -41,9 +41,29 @@
         listing.Price,
         listing.PrimaryIntent == ListingIntent.Kiralik ? listing.PriceUnit : null,
         listing.Currency);
+    var compareMetaParts = new List<string>();
+    if (listing.ModelYear > 0)
+    {
+        compareMetaParts.Add(listing.ModelYear.ToString());
+    }
+    if (listing.Hours is not null)
+    {
+        compareMetaParts.Add(Formatters.Hours(listing.Hours.Value));
+    }
+    var compareMeta = string.Join(", ", compareMetaParts);
 }
 
-<main class="container page-detail" id="main" data-recent-id="@listing.Id">
+<main class="container page-detail"
+      id="main"
+      data-recent-id="@listing.Id"
+      @if (!isPreview && !isExpiredLive)
+      {
+        <text>data-compare-adno="@listing.AdNo"
+        data-compare-title="@listing.Title"
+        data-compare-thumb="@ListingImageUrlVariants.WithVariant(mainImage, ListingImageVariants.Thumb)"
+        data-compare-price="@priceText"
+        data-compare-meta="@compareMeta"</text>
+      }>
   @if (isPreview || isExpiredLive)
   {
     <div class="detail-status-banner @(listing.Status == ListingStatus.Rejected ? "is-rejected" : listing.Status == ListingStatus.Archived || isExpiredLive ? "is-archived" : null)" role="status">
@@ -526,10 +546,31 @@
                   <ap-icon name="phone" size="18" />
                   <span data-reveal-phone-label>Telefonu Göster</span>
                 </a>
-                <button type="button" class="btn btn-machine btn-block" data-toast="Teklif talebi alındı">
-                  <ap-icon name="message-circle" size="18" />
-                  <span>Teklif Al</span>
-                </button>
+                @if (Model.IsOwnListing)
+                {
+                  <button type="button" class="btn btn-machine btn-block" disabled title="Kendi ilanınıza mesaj gönderemezsiniz">
+                    <ap-icon name="message-circle" size="18" />
+                    <span>Mesaj Gönder</span>
+                  </button>
+                }
+                else if (User.Identity?.IsAuthenticated == true)
+                {
+                  <form method="post" asp-page-handler="StartMessage">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-machine btn-block">
+                      <ap-icon name="message-circle" size="18" />
+                      <span>Mesaj Gönder</span>
+                    </button>
+                  </form>
+                }
+                else
+                {
+                  <a class="btn btn-machine btn-block"
+                     href="/giris?returnUrl=@Uri.EscapeDataString($"/ilan/{listing.AdNo}")">
+                    <ap-icon name="message-circle" size="18" />
+                    <span>Mesaj Gönder</span>
+                  </a>
+                }
               </div>
             }
             @if (!isPreview && isCorporateListing && sellerVerified)
@@ -553,33 +594,7 @@
             </span>
           </a>
 
-          <aside class="detail-ad-slot" aria-label="Reklam alanı">
-            <div class="detail-ad-slot-head">
-              <span class="detail-ad-slot-kicker">Sponsorlu alan</span>
-              <strong class="detail-ad-slot-title">Markanızı burada gösterin</strong>
-              <p class="detail-ad-slot-text">
-                Alıcı karar anında, ilan detayını incelerken görünür olun.
-              </p>
-            </div>
-            <ul class="detail-ad-slot-points">
-              <li>
-                <ap-icon name="search" size="14" class="ap-icon" aria-hidden="true" />
-                <span>Yüksek niyetli iş makinesi alıcıları</span>
-              </li>
-              <li>
-                <ap-icon name="eye" size="14" class="ap-icon" aria-hidden="true" />
-                <span>Karar anına yakın, dikkat çeken konum</span>
-              </li>
-              <li>
-                <ap-icon name="building-2" size="14" class="ap-icon" aria-hidden="true" />
-                <span>Bayi, stok ve B2B hizmetler için uygun</span>
-              </li>
-            </ul>
-            <a class="btn btn-ghost btn-sm detail-ad-slot-cta" href="/reklam">
-              <ap-icon name="mail" size="14" class="ap-icon" aria-hidden="true" />
-              <span>Reklam teklifi alın</span>
-            </a>
-          </aside>
+          <partial name="Shared/Partials/_AdSlot" />
         </div>
       </div>
     </aside>
@@ -657,9 +672,22 @@
          aria-expanded="false">
         <span data-reveal-phone-label>Telefon</span>
       </a>
-      <button type="button" class="btn btn-machine btn-sm" data-toast="Teklif talebi alındı">
-        Teklif Al
-      </button>
+      @if (Model.IsOwnListing)
+      {
+        <button type="button" class="btn btn-machine btn-sm" disabled title="Kendi ilanınıza mesaj gönderemezsiniz">Mesaj</button>
+      }
+      else if (User.Identity?.IsAuthenticated == true)
+      {
+        <form method="post" asp-page-handler="StartMessage" class="mobile-cta-msg-form">
+          @Html.AntiForgeryToken()
+          <button type="submit" class="btn btn-machine btn-sm">Mesaj</button>
+        </form>
+      }
+      else
+      {
+        <a class="btn btn-machine btn-sm"
+           href="/giris?returnUrl=@Uri.EscapeDataString($"/ilan/{listing.AdNo}")">Mesaj</a>
+      }
     </div>
   }
 </main>

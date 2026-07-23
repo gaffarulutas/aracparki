@@ -6,9 +6,11 @@ using AracParki.Application;
 using AracParki.Application.Common;
 using AracParki.Application.Authorization;
 using AracParki.Application.Catalog.Services;
+using AracParki.Application.Conversations.Services;
 using AracParki.Application.Listings;
 using AracParki.Application.Listings.Services;
 using AracParki.Application.Media;
+using AracParki.Domain.Listings;
 using AracParki.Infrastructure;
 using AracParki.Infrastructure.Persistence;
 using AracParki.Web.Infrastructure;
@@ -171,6 +173,17 @@ try
                     Window = TimeSpan.FromMinutes(15),
                     QueueLimit = 0
                 }));
+        options.AddPolicy("messaging-send", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 30,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0
+                }));
         options.AddPolicy("listing-images", httpContext =>
             RateLimitPartition.GetFixedWindowLimiter(
                 httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
@@ -180,6 +193,15 @@ try
                 {
                     PermitLimit = 60,
                     Window = TimeSpan.FromMinutes(15),
+                    QueueLimit = 0
+                }));
+        options.AddPolicy("featured-listings", httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 60,
+                    Window = TimeSpan.FromMinutes(1),
                     QueueLimit = 0
                 }));
     });
@@ -286,6 +308,86 @@ try
             return Results.Json(new { phone = display, tel });
         })
         .RequireRateLimiting("phone-reveal");
+
+    app.MapGet("/api/account/unread-messages", async (
+            HttpContext http,
+            MessagingService messaging,
+            CancellationToken ct) =>
+        {
+            var raw = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!long.TryParse(raw, out var accountId) || accountId <= 0)
+                return Results.Unauthorized();
+
+            var unreadCount = await messaging.CountUnreadThreadsAsync(accountId, ct);
+            var messages = await messaging.ListUnreadIncomingAsync(accountId, 20, ct);
+            return Results.Json(new
+            {
+                unreadCount,
+                messages = messages.Select(m => new
+                {
+                    id = m.MessageId,
+                    threadId = m.ThreadId,
+                    adNo = m.AdNo,
+                    body = m.BodyPreview,
+                    createdAt = m.CreatedAt
+                })
+            });
+        })
+        .RequireAuthorization();
+
+    app.MapGet("/api/listings/by-ids", async (
+            string? ids,
+            ListingService listings,
+            CancellationToken ct) =>
+        {
+            var parsed = (ids ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s => long.TryParse(s, out var id) ? id : 0L)
+                .Where(id => id > 0)
+                .Distinct()
+                .Take(6)
+                .ToArray();
+            if (parsed.Length == 0)
+            {
+                return Results.Json(Array.Empty<object>());
+            }
+
+            var cards = await listings.GetPublishedCardsByIdsAsync(parsed, ct);
+            var byId = cards.ToDictionary(c => c.Id);
+            var payload = new List<object>(parsed.Length);
+            foreach (var id in parsed)
+            {
+                if (!byId.TryGetValue(id, out var c))
+                {
+                    continue;
+                }
+
+                var priceUnit = string.Equals(c.PrimaryIntent, ListingIntent.Kiralik, StringComparison.Ordinal)
+                    ? c.PriceUnit
+                    : null;
+                var brandModel = string.Join(" ", new[] { c.Brand, c.ModelName }.Where(s => !string.IsNullOrWhiteSpace(s)));
+                payload.Add(new
+                {
+                    id = c.Id,
+                    adNo = c.AdNo,
+                    title = c.Title,
+                    href = ListingRoutes.Detail(c.AdNo),
+                    price = Formatters.Price(c.Price, priceUnit, c.Currency),
+                    brandModel,
+                    modelYear = c.ModelYear > 0 ? c.ModelYear : (int?)null,
+                    location = string.Join(" / ", new[] { c.City, c.District }.Where(s => !string.IsNullOrWhiteSpace(s))),
+                    badgeClass = ListingIntent.BadgeClass(c.PrimaryIntent),
+                    badgeText = ListingIntent.Label(c.PrimaryIntent),
+                    thumb = ListingImageUrlVariants.WithVariant(c.CoverImageUrl, ListingImageVariants.Card),
+                    srcset = ListingImageUrlVariants.SrcSet(
+                        c.CoverImageUrl,
+                        (ListingImageVariants.Thumb, 160),
+                        (ListingImageVariants.Card, 480)),
+                });
+            }
+
+            return Results.Json(payload);
+        });
 
     var locations = app.MapGroup("/api/locations");
     locations.MapGet("/cities", async (CatalogService catalog, CancellationToken ct) =>

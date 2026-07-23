@@ -52,7 +52,7 @@
       <p class="account-nav-section-title">İletişim</p>
       <ul class="account-nav-list" aria-label="İletişim">
         <li>
-          <partial name="Shared/Partials/_AccountNavItem" model='("/mesajlarim", "Mesajlarım", "message-circle", isMesajlarim, (int?)null)' />
+          <partial name="Shared/Partials/_AccountNavItem" model='("/mesajlarim", "Mesajlarım", "message-circle", isMesajlarim, (int?)Model.UnreadMessages)' />
         </li>
         <li>
           <partial name="Shared/Partials/_AccountNavItem" model='("/bildirimler", "Bildirimler", "bell", isBildirimler, (int?)Model.UnreadNotifications)' />

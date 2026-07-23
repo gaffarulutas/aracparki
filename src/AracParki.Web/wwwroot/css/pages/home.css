@@ -12,6 +12,10 @@
   align-content: start;
 }
 
+.home-aside .detail-ad-slot {
+  border-radius: var(--radius);
+}
+
 .aside-list,
 .aside-cities {
   list-style: none;

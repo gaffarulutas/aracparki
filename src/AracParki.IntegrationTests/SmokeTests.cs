@@ -38,4 +38,21 @@ public sealed class SmokeTests(WebApplicationFactory<Program> factory)
         var response = await _client.GetAsync("/ilan/AP-100001/telefon");
         Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Mesajlarim_requires_auth()
+    {
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false
+        });
+        var response = await client.GetAsync("/mesajlarim");
+        Assert.True(
+            response.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.Unauthorized or HttpStatusCode.Found,
+            $"Unexpected status: {response.StatusCode}");
+        if (response.Headers.Location is { } loc)
+        {
+            Assert.Contains("giris", loc.ToString(), StringComparison.OrdinalIgnoreCase);
+        }
+    }
 }

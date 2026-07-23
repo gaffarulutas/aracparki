@@ -10,6 +10,8 @@ namespace AracParki.Web.Pages;
 
 public sealed class IndexModel(ListingService listingService, CatalogService catalogService) : PageModel
 {
+    private const int FeaturedTake = 15;
+
     public IReadOnlyList<CategorySummaryDto> Categories { get; private set; } = [];
     public IReadOnlyList<CitySummaryDto> PopularCities { get; private set; } = [];
     public IReadOnlyList<CategoryOptionDto> CategoryOptions { get; private set; } = [];
@@ -29,7 +31,7 @@ public sealed class IndexModel(ListingService listingService, CatalogService cat
         PopularCities = await catalogService.GetPopularCitiesAsync(cancellationToken);
         CategoryOptions = await catalogService.GetAllCategoriesAsync(cancellationToken);
         CityOptions = await catalogService.GetAllCitiesAsync(cancellationToken);
-        Featured = await listingService.GetFeaturedAsync(Filter, 15, cancellationToken);
+        Featured = await listingService.GetFeaturedAsync(Filter, FeaturedTake, cancellationToken);
 
         ViewData["PageKey"] = "home";
         ViewData["Title"] = "Araç Parkı | Türkiye İş Makinesi Satılık · Kiralık · İkinci El";

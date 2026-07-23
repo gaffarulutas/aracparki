@@ -1,11 +1,64 @@
 @page "/mesajlarim"
 @model AracParki.Web.Pages.Mesajlarim.IndexModel
+@using AracParki.Application.Listings
+@using AracParki.Domain.Listings
 @{
     Layout = "Shared/_AccountLayout";
 }
 <header class="page-account-head">
-  <partial name="Shared/Partials/_AccountBreadcrumb" />
+  <partial name="Shared/Partials/_AccountBack" model='("/panel", "Panel")' />
   <h1>Mesajlarım</h1>
   <p class="page-account-lead">İlan sahipleri ve alıcılarla yazışmaların</p>
 </header>
-<partial name="Shared/Partials/_AccountComingSoon" model="@($"Site içi mesajlaşma yakında açılacak. Şimdilik ilan detayındaki telefon ile iletişime geçebilirsin.")" />
+
+@if (Model.Threads.Count == 0)
+{
+  <div class="empty-state">
+    <span class="empty-state-icon" aria-hidden="true"><ap-icon name="message-circle" size="22" class="ap-icon" /></span>
+    <p>Henüz mesajın yok.</p>
+    <p class="empty-state-hint">İlan detayından “Mesaj Gönder” ile satıcıya yazabilirsin.</p>
+    <a class="btn btn-machine" href="/ilanlar">İlanlara git</a>
+  </div>
+}
+else
+{
+  <div class="msg-thread-list" role="list">
+    @foreach (var item in Model.Threads)
+    {
+      var thumb = ListingImageUrlVariants.WithVariant(item.CoverImageUrl, ListingImageVariants.Thumb);
+      var priceUnit = item.PrimaryIntent == ListingIntent.Kiralik ? item.PriceUnit : null;
+      var price = Formatters.Price(item.Price, priceUnit, item.Currency);
+      <a class="msg-thread-row @(item.IsUnread ? "is-unread" : null)"
+         href="/mesajlarim/@item.Id"
+         role="listitem">
+        <span class="msg-thread-thumb img-shell">
+          <img src="@thumb" alt="" width="72" height="54" loading="lazy" decoding="async" />
+        </span>
+        <span class="msg-thread-body">
+          <span class="msg-thread-top">
+            <strong class="msg-thread-title">@item.ListingTitle</strong>
+            @if (item.LastMessageAt is DateTimeOffset at)
+            {
+              <time class="msg-thread-time" datetime="@at.UtcDateTime.ToString("o")">
+                @at.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+              </time>
+            }
+          </span>
+          <span class="msg-thread-meta">
+            <span>@item.CounterpartyName</span>
+            <span class="msg-thread-adno">@item.AdNo</span>
+            <span class="msg-thread-price">@price</span>
+          </span>
+          @if (!string.IsNullOrWhiteSpace(item.LastMessagePreview))
+          {
+            <span class="msg-thread-preview">@item.LastMessagePreview</span>
+          }
+        </span>
+        @if (item.IsUnread)
+        {
+          <span class="msg-thread-dot" aria-label="Okunmamış"></span>
+        }
+      </a>
+    }
+  </div>
+}

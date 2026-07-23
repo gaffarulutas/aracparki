@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Claims;
 using AracParki.Application.Catalog.Dtos;
 using AracParki.Application.Catalog.Services;
+using AracParki.Application.Conversations.Services;
 using AracParki.Application.Listings;
 using AracParki.Application.Listings.Dtos;
 using AracParki.Application.Listings.Queries;
@@ -19,7 +20,8 @@ public sealed class IndexModel(
     CatalogService catalog,
     SiteUrls siteUrls,
     FavoriteService favorites,
-    ListingReportService reports) : PageModel
+    ListingReportService reports,
+    MessagingService messaging) : PageModel
 {
     [BindProperty(SupportsGet = true)]
     public string AdNo { get; set; } = string.Empty;
@@ -30,6 +32,7 @@ public sealed class IndexModel(
     public IReadOnlyList<CategorySummaryDto> CategoryNav { get; private set; } = [];
     public IReadOnlyList<BreadcrumbItem> BreadcrumbTrail { get; private set; } = [];
     public bool IsFavorite { get; private set; }
+    public bool IsOwnListing { get; private set; }
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
@@ -53,6 +56,7 @@ public sealed class IndexModel(
         if (access.AccountId is long accountId && Listing.Status == ListingStatus.Published)
         {
             IsFavorite = await favorites.IsFavoriteAsync(accountId, Listing.Id, cancellationToken);
+            IsOwnListing = Listing.OwnerAccountId == accountId;
         }
 
         if (Listing.CategoryId > 0)
@@ -148,6 +152,31 @@ public sealed class IndexModel(
         }
 
         return RedirectToPage(new { adNo = listing.AdNo });
+    }
+
+    [EnableRateLimiting("messaging-send")]
+    public async Task<IActionResult> OnPostStartMessageAsync(CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(AdNo))
+            return NotFound();
+
+        var raw = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(raw, out var accountId) || accountId <= 0)
+        {
+            var returnUrl = $"/ilan/{AdNo.Trim()}";
+            return Redirect($"/giris?returnUrl={Uri.EscapeDataString(returnUrl)}");
+        }
+
+        try
+        {
+            var threadId = await messaging.StartOrGetThreadAsync(AdNo, accountId, cancellationToken);
+            return Redirect($"/mesajlarim/{threadId}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["AuthNotice"] = ex.Message;
+            return RedirectToPage(new { adNo = AdNo.Trim() });
+        }
     }
 
     [EnableRateLimiting("auth-sensitive")]

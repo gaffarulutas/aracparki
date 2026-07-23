@@ -7,19 +7,24 @@
     var cover = string.IsNullOrWhiteSpace(report.CoverImageUrl)
         ? "/assets/logo/icon-512.png"
         : report.CoverImageUrl;
-    ViewData[Breadcrumbs.ViewDataKey] = Breadcrumbs.Create(
-        new BreadcrumbItem("Admin", "/admin"),
-        new BreadcrumbItem("Şikayetler", $"/admin/sikayetler?durum={report.Status}"),
-        new BreadcrumbItem($"#{report.Id}"));
+    var isActive = ListingReportStatus.IsActive(report.Status);
+    var canArchive = isActive && report.ListingStatus == ListingStatus.Published;
 }
-<header class="page-account-head">
-  <partial name="Shared/Partials/_AccountBreadcrumb" />
-  <div class="page-account-title-row">
+<header class="page-account-head admin-corp-detail-head">
+  <partial name="Shared/Partials/_AccountBack"
+           model='($"/admin/sikayetler?durum={report.Status}", "Şikayetler")' />
+  <div class="admin-corp-detail-hero">
     <div>
-      <h1>Şikayet #@report.Id</h1>
-      <p class="page-account-lead">@report.AdNo · @report.ListingTitle</p>
+      <div class="admin-corp-title-row">
+        <h1>Şikayet #@report.Id</h1>
+        <span class="@ListingReportStatus.BadgeClass(report.Status)">@ListingReportStatus.Label(report.Status)</span>
+      </div>
+      <p class="admin-corp-trade">
+        <span class="admin-corp-mono">@report.AdNo</span>
+        <span class="admin-corp-sep">·</span>
+        @report.ListingTitle
+      </p>
     </div>
-    <span class="@ListingReportStatus.BadgeClass(report.Status)">@ListingReportStatus.Label(report.Status)</span>
   </div>
 </header>
 
@@ -37,17 +42,21 @@
           <dt>Neden</dt>
           <dd>@ListingReportReason.Label(report.ReasonCode)</dd>
         </div>
+        <div>
+          <dt>Tarih</dt>
+          <dd>@report.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</dd>
+        </div>
         <div class="admin-corp-dl-wide">
           <dt>Açıklama</dt>
           <dd>@(string.IsNullOrWhiteSpace(report.Message) ? "—" : report.Message)</dd>
         </div>
         <div>
           <dt>Şikayet eden</dt>
-          <dd>@report.ReporterName · @report.ReporterEmail</dd>
+          <dd>@report.ReporterName</dd>
         </div>
         <div>
-          <dt>Tarih</dt>
-          <dd>@report.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</dd>
+          <dt>E-posta</dt>
+          <dd>@report.ReporterEmail</dd>
         </div>
         @if (!string.IsNullOrWhiteSpace(report.AdminNotes))
         {
@@ -68,88 +77,102 @@
 
     <section class="admin-corp-panel">
       <h2 class="admin-corp-panel-title">İlan</h2>
-      <article class="admin-listing-row">
+      <article class="admin-listing-row admin-report-listing">
         <a class="admin-listing-thumb" href="/admin/ilanlar/@report.AdNo">
           <img src="@cover" alt="" width="120" height="90" loading="lazy" decoding="async" />
         </a>
         <div class="admin-listing-body">
           <h2><a href="/admin/ilanlar/@report.AdNo">@report.ListingTitle</a></h2>
-          <p class="admin-listing-meta">
+          <div class="admin-listing-meta">
             <span class="@ListingStatus.BadgeClass(report.ListingStatus)">@ListingStatus.Label(report.ListingStatus)</span>
-            · @report.AdNo
-          </p>
+            <span class="admin-corp-sep">·</span>
+            <span class="admin-corp-mono">@report.AdNo</span>
+          </div>
         </div>
-        <div>
+        <div class="admin-report-listing-actions">
           <a class="btn btn-ghost btn-sm" href="/admin/ilanlar/@report.AdNo">Moderasyon</a>
-          <a class="btn btn-ghost btn-sm" href="/ilan/@report.AdNo" target="_blank" rel="noopener">İlanı gör</a>
+          <a class="btn btn-ghost btn-sm" href="/ilan/@report.AdNo" target="_blank" rel="noopener noreferrer">İlanı gör</a>
         </div>
       </article>
     </section>
   </div>
 
-  <aside class="admin-corp-detail-side">
-    <section class="admin-corp-panel">
-      <h2 class="admin-corp-panel-title">Karar</h2>
-      <p class="page-account-lead">
-        Sonuçlandırdığınızda şikayet eden kullanıcıya bildirim gider.
-      </p>
-
-      @if (ListingReportStatus.IsActive(report.Status))
-      {
-        <form method="post" asp-page-handler="Reviewing" class="admin-corp-reject-form">
+  <aside class="admin-corp-aside">
+    @if (isActive)
+    {
+      <section class="admin-corp-panel admin-corp-aside-card admin-corp-actions">
+        <h2 class="admin-corp-panel-title">Karar</h2>
+        <p class="admin-corp-muted admin-corp-actions-lead">
+          Sonuçlandırdığınızda şikayet eden kullanıcıya bildirim gider.
+        </p>
+        <form method="post"
+              asp-page-handler="Resolve"
+              class="admin-corp-reject-form admin-report-decision-form"
+              data-archive-confirm="İlan yayından kaldırılsın ve şikayet sonuçlandırılsın mı?">
           @Html.AntiForgeryToken()
-          <label for="admin-notes-review">Admin notu (opsiyonel)</label>
-          <textarea id="admin-notes-review"
+          <label class="ap-label" for="decision">Karar <abbr class="field-req" title="Zorunlu">*</abbr></label>
+          <select class="ap-input" id="decision" name="decision" required>
+            <option value="">Karar seçin…</option>
+            @if (report.Status == ListingReportStatus.Open)
+            {
+              <option value="reviewing">İncelemeye al</option>
+            }
+            <option value="actioned">İşlem yapıldı</option>
+            <option value="dismissed">İşlem yapılmadı</option>
+            @if (canArchive)
+            {
+              <option value="archive">İlanı arşivle ve sonuçlandır</option>
+            }
+          </select>
+          <label class="ap-label" for="adminNotes">Admin notu <span class="ap-optional">(opsiyonel)</span></label>
+          <textarea class="ap-input corp-textarea"
+                    id="adminNotes"
                     name="adminNotes"
-                    rows="3"
+                    rows="4"
                     maxlength="1000"
-                    placeholder="İnceleme notu…"></textarea>
-          <button class="btn btn-ghost btn-block" type="submit">İncelemeye al</button>
+                    placeholder="Karar gerekçesi veya inceleme notu…"></textarea>
+          <button class="btn btn-machine btn-block" type="submit">Kararı uygula</button>
         </form>
-
-        <form method="post" asp-page-handler="Actioned" class="admin-corp-reject-form">
-          @Html.AntiForgeryToken()
-          <label for="admin-notes-actioned">Admin notu (opsiyonel)</label>
-          <textarea id="admin-notes-actioned"
-                    name="adminNotes"
-                    rows="3"
-                    maxlength="1000"
-                    placeholder="Yapılan işlem…"></textarea>
-          <button class="btn btn-machine btn-block" type="submit">İşlem yapıldı</button>
-        </form>
-
-        <form method="post" asp-page-handler="Dismissed" class="admin-corp-reject-form">
-          @Html.AntiForgeryToken()
-          <label for="admin-notes-dismissed">Admin notu (opsiyonel)</label>
-          <textarea id="admin-notes-dismissed"
-                    name="adminNotes"
-                    rows="3"
-                    maxlength="1000"
-                    placeholder="İşlem yapılmama gerekçesi…"></textarea>
-          <button class="btn btn-dark btn-block" type="submit">İşlem yapılmadı</button>
-        </form>
-
-        @if (report.ListingStatus == ListingStatus.Published)
+      </section>
+    }
+    else if (report.Status == ListingReportStatus.Actioned)
+    {
+      <section class="admin-corp-panel admin-corp-aside-card admin-corp-aside-ok">
+        <h2 class="admin-corp-panel-title">İşlem yapıldı</h2>
+        <p>Bu şikayet sonuçlandırıldı. Kullanıcıya bildirim gönderildi.</p>
+        @if (report.ReviewedAt is not null)
         {
-          <form method="post"
-                asp-page-handler="ArchiveListing"
-                class="admin-corp-reject-form"
-                onsubmit="return confirm('İlan yayından kaldırılsın ve şikayet sonuçlandırılsın mı?');">
-            @Html.AntiForgeryToken()
-            <label for="admin-notes-archive">Admin notu (opsiyonel)</label>
-            <textarea id="admin-notes-archive"
-                      name="adminNotes"
-                      rows="3"
-                      maxlength="1000"
-                      placeholder="Yayından kaldırma notu…"></textarea>
-            <button class="btn btn-ghost btn-block" type="submit">İlanı arşivle ve sonuçlandır</button>
-          </form>
+          <p class="admin-corp-muted">@report.ReviewedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
         }
-      }
-      else
-      {
-        <p class="page-account-lead">Bu şikayet sonuçlandırılmış.</p>
-      }
-    </section>
+      </section>
+    }
+    else
+    {
+      <section class="admin-corp-panel admin-corp-aside-card">
+        <h2 class="admin-corp-panel-title">İşlem yapılmadı</h2>
+        <p class="admin-corp-muted">Bu şikayet sonuçlandırıldı. Kullanıcıya bildirim gönderildi.</p>
+        @if (report.ReviewedAt is not null)
+        {
+          <p class="admin-corp-muted">@report.ReviewedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+        }
+      </section>
+    }
   </aside>
 </div>
+
+@if (isActive)
+{
+  <script>
+    (() => {
+      const form = document.querySelector('.admin-report-decision-form');
+      if (!form) return;
+      form.addEventListener('submit', (e) => {
+        const decision = form.querySelector('#decision');
+        if (decision?.value === 'archive') {
+          const msg = form.getAttribute('data-archive-confirm') || 'Onaylıyor musunuz?';
+          if (!window.confirm(msg)) e.preventDefault();
+        }
+      });
+    })();
+  </script>
+}

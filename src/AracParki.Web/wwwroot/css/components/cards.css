@@ -1,11 +1,26 @@
 /* —— Vitrin / listings —— */
-/* —— Vitrin / listings —— */
 .vitrin-block,
 .recent-block {
   background: var(--raised);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: var(--space-2);
+}
+
+.listing-grid.listing-grid--recent {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .listing-grid.listing-grid--recent {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 980px) {
+  .listing-grid.listing-grid--recent {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
 }
 
 .vitrin-head {
@@ -42,6 +57,10 @@
   gap: 6px;
 }
 
+.filter-chips-tabs {
+  display: contents;
+}
+
 .chip {
   appearance: none;
   border: 0;
@@ -69,6 +88,7 @@
 }
 
 .chip[aria-pressed="true"],
+.chip[aria-selected="true"],
 .chip[aria-current="page"] {
   background: transparent;
   color: var(--ink);
@@ -76,6 +96,7 @@
 }
 
 .chip[aria-pressed="true"]:hover,
+.chip[aria-selected="true"]:hover,
 .chip[aria-current="page"]:hover {
   background: transparent;
   color: var(--ink);
@@ -503,6 +524,31 @@ a.proof-item:focus-visible {
   background-size: 200% 100%;
   animation: shimmer 1.2s ease-in-out infinite;
   border-radius: var(--radius);
+}
+
+.listing-grid[aria-busy="true"] {
+  pointer-events: none;
+}
+
+.listing-grid .skeleton-card {
+  min-height: 0;
+  aspect-ratio: 1 / 1.35;
+  display: grid;
+  align-content: end;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+}
+
+.listing-grid .skeleton-card::before {
+  content: "";
+  display: block;
+  aspect-ratio: 1 / 1;
+  background: linear-gradient(90deg, #e4e4e4 0%, #f2f2f2 50%, #e4e4e4 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+  margin: -8px -8px 0;
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 
 .skeleton-card {
