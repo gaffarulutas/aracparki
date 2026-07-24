@@ -263,10 +263,9 @@
 .filter-range input[type="number"]:focus,
 .filter-field > input[type="number"]:focus-visible,
 .filter-range input[type="number"]:focus-visible {
-  outline: 2px solid var(--link);
-  outline-offset: 2px;
-  border-color: var(--link);
-  box-shadow: none;
+  outline: none;
+  border-color: var(--machine-deep);
+  box-shadow: inset 0 0 0 1px var(--machine-deep);
 }
 
 /* İl / İlçe popover — diğer filtre kontrolleriyle aynı standart */
@@ -325,10 +324,9 @@
 .filter-pop-trigger:focus-visible,
 .filter-pop-search:focus,
 .filter-pop-search:focus-visible {
-  outline: 2px solid var(--link);
-  outline-offset: 2px;
-  border-color: var(--link);
-  box-shadow: none;
+  outline: none;
+  border-color: var(--machine-deep);
+  box-shadow: inset 0 0 0 1px var(--machine-deep);
 }
 
 .filter-pop-panel {
@@ -488,10 +486,9 @@
 
 .filter-box select:focus,
 .filter-box select:focus-visible {
-  outline: 2px solid var(--link);
-  outline-offset: 2px;
-  border-color: var(--link);
-  box-shadow: none;
+  outline: none;
+  border-color: var(--machine-deep);
+  box-shadow: inset 0 0 0 1px var(--machine-deep);
 }
 
 .filter-box select:has(> option[value=""]:checked),
@@ -713,10 +710,9 @@
 
 .list-sort-select:focus,
 .list-sort-select:focus-visible {
-  outline: 2px solid var(--link);
-  outline-offset: 2px;
-  border-color: var(--link);
-  box-shadow: none;
+  outline: none;
+  border-color: var(--machine-deep);
+  box-shadow: inset 0 0 0 1px var(--machine-deep);
 }
 
 .list-sort-chevron {

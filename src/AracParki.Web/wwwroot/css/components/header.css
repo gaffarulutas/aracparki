@@ -191,9 +191,9 @@
   max-width: 220px;
   min-height: 36px;
   padding: 4px 8px 4px 4px;
-  border: 1px solid transparent;
+  border: 1px solid var(--line);
   border-radius: 999px;
-  background: transparent;
+  background: var(--raised);
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 13px;
@@ -208,7 +208,10 @@
 .account-menu-trigger:hover,
 .account-menu.is-open .account-menu-trigger {
   background: var(--surface);
-  border-color: var(--line);
+}
+
+.account-menu-trigger:active {
+  background: var(--surface-2);
 }
 
 .account-menu-trigger:focus-visible {

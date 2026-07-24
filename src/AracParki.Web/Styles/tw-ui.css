@@ -90,8 +90,8 @@
   }
 
   .ap-input:focus {
-    @apply border-ap-link bg-ap-raised;
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--link) 25%, transparent);
+    @apply border-ap-machine-deep bg-ap-raised outline-none;
+    box-shadow: inset 0 0 0 1px var(--machine-deep);
   }
 
   .ap-input:disabled,
@@ -318,8 +318,8 @@
 }
 
 .ap-phone-gate__phone-row:focus-within {
-  border-color: var(--link, #0a4dcf);
-  box-shadow: 0 0 0 2px rgba(10, 77, 207, 0.2);
+  border-color: var(--machine-deep, #e6cf00);
+  box-shadow: inset 0 0 0 1px var(--machine-deep, #e6cf00);
 }
 
 .ap-phone-gate__prefix {
@@ -353,8 +353,8 @@
 }
 
 .ap-phone-gate__input:focus {
-  border-color: var(--link, #0a4dcf);
-  box-shadow: 0 0 0 2px rgba(10, 77, 207, 0.2);
+  border-color: var(--machine-deep, #e6cf00);
+  box-shadow: inset 0 0 0 1px var(--machine-deep, #e6cf00);
 }
 
 .ap-phone-gate__phone-row .ap-phone-gate__input:focus {

@@ -41,11 +41,10 @@
 .sort-field select:focus,
 .filter-field select:focus-visible,
 .sort-field select:focus-visible {
-  outline: 2px solid var(--link);
-  outline-offset: 2px;
-  border-color: var(--link);
+  outline: none;
+  border-color: var(--machine-deep);
   background-color: var(--raised);
-  box-shadow: none;
+  box-shadow: inset 0 0 0 1px var(--machine-deep);
 }
 
 .filter-field select:has(> option[value=""]:checked) {
@@ -109,9 +108,9 @@
 .promo-dd-trigger:focus,
 .promo-dd-trigger:focus-visible,
 .promo-dd-trigger.is-open {
-  outline: 2px solid var(--link);
-  outline-offset: 2px;
-  border-color: var(--link);
+  outline: none;
+  border-color: var(--machine-deep);
+  box-shadow: inset 0 0 0 1px var(--machine-deep);
 }
 
 .promo-dd-label {
